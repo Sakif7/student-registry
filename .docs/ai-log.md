@@ -588,3 +588,31 @@ formatted on the server, so the browser can't render them differently.
 **Caught along the way:** some testing-guide steps and test comments used
 gendered pronouns for the fictitious students. They now use names or neutral
 wording.
+
+## Completing the demo data
+
+**What the AI did:**
+
+- **The seed:** gained eight assessments in every state (open, past the
+  deadline but still accepting late work, closed), eleven submissions stored
+  as real PDF and Word files (on time, late, replaced, and one from a student
+  who later withdrew), and marks in every classification, published and not.
+  Amelia's results are withheld for outstanding fees.
+- **Reseeding:** before replacing the data, the seed deletes the stored files
+  of the submissions it is about to remove, and nothing else.
+- **The testing guide:** the demo data table and scenarios 9 to 12 now use
+  the seeded assessments, including late work, a closed assessment, a
+  deferred student and a completed student's results.
+
+**Checked by:**
+
+- running the seed twice: the upload folder held exactly the 11 current files
+  each time, and the files left over from manual testing were removed;
+- **in a real browser:** the assessments list showed every state and count as
+  intended, including a deadline on the day the clocks go back, correctly
+  shown in GMT.
+
+**Caught along the way:** a deferred student viewing an assessment past its
+deadline would have been told "You can still submit", alongside the notice
+that only enrolled students can submit. The deadline note now only promises
+what the student can actually do.

@@ -1,8 +1,8 @@
 # Testing
 
-This guide covers the automated test suites and how to run them. Manual test
-scenarios, with exact inputs and expected results for each workflow, are added
-as the features are built.
+This guide covers the automated test suites and how to run them, then manual
+test scenarios for every workflow, with exact inputs and expected results, and
+examples of calling the API with curl.
 
 ## Automated tests
 
@@ -62,6 +62,23 @@ same amount.
 | Hannah Kowalski   | SMS-2026-0005 | MSc Data Science              | Withdrawn | Withdrew 8 days ago; still owes £9,950.00, overdue by 6 days   |
 | Chloé Dubois      | SMS-2026-0006 | BA (Hons) Business Management | Enrolled  | Paid in full after a payment recalled by the bank was reversed |
 | Arjun Mehta       | SMS-2026-0007 | MSc Data Science              | Enrolled  | £11,950.00 due in 5 days, not yet overdue                      |
+
+Each programme has assessments in every state. Deadlines are at 17:00 college
+time; "late" means submitted after the deadline.
+
+| Assessment              | Module | Deadline           | State                                    | Submissions and marks                                                                                |
+| ----------------------- | ------ | ------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Web project proposal    | CS5003 | in 10 days         | Open                                     | Priya                                                                                                |
+| Data pipeline design    | DS7002 | in 14 days         | Open                                     | None                                                                                                 |
+| Accounting test         | BM4002 | in 20 days         | Open                                     | None                                                                                                 |
+| Database design report  | CS4002 | 2 days ago         | Past deadline, still accepting late work | Oliver (81, not published)                                                                           |
+| Management essay        | BM4001 | 7 days ago         | Past deadline, still accepting late work | Kwame (35, Fail, published); Chloé, late (62, Merit, not published)                                  |
+| Machine learning report | DS7001 | 5 days ago         | Closed yesterday                         | Hannah, before withdrawing; Liam (71, Distinction, published); Arjun, late (45, Pass, not published) |
+| Algorithms coursework   | CS4001 | 14 days ago        | Closed 3 days ago                        | Oliver (74, Distinction); Priya, late (58, Pass); Amelia, replaced once (66, Merit); all published   |
+| Final year project      | CS5003 | about 7 months ago | Closed                                   | Mohammed (68, Merit, published)                                                                      |
+
+Amelia Hart's results are withheld for outstanding tuition fees, so Amelia
+sees none of them. Every submission is a real PDF or Word file that downloads.
 
 ### 1. Choosing a view
 
@@ -236,35 +253,37 @@ below are as of the day the seed runs. As staff:
 
 As staff:
 
-1. Open **Assessments** and select **Set an assessment**. Select **Set
-   assessment** without filling anything in. "Choose a module", "Enter a
-   title" and "Enter a date and time" appear.
-2. Choose **CS4001 Programming Fundamentals**, enter the title
-   `Coursework 1: Algorithms` and the deadline 28 March 2027 at 01:30. "The
-   clocks go forward at that time, so it never happens" appears under
-   **Deadline**: on that day UK clocks jump from 01:00 to 02:00. A date in the
-   past is refused too: "The deadline must be in the future".
-3. Change the deadline to 20 November 2026 at 17:00 and select **Set
-   assessment**. The assessment's page shows the deadline as "Fri 20 Nov
-   2026, 17:00 GMT" and **Open**. Under **Submissions**, "0 of 3 enrolled
-   students have submitted" lists Amelia Hart, Oliver Bennett and Priya
-   Natarajan, the enrolled Computer Science students. Mohammed Al-Farsi has
-   completed the programme, so isn't expected to submit.
-4. Select **Edit title or deadline**, move the deadline to 4 December 2026 at
-   17:00 and save. The page now shows "Fri 4 Dec 2026, 17:00 GMT".
-5. Select **Close to submissions**. A dialog asks you to confirm, with
-   **Cancel** focused. Confirm, and the assessment shows **Closed** with the
-   time it closed. Select **Reopen to submissions**: it is **Open** again.
-6. Open **Assessments**. The list shows the assessment with its deadline,
-   **Open** and "0 of 3" submitted.
+1. Open **Assessments**. The eight demo assessments are listed: open ones
+   first, soonest deadline first, then the rest, latest deadline first.
+   **Algorithms coursework** shows **Closed** and "3 of 3" submitted, "1 late".
+2. Select **Set an assessment**, then **Set assessment** without filling
+   anything in. "Choose a module", "Enter a title" and "Enter a date and time"
+   appear.
+3. Choose **CS4002 Databases**, enter the title `SQL lab test` and the
+   deadline 28 March 2027 at 01:30. "The clocks go forward at that time, so it
+   never happens. Choose another time." appears under **Deadline**: that night
+   UK clocks jump from 01:00 to 02:00. A date in the past is refused too: "The
+   deadline must be in the future".
+4. Choose a date about four weeks ahead at 17:00 and select **Set
+   assessment**. The assessment's page shows the deadline with its weekday and
+   time zone, such as "Fri 20 Nov 2026, 17:00 GMT" (BST in summer), and
+   **Open**. Under **Submissions and marks**, "0 of 3 enrolled students have
+   submitted" lists Amelia Hart, Oliver Bennett and Priya Natarajan, the
+   enrolled Computer Science students. Mohammed Al-Farsi has completed the
+   programme, so isn't expected to submit.
+5. Select **Edit title or deadline**, move the deadline a week later and save.
+   The page shows the new deadline.
+6. Select **Close to submissions**. A dialog asks you to confirm, with
+   **Cancel** focused. Confirm: the assessment shows **Closed** with the time
+   it closed. Select **Reopen to submissions**, and it is **Open** again.
 
 ### 10. Submitting work
 
 Continue from scenario 9. You need a PDF and a Word document (.docx) of your
 own, plus any other file, such as a text file.
 
-1. Switch to **Amelia Hart** as a student and open **Assessments**.
-   "Coursework 1: Algorithms" shows **Not submitted**. Open it.
+1. Switch to **Amelia Hart** as a student and open **Assessments**. **SQL lab
+   test** shows **Not submitted**. Open it.
 2. Select **Submit my work** without choosing a file. "Choose a file to
    upload" appears under **Your work**.
 3. Choose the text file. "Upload a PDF or a Word document (.docx)" appears
@@ -278,13 +297,20 @@ own, plus any other file, such as a text file.
 6. Choose your Word document and select **Replace my work**. **Your
    submission** now shows the Word document and "This is your 2nd upload. Only
    the latest file is kept."
-7. Switch to staff and open the assessment. Amelia's row shows when the work
-   was submitted, "Replaced 1 time", and the file, which downloads. "1 of 3
-   enrolled students have submitted".
+7. Back on **Assessments**, open **Database design report**, whose deadline
+   has passed. The page warns that work submitted now is marked late and can't
+   be replaced afterwards. Submit your PDF: it shows **Late**, and no
+   replacement is offered.
+8. Open **Algorithms coursework**: "This assessment is closed to
+   submissions", with Amelia's submission shown.
+9. Switch to **Sofia Rossi** (deferred), open **Assessments**, then
+   **Management essay**: "Only enrolled students can submit work."
+10. Switch to staff and open **SQL lab test**. Amelia's row shows when the
+    work was submitted, "Replaced 1 time", and the file, which downloads.
 
 ### 11. Entering marks
 
-Continue from scenario 10, as staff, on the assessment's page.
+Continue from scenario 10, as staff, on **SQL lab test**.
 
 1. Under **Submissions and marks**, type `72` as Amelia Hart's mark. The
    result reads **Distinction**, with "Not saved yet".
@@ -296,31 +322,41 @@ Continue from scenario 10, as staff, on the assessment's page.
    marks**. "Saved 3 marks." appears, and the results read **Distinction**,
    **Fail** and **Pass**, each "Not published".
 4. Clear Priya's mark and save. The mark is removed.
+5. Open **Machine learning report**. Hannah Kowalski is listed as
+   **Withdrawn**, with the work submitted before withdrawing: a student who
+   submitted stays on the marksheet.
 
 ### 12. Publishing and withholding results
 
 Continue from scenario 11, as staff.
 
 1. Open **Amelia Hart**'s record. Under **Results**, the fees read **Overdue**
-   with "£9,535.00 overdue", and "Coursework 1: Algorithms" shows 72,
-   **Distinction**, "Not published".
-2. Select **Withhold results**. The dialog explains that Amelia will see no
-   results, and repeats the fees. Keep the reason **Outstanding tuition fees**
-   and confirm. The section now reads "Results withheld since …" with the
-   reason, and **Lift the hold** replaces the publish button.
-3. Switch to **Amelia Hart** as a student and open **Results**. "Your results
+   with "£9,535.00 overdue", and a notice reads "Results withheld since …"
+   with the reason "Outstanding tuition fees". **Algorithms coursework** shows
+   66, **Merit**, published; **SQL lab test** shows 72, **Distinction**, "Not
+   published".
+2. Switch to **Amelia Hart** as a student and open **Results**. "Your results
    are being withheld" gives the reason, and no marks are shown.
-4. As staff, select **Lift the hold** on Amelia's record, then **Publish 1
-   mark**. A dialog asks you to confirm, with **Cancel** focused. Confirm, and
-   the section reads "Every mark is published."
-5. As Amelia, **Results** now lists Coursework 1: Algorithms with 72 and
-   **Distinction**.
-6. As staff, open **Results**. Oliver Bennett is listed first, with **Publish
-   1 mark**; Amelia shows "All published". On **Dashboard**, **Results**
-   counts 1 student with marks to publish.
-7. On the assessment's marksheet, change Amelia's mark to `68` and save. It
-   reads "Not published" again, and Amelia's **Results** page no longer shows
-   it until it is published again.
+3. As staff, select **Lift the hold** on Amelia's record. As Amelia,
+   **Results** now lists **Algorithms coursework** only: the SQL lab test mark
+   isn't published yet.
+4. As staff, select **Publish 1 mark**. A dialog asks you to confirm, with
+   **Cancel** focused. Confirm, and the section reads "Every mark is
+   published." As Amelia, **Results** lists both marks.
+5. As staff, open **Kwame Mensah** and select **Withhold results**. Choose
+   **Another reason** and confirm with the box empty: "Give a reason" appears.
+   Enter `Awaiting an academic misconduct panel` and confirm. As Kwame,
+   **Results** shows that reason and no marks, although the Management essay
+   mark (35, **Fail**) had been published.
+6. As staff, open **Results**. Students with marks to publish come first, each
+   with a **Publish** button: Arjun Mehta, Chloé Dubois and Oliver Bennett.
+   Kwame shows **Withheld** with the reason. On **Dashboard**, **Results**
+   counts 3 students with marks to publish and 1 with results withheld.
+7. On **SQL lab test**'s marksheet, change Amelia's mark to `68` and save. It
+   reads "Not published" again, and Amelia's **Results** no longer shows it
+   until it is published again.
+8. Switch to **Mohammed Al-Farsi** (completed). **Results** lists **Final
+   year project** with 68, **Merit**: completed students keep their results.
 
 ## Trying the API with curl
 

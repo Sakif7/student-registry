@@ -1,7 +1,11 @@
 // Demo data for local development and end-to-end tests. Every person and
 // reference is fictitious, and dates are relative to the day the seed runs, so
-// recent enrolments, deferrals and withdrawals always look recent. Running the
-// seed replaces all existing data.
+// recent enrolments, deferrals, withdrawals and deadlines always look recent.
+// Running the seed replaces all existing data, uploaded files included.
+import { randomUUID } from "node:crypto";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import {
@@ -14,11 +18,16 @@ import {
   type CalendarDate,
   todayIn,
   toDbDate,
+  wallTimeToInstant,
 } from "@/domain/college-time";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import { feeDescription } from "@/domain/fees";
+import { OUTSTANDING_FEES_REASON } from "@/domain/results";
 import { formatStudentNumber } from "@/domain/student-number";
+import { ACCEPTED_DOCUMENTS } from "@/domain/submissions";
 import { PrismaClient } from "@/generated/prisma/client";
+
+import { sampleDocx, samplePdf } from "./sample-documents";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -207,9 +216,12 @@ async function main(): Promise<void> {
   });
   try {
     const now = new Date();
-    const today = todayIn(process.env.APP_TIME_ZONE ?? "Europe/London", now);
+    const timeZone = process.env.APP_TIME_ZONE ?? "Europe/London";
+    const today = todayIn(timeZone, now);
     const currentYear = startYearOf(academicYearOn(today));
+    const uploadDir = resolve(process.env.UPLOAD_DIR ?? "./storage/uploads");
 
+    await deleteStoredFiles(prisma, uploadDir);
     await deleteEverything(prisma);
     const programmeIds = await seedProgrammes(prisma);
     const students = await seedStudents(prisma, programmeIds, currentYear, now);
@@ -220,11 +232,37 @@ async function main(): Promise<void> {
       today,
       now,
     );
+    const work = await seedAssessments(prisma, students, {
+      today,
+      now,
+      timeZone,
+      uploadDir,
+    });
+    await seedHolds(prisma, students, now);
     console.log(
-      `Seeded ${PROGRAMMES.length} programmes, ${Object.keys(students).length} students, ${accounts.charges} fee charges and ${accounts.payments} payments.`,
+      `Seeded ${PROGRAMMES.length} programmes, ${Object.keys(students).length} students, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions and ${work.marks} marks.`,
     );
   } finally {
     await prisma.$disconnect();
+  }
+}
+
+// Stored files are named with random UUIDs; anything else is left alone.
+const STORAGE_KEY =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** Deletes the stored files of the submissions about to be removed. */
+async function deleteStoredFiles(
+  prisma: PrismaClient,
+  uploadDir: string,
+): Promise<void> {
+  const submissions = await prisma.submission.findMany({
+    select: { storageKey: true },
+  });
+  for (const { storageKey } of submissions) {
+    if (STORAGE_KEY.test(storageKey)) {
+      await rm(join(uploadDir, storageKey), { force: true });
+    }
   }
 }
 
@@ -470,6 +508,251 @@ async function seedAccounts(
     }
   }
   return { charges, payments };
+}
+
+type ModuleCode = (typeof PROGRAMMES)[number]["modules"][number]["code"];
+
+interface SeedAssessment {
+  module: ModuleCode;
+  title: string;
+  /** Days from today to the deadline, at 17:00 college time; negative = past. */
+  deadlineInDays: number;
+  /** How many days ago staff closed it to submissions, if they have. */
+  closedDaysAgo?: number;
+  submissions: {
+    student: CastKey;
+    /** Hours after the deadline the current file arrived; negative = before. */
+    hoursAfterDeadline: number;
+    format: "pdf" | "docx";
+    /** Uploads so far, replacements included. */
+    attempt?: number;
+  }[];
+  marks: {
+    student: CastKey;
+    mark: number;
+    /** How many days ago the mark was published; unpublished if absent. */
+    publishedDaysAgo?: number;
+  }[];
+}
+
+/**
+ * Assessments in every state: closed, past the deadline but still accepting
+ * late work, and open. Submissions are on time, late and replaced, and the
+ * marks cover every classification, published and not.
+ */
+const ASSESSMENTS: SeedAssessment[] = [
+  {
+    module: "CS4001",
+    title: "Algorithms coursework",
+    deadlineInDays: -14,
+    closedDaysAgo: 3,
+    submissions: [
+      { student: "oliver", hoursAfterDeadline: -48, format: "pdf" },
+      { student: "priya", hoursAfterDeadline: 26, format: "docx" },
+      { student: "amelia", hoursAfterDeadline: -30, format: "pdf", attempt: 2 },
+    ],
+    marks: [
+      { student: "oliver", mark: 74, publishedDaysAgo: 2 },
+      { student: "priya", mark: 58, publishedDaysAgo: 2 },
+      { student: "amelia", mark: 66, publishedDaysAgo: 2 },
+    ],
+  },
+  {
+    module: "CS4002",
+    title: "Database design report",
+    deadlineInDays: -2,
+    submissions: [
+      { student: "oliver", hoursAfterDeadline: -5, format: "docx" },
+    ],
+    marks: [{ student: "oliver", mark: 81 }],
+  },
+  {
+    module: "CS5003",
+    title: "Web project proposal",
+    deadlineInDays: 10,
+    submissions: [
+      { student: "priya", hoursAfterDeadline: -264, format: "pdf" },
+    ],
+    marks: [],
+  },
+  {
+    module: "CS5003",
+    title: "Final year project",
+    deadlineInDays: -200,
+    closedDaysAgo: 190,
+    submissions: [
+      { student: "mohammed", hoursAfterDeadline: -24, format: "pdf" },
+    ],
+    marks: [{ student: "mohammed", mark: 68, publishedDaysAgo: 180 }],
+  },
+  {
+    module: "BM4001",
+    title: "Management essay",
+    deadlineInDays: -7,
+    submissions: [
+      { student: "kwame", hoursAfterDeadline: -20, format: "docx" },
+      { student: "chloe", hoursAfterDeadline: 50, format: "pdf" },
+    ],
+    marks: [
+      { student: "kwame", mark: 35, publishedDaysAgo: 1 },
+      { student: "chloe", mark: 62 },
+    ],
+  },
+  {
+    module: "BM4002",
+    title: "Accounting test",
+    deadlineInDays: 20,
+    submissions: [],
+    marks: [],
+  },
+  {
+    module: "DS7001",
+    title: "Machine learning report",
+    deadlineInDays: -5,
+    closedDaysAgo: 1,
+    submissions: [
+      // Submitted before withdrawing, so still on the marksheet.
+      { student: "hannah", hoursAfterDeadline: -100, format: "pdf" },
+      { student: "liam", hoursAfterDeadline: -3, format: "pdf" },
+      { student: "arjun", hoursAfterDeadline: 20, format: "docx" },
+    ],
+    marks: [
+      { student: "liam", mark: 71, publishedDaysAgo: 1 },
+      { student: "arjun", mark: 45 },
+    ],
+  },
+  {
+    module: "DS7002",
+    title: "Data pipeline design",
+    deadlineInDays: 14,
+    submissions: [],
+    marks: [],
+  },
+];
+
+/** Results withheld by staff, with the reason the student is shown. */
+const HOLDS: Partial<Record<CastKey, { reason: string; daysAgo: number }>> = {
+  amelia: { reason: OUTSTANDING_FEES_REASON, daysAgo: 5 },
+};
+
+async function seedAssessments(
+  prisma: PrismaClient,
+  students: Record<CastKey, SeededStudent>,
+  clock: {
+    today: CalendarDate;
+    now: Date;
+    timeZone: string;
+    uploadDir: string;
+  },
+): Promise<{ assessments: number; submissions: number; marks: number }> {
+  const { today, now, timeZone, uploadDir } = clock;
+  const daysAgo = (days: number) => new Date(now.getTime() - days * MS_PER_DAY);
+  const modules = new Map(
+    (await prisma.module.findMany({ select: { id: true, code: true } })).map(
+      (row) => [row.code, row.id],
+    ),
+  );
+  await mkdir(uploadDir, { recursive: true });
+  let submissions = 0;
+  let marks = 0;
+
+  for (const seed of ASSESSMENTS) {
+    const deadline = wallTimeToInstant(
+      `${addDays(today, seed.deadlineInDays)}T17:00`,
+      timeZone,
+    );
+    const moduleId = modules.get(seed.module);
+    if (!deadline || !moduleId) {
+      throw new Error(`Can't seed "${seed.title}".`);
+    }
+    const assessment = await prisma.assessment.create({
+      data: {
+        moduleId,
+        title: seed.title,
+        deadline,
+        closedAt:
+          seed.closedDaysAgo === undefined ? null : daysAgo(seed.closedDaysAgo),
+        createdAt: new Date(deadline.getTime() - 28 * MS_PER_DAY),
+      },
+    });
+
+    for (const submission of seed.submissions) {
+      const member = CAST[submission.student];
+      const bytes =
+        submission.format === "pdf"
+          ? samplePdf(seed.title, [
+              member.fullName,
+              students[submission.student].studentNumber,
+              "Demo submission with fictitious content.",
+            ])
+          : sampleDocx(seed.title, [
+              `${member.fullName} (${students[submission.student].studentNumber})`,
+              "Demo submission with fictitious content.",
+            ]);
+      const storageKey = randomUUID();
+      await writeFile(join(uploadDir, storageKey), bytes, { flag: "wx" });
+      await prisma.submission.create({
+        data: {
+          studentId: students[submission.student].id,
+          assessmentId: assessment.id,
+          fileName: `${slug(member.fullName)}-${slug(seed.title)}.${submission.format}`,
+          storageKey,
+          mimeType: ACCEPTED_DOCUMENTS[submission.format].mimeType,
+          sizeBytes: bytes.length,
+          attempt: submission.attempt ?? 1,
+          submittedAt: new Date(
+            deadline.getTime() + submission.hoursAfterDeadline * 3_600_000,
+          ),
+        },
+      });
+      submissions += 1;
+    }
+
+    for (const result of seed.marks) {
+      await prisma.assessmentResult.create({
+        data: {
+          studentId: students[result.student].id,
+          assessmentId: assessment.id,
+          mark: result.mark,
+          publishedAt:
+            result.publishedDaysAgo === undefined
+              ? null
+              : daysAgo(result.publishedDaysAgo),
+        },
+      });
+      marks += 1;
+    }
+  }
+  return { assessments: ASSESSMENTS.length, submissions, marks };
+}
+
+async function seedHolds(
+  prisma: PrismaClient,
+  students: Record<CastKey, SeededStudent>,
+  now: Date,
+): Promise<void> {
+  for (const [key, hold] of Object.entries(HOLDS) as [
+    CastKey,
+    { reason: string; daysAgo: number },
+  ][]) {
+    await prisma.student.update({
+      where: { id: students[key].id },
+      data: {
+        resultsWithheldAt: new Date(now.getTime() - hold.daysAgo * MS_PER_DAY),
+        resultsWithheldReason: hold.reason,
+      },
+    });
+  }
+}
+
+/** "Chloé Dubois" → "chloe-dubois", for file names. */
+function slug(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 main().catch((error: unknown) => {

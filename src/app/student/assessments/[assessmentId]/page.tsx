@@ -161,15 +161,25 @@ async function AssessmentView({ params }: { params: Params }) {
   );
 }
 
-/** What the deadline means for the student now. */
+/**
+ * What the deadline means for the student now. It only promises what the
+ * student may actually do: one who can't submit (e.g. while deferred) is told
+ * why in the upload section instead.
+ */
 function deadlineNote(assessment: StudentAssessment): string {
+  const canUpload = assessment.upload.allowed;
   switch (assessment.state) {
     case "OPEN":
-      return "You can submit, and replace your work, until the deadline. Work submitted after it is marked late.";
+      return canUpload
+        ? "You can submit, and replace your work, until the deadline. Work submitted after it is marked late."
+        : "Open for submissions until the deadline.";
     case "ACCEPTING_LATE":
-      return assessment.submission
-        ? "The deadline has passed, so your work can no longer be replaced."
-        : "The deadline has passed. You can still submit, but your work will be marked late.";
+      if (assessment.submission) {
+        return "The deadline has passed, so your work can no longer be replaced.";
+      }
+      return canUpload
+        ? "The deadline has passed. You can still submit, but your work will be marked late."
+        : "The deadline has passed.";
     case "CLOSED":
       return "This assessment is closed to submissions.";
   }
