@@ -1,0 +1,4 @@
+# Staged files: lint-fix and format. Whole project: type-check, because a
+# change in one file can break types in another.
+lint-staged
+npm run typecheck
