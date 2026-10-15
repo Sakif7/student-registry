@@ -9,8 +9,14 @@ import {
   formatAcademicYear,
   startYearOf,
 } from "@/domain/academic-year";
-import { todayIn, toDbDate } from "@/domain/college-time";
+import {
+  addDays,
+  type CalendarDate,
+  todayIn,
+  toDbDate,
+} from "@/domain/college-time";
 import type { EnrolmentStatus } from "@/domain/enrolment";
+import { feeDescription } from "@/domain/fees";
 import { formatStudentNumber } from "@/domain/student-number";
 import { PrismaClient } from "@/generated/prisma/client";
 
@@ -184,6 +190,7 @@ interface SeededStudent {
   id: string;
   studentNumber: string;
   academicYear: string;
+  programme: ProgrammeCode;
 }
 
 async function main(): Promise<void> {
@@ -206,8 +213,15 @@ async function main(): Promise<void> {
     await deleteEverything(prisma);
     const programmeIds = await seedProgrammes(prisma);
     const students = await seedStudents(prisma, programmeIds, currentYear, now);
+    const accounts = await seedAccounts(
+      prisma,
+      students,
+      currentYear,
+      today,
+      now,
+    );
     console.log(
-      `Seeded ${PROGRAMMES.length} programmes and ${Object.keys(students).length} students.`,
+      `Seeded ${PROGRAMMES.length} programmes, ${Object.keys(students).length} students, ${accounts.charges} fee charges and ${accounts.payments} payments.`,
     );
   } finally {
     await prisma.$disconnect();
@@ -289,6 +303,7 @@ async function seedStudents(
       id: student.id,
       studentNumber: student.studentNumber,
       academicYear,
+      programme: member.programme,
     };
   }
 
@@ -296,6 +311,165 @@ async function seedStudents(
     await prisma.studentNumberCounter.create({ data: { year, lastValue } });
   }
   return seeded;
+}
+
+interface SeedAccount {
+  /** One charge per academic year; yearsAgo 0 is the current year. */
+  charges: {
+    yearsAgo: number;
+    /** Days from today; negative means the due date has passed. */
+    dueInDays: number;
+    /** Defaults to the programme's standard fee. */
+    amountPence?: number;
+    note?: string;
+  }[];
+  payments: {
+    amountPence: number;
+    daysAgo: number;
+    reference: string;
+    reversed?: { reason: string; daysAgo: number };
+  }[];
+}
+
+/**
+ * Each account shows a different situation: overdue (by different amounts and
+ * for different lengths of time), paid in full, in credit, due but not yet
+ * overdue, a fee corrected to zero for a deferral, and a reversed payment.
+ */
+const ACCOUNTS: Record<CastKey, SeedAccount> = {
+  amelia: {
+    charges: [
+      { yearsAgo: 1, dueInDays: -380 },
+      { yearsAgo: 0, dueInDays: -20 },
+    ],
+    payments: [
+      { amountPence: 476_750, daysAgo: 385, reference: "BACS AH 2025-1" },
+      { amountPence: 476_750, daysAgo: 300, reference: "BACS AH 2025-2" },
+    ],
+  },
+  kwame: {
+    charges: [
+      { yearsAgo: 1, dueInDays: -375 },
+      { yearsAgo: 0, dueInDays: -10 },
+    ],
+    payments: [
+      { amountPence: 953_500, daysAgo: 376, reference: "SLC KM 2025" },
+      { amountPence: 500_000, daysAgo: 15, reference: "CARD KM 0001" },
+    ],
+  },
+  mohammed: {
+    charges: [{ yearsAgo: 1, dueInDays: -390 }],
+    payments: [
+      { amountPence: 953_500, daysAgo: 395, reference: "BACS MAF 2025" },
+    ],
+  },
+  oliver: {
+    charges: [{ yearsAgo: 0, dueInDays: -10 }],
+    payments: [{ amountPence: 953_500, daysAgo: 25, reference: "SLC OB 2026" }],
+  },
+  priya: {
+    charges: [{ yearsAgo: 0, dueInDays: -10 }],
+    payments: [
+      { amountPence: 953_500, daysAgo: 12, reference: "BACS PN 0001" },
+    ],
+  },
+  sofia: {
+    charges: [
+      {
+        yearsAgo: 0,
+        dueInDays: -8,
+        amountPence: 0,
+        note: "Deferred on medical grounds: fee moved to next year",
+      },
+    ],
+    payments: [],
+  },
+  liam: {
+    charges: [{ yearsAgo: 0, dueInDays: -6 }],
+    payments: [
+      { amountPence: 1_195_000, daysAgo: 30, reference: "BACS LO 0001" },
+      { amountPence: 25_000, daysAgo: 5, reference: "BACS LO 0002" },
+    ],
+  },
+  hannah: {
+    charges: [{ yearsAgo: 0, dueInDays: -6 }],
+    payments: [
+      { amountPence: 200_000, daysAgo: 35, reference: "CARD HK 0001" },
+    ],
+  },
+  chloe: {
+    charges: [{ yearsAgo: 0, dueInDays: -7 }],
+    payments: [
+      {
+        amountPence: 953_500,
+        daysAgo: 20,
+        reference: "BACS CD 0001",
+        reversed: { reason: "Payment recalled by the bank", daysAgo: 3 },
+      },
+      { amountPence: 953_500, daysAgo: 1, reference: "BACS CD 0002" },
+    ],
+  },
+  arjun: {
+    charges: [{ yearsAgo: 0, dueInDays: 5 }],
+    payments: [],
+  },
+};
+
+async function seedAccounts(
+  prisma: PrismaClient,
+  students: Record<CastKey, SeededStudent>,
+  currentYear: number,
+  today: CalendarDate,
+  now: Date,
+): Promise<{ charges: number; payments: number }> {
+  const daysAgo = (days: number) => new Date(now.getTime() - days * MS_PER_DAY);
+  const programmes = Object.fromEntries(
+    PROGRAMMES.map((programme) => [programme.code, programme]),
+  ) as Record<ProgrammeCode, (typeof PROGRAMMES)[number]>;
+  let charges = 0;
+  let payments = 0;
+
+  for (const [key, account] of Object.entries(ACCOUNTS) as [
+    CastKey,
+    SeedAccount,
+  ][]) {
+    const student = students[key];
+    const programme = programmes[student.programme];
+    for (const charge of account.charges) {
+      const academicYear = formatAcademicYear(currentYear - charge.yearsAgo);
+      await prisma.feeCharge.create({
+        data: {
+          studentId: student.id,
+          academicYear,
+          description: feeDescription(academicYear, programme.title),
+          amountPence: charge.amountPence ?? programme.annualFeePence,
+          dueDate: toDbDate(addDays(today, charge.dueInDays)),
+          note: charge.note,
+          createdAt: daysAgo(Math.max(0, 30 - charge.dueInDays)),
+        },
+      });
+      charges += 1;
+    }
+    for (const payment of account.payments) {
+      await prisma.payment.create({
+        data: {
+          studentId: student.id,
+          amountPence: payment.amountPence,
+          paidOn: toDbDate(addDays(today, -payment.daysAgo)),
+          reference: payment.reference,
+          recordedAt: daysAgo(payment.daysAgo),
+          reversal: payment.reversed && {
+            create: {
+              reason: payment.reversed.reason,
+              reversedAt: daysAgo(payment.reversed.daysAgo),
+            },
+          },
+        },
+      });
+      payments += 1;
+    }
+  }
+  return { charges, payments };
 }
 
 main().catch((error: unknown) => {

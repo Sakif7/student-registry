@@ -1,8 +1,9 @@
-// The student's home page: their own record, read-only.
+// The student's home page: their own record and account, read-only.
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { AccountSection } from "@/components/fees/account-section";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import {
@@ -12,9 +13,10 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { EnrolmentStatus } from "@/domain/enrolment";
-import { env } from "@/server/env";
+import { collegeTimeZone, collegeToday } from "@/server/college";
 import { AppError } from "@/server/errors";
-import { collegeToday, getStudent } from "@/server/services/students";
+import { getAccount } from "@/server/services/fees";
+import { getStudent } from "@/server/services/students";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "My record" };
@@ -46,16 +48,16 @@ export default function StudentHomePage() {
 
 async function MyRecord() {
   const session = await requirePageRole("student");
-  const student = await getStudent(session, session.studentNumber).catch(
-    (error: unknown) => {
-      // The record may have gone (e.g. the demo data was reset): choose again.
-      if (error instanceof AppError && error.kind === "NOT_FOUND")
-        redirect("/");
-      throw error;
-    },
-  );
+  const [student, account] = await Promise.all([
+    getStudent(session, session.studentNumber),
+    getAccount(session, session.studentNumber),
+  ]).catch((error: unknown) => {
+    // The record may have gone (e.g. the demo data was reset): choose again.
+    if (error instanceof AppError && error.kind === "NOT_FOUND") redirect("/");
+    throw error;
+  });
   const note = STATUS_NOTES[student.status];
-  const timeZone = env().APP_TIME_ZONE;
+  const timeZone = collegeTimeZone();
   return (
     <>
       <PageHeader
@@ -81,6 +83,7 @@ async function MyRecord() {
         />
         <StatusHistoryCard student={student} timeZone={timeZone} />
       </div>
+      <AccountSection account={account} timeZone={timeZone} />
     </>
   );
 }

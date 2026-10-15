@@ -399,6 +399,11 @@ advisories are reviewed by hand rather than failing the build.
 
 ## Known limitations
 
+- **Importing records:** existing students must also initialise
+  `student_number_counters` to the highest number per year, as the seed
+  does. Otherwise the next enrolment for that year would collide with an
+  imported number and fail.
+
 - **Accents in search:** search matches accents exactly, so `Chloe` doesn't
   find "Chloé". PostgreSQL's `unaccent` extension would fix this.
 - **Search speed:** search scans names, IDs and emails with `ILIKE`, which is

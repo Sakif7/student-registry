@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   accountStanding,
+  allocatePayments,
   correctFeeSchema,
   normalisePaymentReference,
   recordPaymentSchema,
@@ -163,5 +164,45 @@ describe("correctFeeSchema", () => {
     expect(correctFeeSchema.safeParse({ dueDate: "2026-11-30" }).success).toBe(
       true,
     );
+  });
+});
+
+describe("allocatePayments", () => {
+  it("fills the oldest charge first and shows what is left on each", () => {
+    const lines = allocatePayments(
+      [
+        { id: "this-year", amountPence: 100_000, dueDate: "2026-11-01" },
+        { id: "last-year", amountPence: 100_000, dueDate: "2025-11-01" },
+      ],
+      150_000,
+      TODAY,
+    );
+    expect(lines).toEqual([
+      {
+        id: "last-year",
+        amountPence: 100_000,
+        dueDate: "2025-11-01",
+        paidPence: 100_000,
+        outstandingPence: 0,
+        overdue: false,
+      },
+      {
+        id: "this-year",
+        amountPence: 100_000,
+        dueDate: "2026-11-01",
+        paidPence: 50_000,
+        outstandingPence: 50_000,
+        overdue: false,
+      },
+    ]);
+  });
+
+  it("marks only past-due, unpaid charges as overdue", () => {
+    const [charge] = allocatePayments(
+      [{ amountPence: 100_000, dueDate: "2026-10-14" }],
+      0,
+      TODAY,
+    );
+    expect(charge?.overdue).toBe(true);
   });
 });

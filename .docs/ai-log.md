@@ -344,3 +344,35 @@ student's own read-only record page.
 (`expect.any`, `expect.stringMatching`) are typed `any`, which the
 `no-unsafe-assignment` rule flags. The assertions were rewritten without them
 rather than relaxing the rule for tests.
+
+## Fees and payments
+
+**What the AI did:**
+
+- **Domain:** split oldest-charge-first payment allocation out of the account
+  summary, so each charge shows what is paid and outstanding on it.
+- **Fees service:**
+  - a student enrolled straight away is charged the programme fee in the same
+    transaction;
+  - an amount different from the standard fee needs a note;
+  - duplicate payment references are refused;
+  - every write returns the recalculated account.
+- **Interface and seed:** the account section on both record pages (forms for
+  staff only), and seeded accounts covering every state.
+
+**Checked by:**
+
+- **Integration tests** run on a fixed clock: overdue begins the day after the
+  due date, the balance updates as soon as a payment is recorded, overpayment
+  becomes credit, and references are compared ignoring case and spacing.
+- **In a real browser:**
+  - a £5,000 payment cut Amelia's overdue amount from £9,535.00 to £4,535.00
+    straight away;
+  - the same reference, typed with different spacing, was refused under
+    **Reference**;
+  - Liam's student view shows his £250 credit, with no forms.
+
+**Caught along the way:** a test fixture inserted SMS-2026-0001 directly,
+bypassing the counter, and the counter then issued the same number. The app
+always uses the counter, but this showed that imported data would need its
+counters set. That is now a documented limitation.

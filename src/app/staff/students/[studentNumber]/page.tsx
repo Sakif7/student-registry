@@ -1,9 +1,11 @@
-// A student's record, as Registry staff see it: details, status history, and
-// the controls to edit details or change status.
+// A student's record, as Registry staff see it: details, status history and
+// account, with the controls to edit details, change status, charge fees and
+// record payments.
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AccountSection } from "@/components/fees/account-section";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { StatusChangeForm } from "@/components/students/status-change-form";
@@ -20,10 +22,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
 import { ENROLMENT_STATUS_LABELS } from "@/domain/enrolment";
-import { env } from "@/server/env";
+import { collegeTimeZone, collegeToday } from "@/server/college";
 import { orNotFound } from "@/server/pages";
-import { collegeToday, getStudent } from "@/server/services/students";
+import { getAccount } from "@/server/services/fees";
+import { getStudent } from "@/server/services/students";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Student record" };
@@ -50,8 +54,14 @@ export default function StudentPage({
 async function StudentRecordView({ params }: { params: Params }) {
   const session = await requirePageRole("staff");
   const { studentNumber } = await params;
-  const student = await orNotFound(getStudent(session, studentNumber));
-  const timeZone = env().APP_TIME_ZONE;
+  const [student, account] = await orNotFound(
+    Promise.all([
+      getStudent(session, studentNumber),
+      getAccount(session, studentNumber),
+    ]),
+  );
+  const timeZone = collegeTimeZone();
+  const today = collegeToday();
   return (
     <>
       <PageHeader
@@ -75,7 +85,7 @@ async function StudentRecordView({ params }: { params: Params }) {
       <div className="grid gap-6 lg:grid-cols-2">
         <StudentDetailsCard
           student={student}
-          today={collegeToday()}
+          today={today}
           timeZone={timeZone}
         />
         <div className="grid content-start gap-6">
@@ -100,6 +110,19 @@ async function StudentRecordView({ params }: { params: Params }) {
           <StatusHistoryCard student={student} timeZone={timeZone} />
         </div>
       </div>
+      <AccountSection
+        account={account}
+        timeZone={timeZone}
+        staff={{
+          today,
+          academicYears: [
+            ...new Set([
+              ...academicYearsAround(academicYearOn(today), 2, 1),
+              student.academicYear,
+            ]),
+          ].sort(),
+        }}
+      />
     </>
   );
 }

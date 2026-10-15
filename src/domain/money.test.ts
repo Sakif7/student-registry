@@ -5,6 +5,7 @@ import {
   MAX_AMOUNT_PENCE,
   parsePounds,
   paymentAmountSchema,
+  poundsField,
   penceToPoundsInput,
 } from "./money";
 
@@ -65,6 +66,26 @@ describe("amount schemas", () => {
     expect(paymentAmountSchema.safeParse(MAX_AMOUNT_PENCE).success).toBe(true);
     expect(paymentAmountSchema.safeParse(MAX_AMOUNT_PENCE + 1).success).toBe(
       false,
+    );
+  });
+});
+
+describe("poundsField", () => {
+  const field = poundsField(paymentAmountSchema);
+
+  it("turns typed pounds into pence", () => {
+    expect(field.parse("£1,250.50")).toBe(125_050);
+  });
+
+  it("explains text that isn't an amount", () => {
+    expect(field.safeParse("twelve").error?.issues[0]?.message).toBe(
+      "Enter an amount in pounds, e.g. 1250.00",
+    );
+  });
+
+  it("applies the amount rules after converting", () => {
+    expect(field.safeParse("0").error?.issues[0]?.message).toBe(
+      "The amount must be more than £0.00",
     );
   });
 });

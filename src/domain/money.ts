@@ -30,6 +30,29 @@ export function penceToPoundsInput(pence: number): string {
   return `${sign}${Math.trunc(absolute / 100)}.${String(absolute % 100).padStart(2, "0")}`;
 }
 
+/**
+ * A form field where a person types pounds, e.g. "1,250.50". It validates the
+ * text and outputs pence, then applies the given amount rules.
+ */
+export function poundsField<Rules extends z.ZodType<number, number>>(
+  rules: Rules,
+) {
+  return z
+    .string({ error: "Enter an amount" })
+    .transform((value, ctx) => {
+      const pence = parsePounds(value);
+      if (pence === null) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Enter an amount in pounds, e.g. 1250.00",
+        });
+        return z.NEVER;
+      }
+      return pence;
+    })
+    .pipe(rules);
+}
+
 /** An amount of money received: at least 1p. */
 export const paymentAmountSchema = z
   .number({ error: "Enter an amount" })

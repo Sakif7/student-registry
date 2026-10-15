@@ -6,12 +6,9 @@ import { PageHeader } from "@/components/page-header";
 import { StudentForm } from "@/components/students/student-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
+import { collegeToday } from "@/server/college";
 import { orNotFound } from "@/server/pages";
-import {
-  collegeToday,
-  getStudent,
-  listProgrammes,
-} from "@/server/services/students";
+import { getStudent, listProgrammes } from "@/server/services/students";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Edit student" };

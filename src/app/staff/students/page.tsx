@@ -10,12 +10,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
 import { studentFiltersSchema } from "@/domain/students";
+import { collegeToday } from "@/server/college";
 import { firstValues } from "@/server/pages";
-import {
-  collegeToday,
-  listProgrammes,
-  listStudents,
-} from "@/server/services/students";
+import { listProgrammes, listStudents } from "@/server/services/students";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Students" };

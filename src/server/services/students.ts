@@ -6,9 +6,9 @@ import "server-only";
 
 import { startYearOf } from "@/domain/academic-year";
 import {
+  addDays,
   type CalendarDate,
   fromDbDate,
-  todayIn,
   toDbDate,
 } from "@/domain/college-time";
 import {
@@ -17,6 +17,7 @@ import {
   ENROLMENT_STATUS_LABELS,
   type EnrolmentStatus,
 } from "@/domain/enrolment";
+import { DEFAULT_FEE_DUE_DAYS, feeDescription } from "@/domain/fees";
 import { formatStudentNumber } from "@/domain/student-number";
 import {
   changeStatusSchema,
@@ -28,8 +29,8 @@ import {
 } from "@/domain/students";
 import type { Prisma } from "@/generated/prisma/client";
 
+import { collegeToday } from "../college";
 import { db } from "../db";
-import { env } from "../env";
 import { AppError, parseInput, violatedUniqueConstraint } from "../errors";
 import {
   requireSession,
@@ -195,7 +196,9 @@ export async function getStudent(
 
 /**
  * Enrols a student (staff only). The student number is allocated in the same
- * transaction as the insert, so numbers are unique and have no gaps.
+ * transaction as the insert, so numbers are unique and have no gaps. A student
+ * enrolled straight away is charged the programme's standard fee for the
+ * year in the same transaction, so a new enrolment can't be left unbilled.
  *
  * @throws AppError: VALIDATION for invalid details or an unknown programme;
  *   CONFLICT if another student already uses the email address.
@@ -205,7 +208,8 @@ export async function createStudent(
   input: unknown,
 ): Promise<StudentRecord> {
   requireStaff(session);
-  const details = parseInput(createStudentSchema(collegeToday()), input);
+  const today = collegeToday();
+  const details = parseInput(createStudentSchema(today), input);
   const programme = await findProgramme(details.programmeCode);
   const intakeYear = startYearOf(details.academicYear);
 
@@ -222,6 +226,20 @@ export async function createStudent(
           status: details.status,
           programmeId: programme.id,
           statusChanges: { create: { toStatus: details.status } },
+          feeCharges:
+            details.status === "ENROLLED"
+              ? {
+                  create: {
+                    academicYear: details.academicYear,
+                    description: feeDescription(
+                      details.academicYear,
+                      programme.title,
+                    ),
+                    amountPence: programme.annualFeePence,
+                    dueDate: toDbDate(addDays(today, DEFAULT_FEE_DUE_DAYS)),
+                  },
+                }
+              : undefined,
         },
         include: recordInclude,
       });
@@ -378,11 +396,6 @@ export function asDuplicateEmail(error: unknown): unknown {
     });
   }
   return error;
-}
-
-/** The college's date today. */
-export function collegeToday(): CalendarDate {
-  return todayIn(env().APP_TIME_ZONE);
 }
 
 function toRecord(student: StudentWithRelations): StudentRecord {

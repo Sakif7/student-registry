@@ -50,18 +50,18 @@ students. Dates are relative to the day the seed runs. The IDs below assume
 the 2026/27 academic year; in a later year the years in them move on by the
 same amount.
 
-| Student           | ID            | Programme                     | Status    | Notes                                   |
-| ----------------- | ------------- | ----------------------------- | --------- | --------------------------------------- |
-| Mohammed Al-Farsi | SMS-2023-0001 | BSc (Hons) Computer Science   | Completed | Last session 2025/26                    |
-| Amelia Hart       | SMS-2025-0001 | BSc (Hons) Computer Science   | Enrolled  | Second year                             |
-| Kwame Mensah      | SMS-2025-0002 | BA (Hons) Business Management | Enrolled  | Second year                             |
-| Oliver Bennett    | SMS-2026-0001 | BSc (Hons) Computer Science   | Enrolled  |                                         |
-| Priya Natarajan   | SMS-2026-0002 | BSc (Hons) Computer Science   | Enrolled  |                                         |
-| Sofia Rossi       | SMS-2026-0003 | BA (Hons) Business Management | Deferred  | Deferred 12 days ago on medical grounds |
-| Liam O'Connor     | SMS-2026-0004 | MSc Data Science              | Enrolled  |                                         |
-| Hannah Kowalski   | SMS-2026-0005 | MSc Data Science              | Withdrawn | Withdrew 8 days ago for a job offer     |
-| Chloé Dubois      | SMS-2026-0006 | BA (Hons) Business Management | Enrolled  |                                         |
-| Arjun Mehta       | SMS-2026-0007 | MSc Data Science              | Enrolled  |                                         |
+| Student           | ID            | Programme                     | Status    | Fees (on the day the seed runs)                                |
+| ----------------- | ------------- | ----------------------------- | --------- | -------------------------------------------------------------- |
+| Mohammed Al-Farsi | SMS-2023-0001 | BSc (Hons) Computer Science   | Completed | Paid in full                                                   |
+| Amelia Hart       | SMS-2025-0001 | BSc (Hons) Computer Science   | Enrolled  | Second year; this year's £9,535.00 overdue by 20 days          |
+| Kwame Mensah      | SMS-2025-0002 | BA (Hons) Business Management | Enrolled  | Second year; £4,535.00 overdue by 10 days after a part-payment |
+| Oliver Bennett    | SMS-2026-0001 | BSc (Hons) Computer Science   | Enrolled  | Paid in full                                                   |
+| Priya Natarajan   | SMS-2026-0002 | BSc (Hons) Computer Science   | Enrolled  | Paid in full                                                   |
+| Sofia Rossi       | SMS-2026-0003 | BA (Hons) Business Management | Deferred  | Deferred 12 days ago; fee corrected to £0.00 with a note       |
+| Liam O'Connor     | SMS-2026-0004 | MSc Data Science              | Enrolled  | Overpaid: £250.00 in credit                                    |
+| Hannah Kowalski   | SMS-2026-0005 | MSc Data Science              | Withdrawn | Withdrew 8 days ago; still owes £9,950.00, overdue by 6 days   |
+| Chloé Dubois      | SMS-2026-0006 | BA (Hons) Business Management | Enrolled  | Paid in full after a payment recalled by the bank was reversed |
+| Arjun Mehta       | SMS-2026-0007 | MSc Data Science              | Enrolled  | £11,950.00 due in 5 days, not yet overdue                      |
 
 ### 1. Choosing a view
 
@@ -154,6 +154,34 @@ As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**.
 3. Open <http://localhost:3000/staff> as Sofia. You are sent to "Choose a
    view", because the staff pages are for staff only.
 
+### 6. Fees and payments
+
+As staff, open **Amelia Hart** (SMS-2025-0001). Under **Fees and payments** the
+account is **Overdue**:
+
+- £19,070.00 charged, £9,535.00 paid, a balance of £9,535.00, all of it
+  overdue for 20 days;
+- last year's charge is **Paid**, this year's is **Overdue**.
+
+1. Under **Record a payment**, enter Amount `5,000`, keep today's date, and
+   enter Reference `bacs ah 2026-1`. Select **Record payment**. The figures
+   update at once: £14,535.00 paid and £4,535.00 overdue. The payment is listed
+   with the reference in capitals, "BACS AH 2026-1".
+2. Record another payment with the reference `BACS  AH 2026-1` (different
+   spacing). "A payment with reference BACS AH 2026-1 is already recorded"
+   appears under **Reference**.
+3. Try a date after today. "The payment date can't be in the future" appears.
+4. Under **Charge a fee**, keep **2026/27** and select **Charge fee**. You are
+   told the fee for 2026/27 is already charged.
+5. Choose **2027/28**, change the amount to `4767.50` and select **Charge
+   fee** without a note. "Explain why the amount differs from the standard fee
+   of £9,535.00" appears under **Note**. Add the note `Half scholarship` and
+   charge it again. The charge is listed with the note under it.
+6. Record a payment of £20,000.00 for **Liam O'Connor**. His account shows
+   **In credit**.
+7. Switch to **Liam O'Connor** as a student. **My record** shows the same
+   account, with no forms.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -199,6 +227,15 @@ curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json"   -d '{"acad
 
 # Change status; deferral and withdrawal need a reason
 curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"status":"WITHDRAWN","reason":"Moved abroad"}'   http://localhost:3000/api/students/SMS-2026-0008/status
+
+# A student's account: charges, payments, balance and overdue amount
+curl -b cookies.txt http://localhost:3000/api/students/SMS-2025-0001/account
+
+# Record a payment; amounts are in pence and the response has the new balance
+curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"amountPence":500000,"paidOn":"2026-10-15","reference":"BACS 0042"}'   http://localhost:3000/api/students/SMS-2025-0001/payments
+
+# Charge a fee for an academic year (the programme's standard fee by default)
+curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"academicYear":"2027/28"}'   http://localhost:3000/api/students/SMS-2025-0001/fees
 
 # A change the rules forbid returns 409 with an explanation
 curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"status":"DEFERRED"}' http://localhost:3000/api/students/SMS-2023-0001/status

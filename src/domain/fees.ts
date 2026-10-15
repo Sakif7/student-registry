@@ -36,10 +36,56 @@ export interface AccountSummary {
   daysOverdue: number;
 }
 
+/** A charge with the share of payments applied to it. */
+export type AllocatedCharge<Charge extends ChargeLine> = Charge & {
+  paidPence: number;
+  outstandingPence: number;
+  /** Past its due date and not fully paid. */
+  overdue: boolean;
+};
+
 /**
- * Summarises an account on a given day. Payments clear the oldest charge
- * first, so whatever is overdue is the oldest debt. A charge due today is not
- * yet overdue.
+ * Applies payments to charges, oldest due date first, so whatever is still
+ * outstanding is the newest debt. A charge due today is not yet overdue.
+ *
+ * @param charges - The student's fee charges, in any order.
+ * @param paidPence - The total of the student's valid payments.
+ * @param today - The college's current date.
+ * @returns The charges, oldest due date first, with what is paid of each.
+ */
+export function allocatePayments<Charge extends ChargeLine>(
+  charges: readonly Charge[],
+  paidPence: number,
+  today: CalendarDate,
+): AllocatedCharge<Charge>[] {
+  let unallocated = paidPence;
+  return [...charges]
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .map((charge) => {
+      const covered = Math.max(0, Math.min(unallocated, charge.amountPence));
+      unallocated -= covered;
+      const outstandingPence = charge.amountPence - covered;
+      return {
+        ...charge,
+        paidPence: covered,
+        outstandingPence,
+        overdue: outstandingPence > 0 && charge.dueDate < today,
+      };
+    });
+}
+
+/** The total of the payments that count (not reversed). */
+export function totalPaid(payments: readonly PaymentLine[]): number {
+  return sum(
+    payments
+      .filter((payment) => !payment.reversed)
+      .map((payment) => payment.amountPence),
+  );
+}
+
+/**
+ * Summarises an account on a given day: balance, and what is overdue and since
+ * when. Payments clear the oldest charge first (see allocatePayments).
  *
  * @param charges - The student's fee charges, in any order.
  * @param payments - The student's payments, including reversed ones.
@@ -51,33 +97,17 @@ export function summariseAccount(
   today: CalendarDate,
 ): AccountSummary {
   const chargedPence = sum(charges.map((charge) => charge.amountPence));
-  const paidPence = sum(
-    payments
-      .filter((payment) => !payment.reversed)
-      .map((payment) => payment.amountPence),
+  const paidPence = totalPaid(payments);
+  const overdue = allocatePayments(charges, paidPence, today).filter(
+    (charge) => charge.overdue,
   );
-
-  let unallocated = paidPence;
-  let overduePence = 0;
-  let overdueSince: CalendarDate | null = null;
-  const oldestFirst = [...charges].sort((a, b) =>
-    a.dueDate.localeCompare(b.dueDate),
-  );
-  for (const charge of oldestFirst) {
-    const covered = Math.min(unallocated, charge.amountPence);
-    unallocated -= covered;
-    const unpaid = charge.amountPence - covered;
-    if (unpaid > 0 && charge.dueDate < today) {
-      overduePence += unpaid;
-      overdueSince ??= charge.dueDate;
-    }
-  }
+  const overdueSince = overdue[0]?.dueDate ?? null;
 
   return {
     chargedPence,
     paidPence,
     balancePence: chargedPence - paidPence,
-    overduePence,
+    overduePence: sum(overdue.map((charge) => charge.outstandingPence)),
     overdueSince,
     daysOverdue: overdueSince ? daysBetween(overdueSince, today) : 0,
   };

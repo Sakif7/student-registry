@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header";
 import { StudentForm } from "@/components/students/student-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
-import { collegeToday, listProgrammes } from "@/server/services/students";
+import { collegeToday } from "@/server/college";
+import { listProgrammes } from "@/server/services/students";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Enrol a student" };
