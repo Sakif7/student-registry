@@ -78,6 +78,25 @@ students can still see their record, their fees and their published results.
 Status changes never alter fees: a withdrawn student still owes their balance
 and stays on the overdue list.
 
+### Validating student details
+
+- **Full name:** 2–120 characters, made of letters from any alphabet
+  (accents included), spaces, hyphens, apostrophes (straight or typographic,
+  as phones type them) and full stops, and starting with a letter. Runs of
+  spaces are collapsed.
+- **Email:** trimmed, lower-cased and unique. The database refuses a
+  mixed-case email, so the same address can't be registered twice in
+  different case.
+- **Date of birth:** a real calendar date in the past, giving an age of 16 to
+  100 on the day the record is saved. The lower bound reflects the youngest
+  further-education students; the upper bound catches a mistyped year. A 29
+  February birthday counts from 1 March in other years.
+- **Programme:** identified by its code, e.g. `BSC-CS`, in forms, filters and
+  the API.
+- **Search filters** in the URL are lenient: a malformed value, such as an
+  unknown status from an old bookmark, is ignored rather than turned into an
+  error page.
+
 ## Fees and payments
 
 ### One fee charge per student per academic year
@@ -107,6 +126,11 @@ academic year (a database unique constraint).
 - Overpayment is accepted and shown as credit: money arrives when it arrives.
 - Payments are never edited or deleted. A mistake is corrected by one reversal
   entry with a reason; the reversed payment stays visible but no longer counts.
+- No single amount may exceed £100,000. This catches a mistyped extra digit
+  without getting in the way of any real tuition fee. Amounts are typed in
+  pounds and converted to pence with string arithmetic, never floating point.
+- References are compared ignoring case and spacing ("bacs 0042" and
+  "BACS 0042" are the same transfer).
 
 ### Balance and overdue
 
@@ -296,6 +320,12 @@ Date-only values (date of birth, payment and due dates) travel as `YYYY-MM-DD`
 strings and are stored in `date` columns. This avoids the classic bug where a
 date shifts by one day on machines east of UTC, and the unit tests run in the
 Asia/Dhaka time zone to catch it.
+
+Displayed dates ("Fri 20 Nov 2026, 17:00 GMT") are assembled from fixed month
+and weekday names rather than `Intl`'s date styles. ICU versions disagree on
+punctuation and abbreviations, for example "Fri," versus "Fri", or "Sep"
+versus "Sept". Node and each browser ship their own ICU, and a server-rendered
+date that differed from the browser's would break React hydration.
 
 ### Testing
 

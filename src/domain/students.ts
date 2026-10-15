@@ -1,0 +1,177 @@
+// Student records: how their details are validated, and how the list of
+// students is filtered. Schemas are shared by the forms and the API.
+import { z } from "zod";
+
+import { academicYearSchema } from "./academic-year";
+import { type CalendarDate, isCalendarDate } from "./college-time";
+import {
+  ENROLMENT_STATUSES,
+  EnrolmentStatus,
+  INITIAL_STATUSES,
+  statusChangeNeedsReason,
+} from "./enrolment";
+
+/** Youngest and oldest plausible ages on the day a record is saved. */
+export const MIN_AGE = 16;
+export const MAX_AGE = 100;
+
+/** Students shown per page in the staff list. */
+export const STUDENTS_PAGE_SIZE = 20;
+
+// Letters from any alphabet (with accents), spaces, hyphens, apostrophes
+// (straight or typographic, as phones type them) and full stops, starting with
+// a letter: "Seán Ó Briain", "Mary-Jane O’Neil".
+const FULL_NAME = /^\p{L}[\p{L}\p{M}'’ .-]*$/u;
+
+/**
+ * Age in completed years on a given day. A birthday counts on the day itself,
+ * and a 29 February birthday counts from 1 March in other years.
+ */
+export function ageOn(dateOfBirth: CalendarDate, today: CalendarDate): number {
+  const [birthYear, birthMonth, birthDay] = dateOfBirth.split("-").map(Number);
+  const [year, month, day] = today.split("-").map(Number);
+  const hadBirthday =
+    month > birthMonth || (month === birthMonth && day >= birthDay);
+  return year - birthYear - (hadBirthday ? 0 : 1);
+}
+
+const fullNameSchema = z
+  .string({ error: "Enter the student's full name" })
+  .trim()
+  .transform((value) => value.replace(/\s+/g, " "))
+  .pipe(
+    z
+      .string()
+      .min(2, "Enter at least 2 characters")
+      .max(120, "Use 120 characters or fewer")
+      .regex(
+        FULL_NAME,
+        "Use letters, spaces, hyphens, apostrophes and full stops only",
+      ),
+  );
+
+const emailSchema = z
+  .string({ error: "Enter an email address" })
+  .trim()
+  .toLowerCase()
+  .pipe(z.email("Enter a valid email address").max(254));
+
+function dateOfBirthSchema(today: CalendarDate) {
+  return z
+    .string({ error: "Enter a date of birth" })
+    .superRefine((value, ctx) => {
+      if (!isCalendarDate(value)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Enter a real date, e.g. 2004-05-17",
+        });
+      } else if (value >= today) {
+        ctx.addIssue({
+          code: "custom",
+          message: "The date of birth must be in the past",
+        });
+      } else if (ageOn(value, today) < MIN_AGE) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Students must be at least ${MIN_AGE}`,
+        });
+      } else if (ageOn(value, today) > MAX_AGE) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Check the year: that makes the student over ${MAX_AGE}`,
+        });
+      }
+    });
+}
+
+const programmeCodeSchema = z
+  .string({ error: "Choose a programme" })
+  .trim()
+  .min(1, "Choose a programme")
+  .max(32);
+
+function detailsShape(today: CalendarDate) {
+  return {
+    fullName: fullNameSchema,
+    email: emailSchema,
+    dateOfBirth: dateOfBirthSchema(today),
+    programmeCode: programmeCodeSchema,
+    academicYear: academicYearSchema,
+  };
+}
+
+/** Input for enrolling a new student; `today` is the college's date. */
+export function createStudentSchema(today: CalendarDate) {
+  return z.object({
+    ...detailsShape(today),
+    status: z
+      .enum(INITIAL_STATUSES, {
+        error: "A new record starts as Enrolled or Deferred",
+      })
+      .default(EnrolmentStatus.ENROLLED),
+  });
+}
+
+/** Input for editing a student's details. Status changes are separate. */
+export function updateStudentSchema(today: CalendarDate) {
+  return z
+    .object(detailsShape(today))
+    .partial()
+    .refine((input) => Object.values(input).some((v) => v !== undefined), {
+      error: "Nothing to update",
+    });
+}
+
+/** Input for moving a student to another status. */
+export const changeStatusSchema = z
+  .object({
+    status: z.enum(ENROLMENT_STATUSES, { error: "Choose a status" }),
+    reason: z
+      .string()
+      .trim()
+      .max(500, "Use 500 characters or fewer")
+      .optional()
+      .transform((value) => value || undefined),
+  })
+  .superRefine(({ status, reason }, ctx) => {
+    if (statusChangeNeedsReason(status) && !reason) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["reason"],
+        message: "Give a reason for deferral or withdrawal",
+      });
+    }
+  });
+
+/**
+ * Filters for the staff list, read from the URL. Unknown or malformed values
+ * are ignored rather than rejected, so a stale link still opens.
+ */
+export const studentFiltersSchema = z.object({
+  q: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .catch(undefined)
+    .transform((value) => value || undefined),
+  programme: z
+    .string()
+    .trim()
+    .max(32)
+    .optional()
+    .catch(undefined)
+    .transform((value) => value || undefined),
+  status: z.enum(ENROLMENT_STATUSES).optional().catch(undefined),
+  year: academicYearSchema.optional().catch(undefined),
+  page: z.coerce.number().int().min(1).max(10_000).default(1).catch(1),
+});
+
+export type CreateStudentInput = z.infer<
+  ReturnType<typeof createStudentSchema>
+>;
+export type UpdateStudentInput = z.infer<
+  ReturnType<typeof updateStudentSchema>
+>;
+export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
+export type StudentFilters = z.infer<typeof studentFiltersSchema>;

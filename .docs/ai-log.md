@@ -214,3 +214,27 @@ The script was tested both ways. With the allowlist as written, it passes.
 With one advisory removed, it fails. Its stale-entry check also caught a
 mistake in the first allowlist: one listed advisory was only of moderate
 severity, so it was removed.
+
+## Domain rules
+
+**What the AI did:** wrote the pure business rules in `src/domain`, each with
+unit tests aimed at the boundaries (183 tests in total). The rules cover
+academic years, money, college time, student IDs, enrolment statuses, student
+details, fees and overdue balances, submissions and results. It also wrote the
+shared display formatting in `src/lib/format.ts`.
+
+**Checked by:**
+
+- **Date conversion is independent of the server's time zone.** The
+  daylight-saving conversions were run under four host time zones (UTC,
+  America/New_York, Asia/Dhaka and Pacific/Auckland) and gave identical results:
+  the skipped spring hour is rejected and the repeated autumn hour resolves to
+  its first occurrence.
+- **Every status transition is tested.** The status-change table is tested for
+  all 16 pairs, so any change to the rules shows up as a failing row.
+
+**Caught by the tests:** the first version of the date formatter used `Intl`'s
+`en-GB` date style. A test showed that ICU writes "Fri, 20 Nov…" with a comma,
+and that newer ICU data abbreviates September as "Sept". Node and browsers ship
+different ICU versions, so the formatter now builds dates from fixed month and
+weekday names. Server-rendered and browser-rendered text can no longer differ.
