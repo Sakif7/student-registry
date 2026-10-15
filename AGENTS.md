@@ -12,7 +12,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Student Registry is the Registry module of a student management system:
 enrolment, fees and payments, assessment submissions, and marks and results,
-with a Staff view and a Student view. DECISIONS.md explains every product rule.
+with a Staff view and a Student view. `.docs/DECISIONS.md` explains every product rule.
 Read it before changing behaviour, and add to it when you make a new decision.
 
 ## Commands
@@ -53,5 +53,7 @@ Read it before changing behaviour, and add to it when you make a new decision.
   - Use Conventional Commits, one logical step per commit.
   - All checks must pass before committing.
   - Never delete, skip or weaken a test to make it pass.
-- **Documentation:** keep DECISIONS.md, TESTING.md and `docs/ai-log.md` current
+- **Documentation:** project documents live in `.docs/` (README.md, AGENTS.md
+  and CLAUDE.md stay at the root). Keep `.docs/DECISIONS.md`,
+  `.docs/TESTING.md` and `.docs/ai-log.md` current
   with each change.
