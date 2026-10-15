@@ -2,6 +2,7 @@
 // Page links keep the current filters.
 import Link from "next/link";
 
+import { StandingBadge } from "@/components/fees/standing-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { StudentFilters } from "@/domain/students";
+import { formatDays, formatMoney } from "@/lib/format";
 import type { StudentPage } from "@/server/services/students";
 
 export function StudentTable({ page }: { page: StudentPage }) {
@@ -47,6 +49,7 @@ export function StudentTable({ page }: { page: StudentPage }) {
             <TableHead>Programme</TableHead>
             <TableHead>Academic year</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Fees</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -66,10 +69,21 @@ export function StudentTable({ page }: { page: StudentPage }) {
                   {student.email}
                 </div>
               </TableCell>
-              <TableCell>{student.programme.title}</TableCell>
+              <TableCell className="min-w-36 whitespace-normal">
+                {student.programme.title}
+              </TableCell>
               <TableCell>{student.academicYear}</TableCell>
               <TableCell>
                 <StatusBadge status={student.status} />
+              </TableCell>
+              <TableCell>
+                <StandingBadge standing={student.account.standing} />
+                {student.account.overduePence > 0 && (
+                  <div className="text-xs text-red-900">
+                    {formatMoney(student.account.overduePence)} ·{" "}
+                    {formatDays(student.account.daysOverdue)}
+                  </div>
+                )}
               </TableCell>
             </TableRow>
           ))}

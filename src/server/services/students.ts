@@ -17,7 +17,11 @@ import {
   ENROLMENT_STATUS_LABELS,
   type EnrolmentStatus,
 } from "@/domain/enrolment";
-import { DEFAULT_FEE_DUE_DAYS, feeDescription } from "@/domain/fees";
+import {
+  type AccountStanding,
+  DEFAULT_FEE_DUE_DAYS,
+  feeDescription,
+} from "@/domain/fees";
 import { formatStudentNumber } from "@/domain/student-number";
 import {
   changeStatusSchema,
@@ -38,6 +42,8 @@ import {
   requireStaffOrSelf,
   type Session,
 } from "../session";
+
+import { summariseAccounts } from "./fees";
 
 /** A programme as offered in forms and filters. */
 export interface ProgrammeOption {
@@ -76,6 +82,13 @@ export interface StudentListItem {
   programme: { code: string; title: string };
   academicYear: string;
   status: EnrolmentStatus;
+  /** Their account at a glance, so overdue balances stand out in the list. */
+  account: {
+    standing: AccountStanding;
+    balancePence: number;
+    overduePence: number;
+    daysOverdue: number;
+  };
 }
 
 /** One page of search results. */
@@ -134,16 +147,29 @@ export async function listStudents(
     skip: (page - 1) * STUDENTS_PAGE_SIZE,
     take: STUDENTS_PAGE_SIZE,
   });
+  const accounts = await summariseAccounts(
+    students.map((student) => student.id),
+    collegeToday(),
+  );
 
   return {
-    items: students.map((student) => ({
-      studentNumber: student.studentNumber,
-      fullName: student.fullName,
-      email: student.email,
-      programme: student.programme,
-      academicYear: student.academicYear,
-      status: student.status,
-    })),
+    items: students.map((student) => {
+      const account = accounts.get(student.id);
+      return {
+        studentNumber: student.studentNumber,
+        fullName: student.fullName,
+        email: student.email,
+        programme: student.programme,
+        academicYear: student.academicYear,
+        status: student.status,
+        account: {
+          standing: account?.standing ?? "NONE",
+          balancePence: account?.summary.balancePence ?? 0,
+          overduePence: account?.summary.overduePence ?? 0,
+          daysOverdue: account?.summary.daysOverdue ?? 0,
+        },
+      };
+    }),
     total,
     page,
     pageCount,

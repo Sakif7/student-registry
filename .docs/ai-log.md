@@ -399,3 +399,37 @@ separate record, so the payment itself is never edited.
   - a reversal brought Kwame's overdue amount back to £9,535.00 and removed
     that payment's **Reverse** button;
   - a due-date correction cleared his overdue flag.
+
+## Registry dashboard and overdue flags
+
+**What the AI did:** wrote the Registry dashboard. It counts students by
+status, each count linking to the filtered student list, and shows the overdue
+worklist: every student with fees unpaid after the due date, longest overdue
+first, including withdrawn and completed students. The student list gained a
+**Fees** column with each student's account standing and overdue amount.
+Accounts are summarised in two queries however many students there are, using
+the same domain code as the record page, so the figures always agree.
+
+**Checked by:**
+
+- **Integration tests** on a fixed clock:
+  - status counts include statuses with no students;
+  - the worklist is ordered by days overdue and includes a withdrawn student;
+  - accounts that are paid, in credit, due today or not yet due are left out;
+  - a reversed payment counts as never made;
+  - the dashboard is for staff only, and the student list reports each
+    student's standing.
+- **In a real browser,** on fresh demo data:
+  - the dashboard showed 10 students (7 enrolled) and "3 students owe
+    £24,020.00", listing Amelia, Kwame and Hannah in that order;
+  - after a £4,535 payment on Kwame's record, the dashboard (reached by the
+    navigation link, without a reload) read "2 students owe £19,485.00".
+
+**Caught along the way:**
+
+- In a window about 930 pixels wide, the new **Fees** column made the student
+  list wider than the page and cut off the overdue amounts. Long programme
+  titles now wrap.
+- Several curl examples in TESTING.md had been joined onto single lines by an
+  earlier scripted edit, which swallowed the line continuations. They are
+  split again.

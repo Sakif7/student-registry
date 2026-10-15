@@ -142,6 +142,10 @@ academic year (a database unique constraint).
   yet overdue. Days overdue count from the oldest unpaid due date.
 - Overdue students are flagged on the Registry dashboard, in the student list
   and on the student's record.
+- The dashboard's overdue list is a worklist for chasing debts: longest overdue
+  first, then largest amount. It includes withdrawn and completed students,
+  because leaving doesn't cancel what is owed. Hiding them would make the
+  oldest debts the easiest to forget.
 
 ## Assessments and submissions
 
@@ -403,7 +407,12 @@ advisories are reviewed by hand rather than failing the build.
   `student_number_counters` to the highest number per year, as the seed
   does. Otherwise the next enrolment for that year would collide with an
   imported number and fail.
-
+- **Balances at scale:** balances are computed in the application from each
+  student's charges and payments. The student list does this for one page of
+  20 students, but the dashboard does it for every student with a charge past
+  its due date, on every visit. That is fine for a college of a few thousand
+  students. Much beyond that, the calculation would move into a database view,
+  so that only overdue rows are read.
 - **Accents in search:** search matches accents exactly, so `Chloe` doesn't
   find "Chloé". PostgreSQL's `unaccent` extension would fix this.
 - **Search speed:** search scans names, IDs and emails with `ILIKE`, which is

@@ -290,6 +290,61 @@ function isId(value: string): boolean {
   return z.uuid().safeParse(value).success;
 }
 
+/** The account standing and figures for one student, for lists. */
+export interface AccountBrief {
+  standing: AccountStanding;
+  summary: AccountSummary;
+}
+
+/**
+ * Summarises many students' accounts at once, in two queries whatever the
+ * number of students. The caller has already checked permissions.
+ *
+ * @param studentIds - Internal student IDs.
+ * @returns Each student's standing and figures, keyed by ID.
+ */
+export async function summariseAccounts(
+  studentIds: readonly string[],
+  today: CalendarDate,
+): Promise<Map<string, AccountBrief>> {
+  const ids = [...studentIds];
+  const [charges, payments] = await Promise.all([
+    db().feeCharge.findMany({
+      where: { studentId: { in: ids } },
+      select: { studentId: true, amountPence: true, dueDate: true },
+    }),
+    db().payment.findMany({
+      where: { studentId: { in: ids } },
+      select: {
+        studentId: true,
+        amountPence: true,
+        reversal: { select: { id: true } },
+      },
+    }),
+  ]);
+
+  const briefs = new Map<string, AccountBrief>();
+  for (const id of ids) {
+    const summary = summariseAccount(
+      charges
+        .filter((charge) => charge.studentId === id)
+        .map((charge) => ({
+          amountPence: charge.amountPence,
+          dueDate: fromDbDate(charge.dueDate),
+        })),
+      payments
+        .filter((payment) => payment.studentId === id)
+        .map((payment) => ({
+          amountPence: payment.amountPence,
+          reversed: payment.reversal !== null,
+        })),
+      today,
+    );
+    briefs.set(id, { standing: accountStanding(summary), summary });
+  }
+  return briefs;
+}
+
 async function findStudent(studentNumber: string) {
   const number = studentNumber.toUpperCase();
   const student = await db().student.findUnique({

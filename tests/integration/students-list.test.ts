@@ -1,7 +1,9 @@
 // Searching, filtering and paging students through GET /api/students.
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET as listStudents } from "@/app/api/students/route";
+import { toDbDate } from "@/domain/college-time";
+import { db } from "@/server/db";
 import type { Session } from "@/server/session";
 
 import { createProgramme, createStudent } from "../helpers/factories";
@@ -14,7 +16,11 @@ import {
 } from "../helpers/requests";
 
 interface ListBody {
-  items: { studentNumber: string; fullName: string }[];
+  items: {
+    studentNumber: string;
+    fullName: string;
+    account: { standing: string; overduePence: number };
+  }[];
   total: number;
   page: number;
   pageCount: number;
@@ -29,6 +35,10 @@ async function list(query = "", session: Session | null = STAFF) {
 }
 
 const names = (body: ListBody) => body.items.map((student) => student.fullName);
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 beforeEach(async () => {
   const computing = await createProgramme({ code: "BSC-CS" });
@@ -130,6 +140,53 @@ describe("GET /api/students", () => {
     expect(second.items).toHaveLength(3);
 
     expect((await list("?page=9")).body.page).toBe(2);
+  });
+
+  it("shows where each student's account stands, so overdue fees stand out", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-15T11:00:00.000Z"));
+    for (const studentNumber of ["SMS-2025-0001", "SMS-2026-0001"]) {
+      const { id } = await db().student.findUniqueOrThrow({
+        where: { studentNumber },
+      });
+      await db().feeCharge.create({
+        data: {
+          studentId: id,
+          academicYear: "2026/27",
+          description: "Tuition fee 2026/27",
+          amountPence: 953_500,
+          dueDate: toDbDate("2026-10-05"),
+        },
+      });
+      if (studentNumber === "SMS-2026-0001") {
+        await db().payment.create({
+          data: {
+            studentId: id,
+            amountPence: 953_500,
+            paidOn: toDbDate("2026-10-01"),
+            reference: "SLC OB 1",
+          },
+        });
+      }
+    }
+
+    expect((await list()).body.items).toMatchObject([
+      {
+        fullName: "Amelia Hart",
+        account: {
+          standing: "OVERDUE",
+          balancePence: 953_500,
+          overduePence: 953_500,
+          daysOverdue: 10,
+        },
+      },
+      { fullName: "Hannah Kowalski", account: { standing: "NONE" } },
+      { fullName: "Mohammed Al-Farsi", account: { standing: "NONE" } },
+      {
+        fullName: "Oliver Bennett",
+        account: { standing: "PAID", balancePence: 0, overduePence: 0 },
+      },
+    ]);
   });
 
   it("is for staff only", async () => {

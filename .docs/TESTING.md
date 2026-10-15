@@ -204,6 +204,34 @@ after a £5,000.00 card payment.
 4. **Chloé Dubois** shows a payment the seed already reversed ("Payment
    recalled by the bank"), followed by the payment that replaced it.
 
+### 8. The dashboard and overdue fees
+
+Reset the demo data first with `npm run db:seed`, because the days overdue
+below are as of the day the seed runs. As staff:
+
+1. Open **Dashboard**. Under **Students** it shows All students 10, Enrolled 7,
+   Deferred 1, Withdrawn 1 and Completed 1. Select **Withdrawn**: the student
+   list opens filtered to Withdrawn and shows Hannah Kowalski.
+2. Back on **Dashboard**, **Overdue fees** reads "3 students owe £24,020.00 in
+   total past the due date" and lists them, longest overdue first:
+
+   | Student         | Status    | Overdue   | Overdue since   |
+   | --------------- | --------- | --------- | --------------- |
+   | Amelia Hart     | Enrolled  | £9,535.00 | 20 days overdue |
+   | Kwame Mensah    | Enrolled  | £4,535.00 | 10 days overdue |
+   | Hannah Kowalski | Withdrawn | £9,950.00 | 6 days overdue  |
+
+   Hannah is listed although she has withdrawn, because her debt still needs
+   chasing. Arjun Mehta isn't listed: his fee isn't due for another 5 days.
+
+3. Open **Students**. The **Fees** column shows the same three students as
+   **Overdue**, each with the amount and days overdue. Arjun shows **Balance
+   due**, Liam **In credit**, Sofia **No fees**, and the rest **Paid in
+   full**.
+4. Open **Kwame Mensah** and record a payment of `4535` with the reference
+   `CARD KM 0002`. Select **Dashboard**: Kwame is no longer listed, and the
+   total reads "2 students owe £19,485.00".
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -238,33 +266,48 @@ curl -i -b cookies.txt -H "Content-Type: application/json" \
 # HTTP/1.1 201 Created
 # {"student":{"studentNumber":"SMS-2026-0008", ...}}
 
-# Search and filter students; the same parameters as the page
+# Search and filter students; the same parameters as the page. Each student
+# comes with their account standing (e.g. OVERDUE) and overdue amount.
 curl -b cookies.txt "http://localhost:3000/api/students?q=har&status=ENROLLED&page=1"
 
 # Read a record; the student ID is case-insensitive
 curl -b cookies.txt http://localhost:3000/api/students/sms-2026-0008
 
 # Edit details (any subset of fields)
-curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json"   -d '{"academicYear":"2027/28"}' http://localhost:3000/api/students/SMS-2026-0008
+curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
+  -d '{"academicYear":"2027/28"}' \
+  http://localhost:3000/api/students/SMS-2026-0008
 
 # Change status; deferral and withdrawal need a reason
-curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"status":"WITHDRAWN","reason":"Moved abroad"}'   http://localhost:3000/api/students/SMS-2026-0008/status
+curl -i -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"status":"WITHDRAWN","reason":"Moved abroad"}' \
+  http://localhost:3000/api/students/SMS-2026-0008/status
 
 # A student's account: charges, payments, balance and overdue amount
 curl -b cookies.txt http://localhost:3000/api/students/SMS-2025-0001/account
 
 # Record a payment; amounts are in pence and the response has the new balance
-curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"amountPence":500000,"paidOn":"2026-10-15","reference":"BACS 0042"}'   http://localhost:3000/api/students/SMS-2025-0001/payments
+curl -i -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"amountPence":500000,"paidOn":"2026-10-15","reference":"BACS 0042"}' \
+  http://localhost:3000/api/students/SMS-2025-0001/payments
 
 # Charge a fee for an academic year (the programme's standard fee by default)
-curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"academicYear":"2027/28"}'   http://localhost:3000/api/students/SMS-2025-0001/fees
+curl -i -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"academicYear":"2027/28"}' \
+  http://localhost:3000/api/students/SMS-2025-0001/fees
 
 # Correct a fee charge (IDs are in the account response)
-curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json"   -d '{"dueDate":"2026-11-30","note":"Payment plan agreed"}'   http://localhost:3000/api/fees/<fee-id>
+curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
+  -d '{"dueDate":"2026-11-30","note":"Payment plan agreed"}' \
+  http://localhost:3000/api/fees/<fee-id>
 
 # Reverse a payment; a second reversal of the same payment returns 409
-curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"reason":"Keyed against the wrong student"}'   http://localhost:3000/api/payments/<payment-id>/reversal
+curl -i -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"reason":"Keyed against the wrong student"}' \
+  http://localhost:3000/api/payments/<payment-id>/reversal
 
 # A change the rules forbid returns 409 with an explanation
-curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"status":"DEFERRED"}' http://localhost:3000/api/students/SMS-2023-0001/status
+curl -i -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"status":"DEFERRED"}' \
+  http://localhost:3000/api/students/SMS-2023-0001/status
 ```
