@@ -129,3 +129,15 @@ the starter page with a minimal shell (shared header, skip link, toasts).
 - `npm run check` passes and the production build passes.
 - In a real browser, the computed font is `Geist, "Geist Fallback"`, the page
   language is `en-GB`, and the skip link is in place.
+
+## PostgreSQL in Docker
+
+**What the AI did:** wrote `compose.yaml` for PostgreSQL 18, the
+`.env.example` file and the first README setup steps.
+
+**Caught from research:** PostgreSQL 18 images keep their data under
+`/var/lib/postgresql` and refuse to start if a volume is mounted at the old
+`/var/lib/postgresql/data` path. Most examples online still use the old path.
+
+**Checked by:** `npm run db:up` reaches a healthy container running PostgreSQL
+18.6, with its data directory inside the mounted volume.

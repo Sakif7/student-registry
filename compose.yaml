@@ -1,0 +1,25 @@
+# PostgreSQL for local development and tests. The app database (`registry`)
+# and the disposable test database (`registry_test`, created on first
+# `prisma migrate deploy`) live on this one server. The credentials are
+# local-only defaults that match .env.example.
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: registry
+      POSTGRES_PASSWORD: registry
+      POSTGRES_DB: registry
+    ports:
+      - "5432:5432"
+    volumes:
+      # PostgreSQL 18 images keep their data under /var/lib/postgresql
+      # (mounting /var/lib/postgresql/data, as older images did, fails).
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U registry -d registry"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  pgdata:

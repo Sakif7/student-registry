@@ -11,6 +11,8 @@
     "format:check": "prettier --check .",
     "typecheck": "next typegen && tsc --noEmit",
     "check": "npm run format:check && npm run typecheck && npm run lint",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
     "prepare": "husky"
   },
   "dependencies": {
