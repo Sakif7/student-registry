@@ -59,7 +59,7 @@ pattern for Student IDs and Route Handlers as the only write path.
   Rejected in favour of a major-version pin (`@7`) plus the committed lockfile,
   which keeps the build reproducible while still allowing patch fixes.
 
-## Commit 1: formatting and type-aware linting
+## Formatting and type-aware linting
 
 **What the AI did:** wrote the ESLint and Prettier configuration, the
 `.gitattributes` line-ending rule and the npm scripts.
@@ -78,7 +78,7 @@ is a development-only path. npm's suggested fix was to downgrade
 `eslint-config-next` by two major versions. Instead, the finding is documented
 in DECISIONS.md and CI audits production dependencies.
 
-## Commit 2: pre-commit hook
+## Pre-commit hook
 
 **What the AI did:** set up Husky and lint-staged: ESLint and Prettier run on
 staged files, then the whole project is type-checked.
@@ -88,3 +88,44 @@ staged files, then the whole project is type-checked.
 - **Failure path:** a staged file containing an unawaited promise was rejected
   by the hook's lint step, and lint-staged rolled the index back cleanly.
 - **Success path:** this commit itself went through the hook.
+
+## Decision log and agent conventions
+
+**What the AI did:** drafted DECISIONS.md from the answers confirmed during
+planning, started this log, and wrote the project's conventions into AGENTS.md
+for future AI sessions. These conventions cover the Next.js 16 caching rules,
+the single write path, money and date formats, and database safety.
+
+## Documents moved into `.docs/`
+
+The developer asked for the project documents to live in `.docs/`. The AI
+flagged two exceptions, and the developer agreed to both:
+
+- **README.md stays at the root,** because GitHub only renders a README from the
+  root, `.github/` or `docs/`.
+- **AGENTS.md stays at the root,** because `next dev` recreates it there and AI
+  tools look for it at the root.
+
+**Checked by:** confirming that `prettier .` and lint-staged both still cover
+files inside the dot-folder.
+
+## shadcn/ui and the app shell
+
+**What the AI did:** ran `shadcn init` with its defaults, ejected shadcn's
+stylesheet so the `shadcn` CLI is no longer a runtime dependency, and replaced
+the starter page with a minimal shell (shared header, skip link, toasts).
+
+**Changed from the generated code:**
+
+- **Font variable:** `shadcn init` points `--font-sans` at itself, so the page
+  fell back to Times New Roman. The root layout now defines `--font-sans`
+  through `next/font`.
+- **Toast theme:** the generated toast component reads the theme from
+  `next-themes`. The app has a single light theme, so the component now fixes
+  it to light and `next-themes` was uninstalled.
+
+**Checked by:**
+
+- `npm run check` passes and the production build passes.
+- In a real browser, the computed font is `Geist, "Geist Fallback"`, the page
+  language is `en-GB`, and the skip link is in place.

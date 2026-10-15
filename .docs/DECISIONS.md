@@ -213,6 +213,17 @@ uses `use cache`: every database read happens at request time inside a
 `<Suspense>` boundary with a loading skeleton, and the build fails if a boundary
 is missing.
 
+### User interface: shadcn/ui on Base UI
+
+- Components come from shadcn/ui with its current defaults: Base UI primitives
+  (shadcn's default since July 2026) and the Nova preset.
+- The components are copied into `src/components/ui` and owned like any other
+  code: formatted, linted and type-checked.
+- shadcn's stylesheet is ejected into `globals.css`. This removes the `shadcn`
+  package, a CLI with its own dependency tree, from the runtime dependencies.
+- The app has one light theme; dark mode is out of scope. The toast component
+  therefore fixes its theme instead of depending on `next-themes`.
+
 ### One write path: Route Handlers
 
 Every write goes through a Route Handler under `/api`, and the UI calls those

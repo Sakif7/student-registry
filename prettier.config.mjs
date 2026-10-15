@@ -5,6 +5,8 @@
 const config = {
   plugins: ["prettier-plugin-tailwindcss"],
   tailwindStylesheet: "./src/app/globals.css",
+  // Also sort classes passed to shadcn's helpers.
+  tailwindFunctions: ["cn", "cva"],
 };
 
 export default config;
