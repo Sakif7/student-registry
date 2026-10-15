@@ -164,3 +164,27 @@ environment module, the database client and the first seed data.
 - All 14 constraints are present in the database.
 - The seed loads 3 programmes and 7 modules.
 - `npm run check` passes, including type-checking the generated client.
+
+## Test infrastructure
+
+**What the AI did:** configured Vitest 5 with two projects (unit and
+integration), the test-database safety guard, per-test table truncation, data
+factories, and the first tests: environment validation as unit tests, and the
+database CHECK constraints as integration tests.
+
+**Used from research:**
+
+- Vitest 5 resolves the `@/` path alias through Vite 8's built-in
+  `resolve.tsconfigPaths`, so the `vite-tsconfig-paths` plugin that the bundled
+  Next.js docs still recommend isn't needed.
+- `server-only` throws by design outside Next.js, so it is aliased to an empty
+  module under Vitest.
+
+**Checked by:**
+
+- **All tests pass:** 12 tests, 4 unit and 8 integration.
+- **Safety guard:** pointing `TEST_DATABASE_URL` at the app database makes the
+  run refuse before any table is touched. The dev database kept its seeded rows.
+- **Constraint names:** each constraint test asserts the specific constraint
+  name, so it can't pass because of an unrelated error such as a foreign-key
+  violation.

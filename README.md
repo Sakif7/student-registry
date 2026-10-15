@@ -49,9 +49,23 @@ and a Student view. Built with Next.js 16 (App Router), PostgreSQL and Prisma.
 | `npm run db:migrate` | Create a migration after editing `prisma/schema.prisma` |
 | `npm run db:studio`  | Browse the data in Prisma Studio                        |
 
+## Tests
+
+With PostgreSQL running (`npm run db:up`):
+
+```bash
+npm test
+```
+
+This runs the unit and integration suites with a coverage report. The
+integration tests use a separate `registry_test` database and never touch your
+data. See the [testing guide](.docs/TESTING.md) for each suite and the manual
+test scenarios.
+
 ## Documentation
 
 - [Decisions](.docs/DECISIONS.md): every product and technical decision, with
   its reasoning
+- [Testing guide](.docs/TESTING.md): automated suites and manual test scenarios
 - [AI usage log](.docs/ai-log.md): how AI tools were used and how their output
   was checked

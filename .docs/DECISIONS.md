@@ -297,6 +297,22 @@ strings and are stored in `date` columns. This avoids the classic bug where a
 date shifts by one day on machines east of UTC, and the unit tests run in the
 Asia/Dhaka time zone to catch it.
 
+### Testing
+
+- **Unit tests** cover the pure rules in `src/domain` and small server helpers.
+  They sit next to the code and run in milliseconds, including in the
+  pre-commit hook.
+- **Integration tests** call the Route Handlers directly with real requests,
+  against a real PostgreSQL database rather than mocks. Most of the risk lives
+  in queries, transactions and constraints, which mocks would hide.
+- **End-to-end tests** (Playwright) drive the main journeys in a browser against
+  a production build. They cover the React components, so there are no separate
+  component tests and no jsdom.
+- **The test database** is prepared with `prisma migrate deploy` and emptied
+  before each test, never with `prisma migrate reset`. Prisma refuses `reset`
+  when an AI agent runs it, so this keeps test runs identical whoever starts
+  them. The setup refuses any database whose name doesn't end in `_test`.
+
 ### Environment variables
 
 Next.js loads `.env` for the app. The Prisma, Vitest and Playwright

@@ -20,6 +20,10 @@ Read it before changing behaviour, and add to it when you make a new decision.
 - `npm run check`: format check, type-check (runs `next typegen` first, because
   route types are generated) and lint with zero warnings.
 - `npm run format`: apply Prettier, including Tailwind class order.
+- `npm run db:up`, then `npm run setup`: start PostgreSQL, migrate and seed.
+- `npm test`: unit and integration tests with coverage. Use
+  `npm run test:unit` or `npm run test:integration` for one suite. Integration
+  tests need PostgreSQL running and only touch the `*_test` database.
 
 ## Rules
 
