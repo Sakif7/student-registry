@@ -268,3 +268,31 @@ client, and the role picker with the staff and student layouts.
 - **Process slip:** one check run was piped through `tail`, which hid its
   failing exit code. The pre-commit hook caught the lint error before it was
   committed. Checks now run with `pipefail`.
+
+## Enrolling students
+
+**What the AI did:** wrote the enrolment service, which allocates the student
+number in the same transaction as the insert. It also wrote the student API
+routes, the enrolment form (React Hook Form, validated with the same zod
+schema as the API), the student record page, and the seeded cast of ten
+students.
+
+**Checked by:**
+
+- **Concurrency:** 20 enrolments sent at once received SMS-2026-0001 to 0020,
+  with no duplicates and no gaps.
+- **No gaps:** an enrolment that failed on a duplicate email didn't use up a
+  number. The next student got the following one, because the counter
+  increment rolls back with the failed insert.
+- **Unique constraint name:** the research had warned that Prisma's PostgreSQL
+  driver adapter reports the violated constraint under `driverAdapterError`
+  rather than `meta.target`. The duplicate-email test confirms the code reads
+  it from there.
+- **In a real browser:**
+  - Client-side errors are linked to their fields with `aria-describedby`.
+  - A duplicate email returns 409, and the message appears under **Email**.
+  - A new enrolment continues the seeded number sequence.
+
+**Changed after review:** the student's status badge first sat inside the page
+heading, so screen readers announced the title as "Grace Thompson Enrolled".
+It now sits beside the student ID instead.

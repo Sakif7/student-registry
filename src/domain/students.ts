@@ -100,6 +100,11 @@ function detailsShape(today: CalendarDate) {
   };
 }
 
+/** A student's editable details, as the edit form submits them in full. */
+export function studentDetailsSchema(today: CalendarDate) {
+  return z.object(detailsShape(today));
+}
+
 /** Input for enrolling a new student; `today` is the college's date. */
 export function createStudentSchema(today: CalendarDate) {
   return z.object({

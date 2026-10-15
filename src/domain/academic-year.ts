@@ -21,6 +21,19 @@ export function academicYearStart(value: string): number | null {
   return Number(match[2]) === (start + 1) % 100 ? start : null;
 }
 
+/**
+ * The start year of an academic year already known to be valid.
+ *
+ * @throws RangeError if the value is not a well-formed academic year.
+ */
+export function startYearOf(academicYear: string): number {
+  const start = academicYearStart(academicYear);
+  if (start === null) {
+    throw new RangeError(`Not an academic year: "${academicYear}"`);
+  }
+  return start;
+}
+
 /** True for a well-formed academic year such as "2026/27". */
 export function isAcademicYear(value: string): boolean {
   return academicYearStart(value) !== null;

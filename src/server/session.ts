@@ -49,6 +49,16 @@ export async function currentSession(): Promise<Session | null> {
 }
 
 /**
+ * Allows anyone with a session, staff or student.
+ *
+ * @throws AppError (UNAUTHENTICATED) without a session.
+ */
+export function requireSession(session: Session | null): Session {
+  if (!session) throw notSignedIn();
+  return session;
+}
+
+/**
  * Allows Registry staff only.
  *
  * @throws AppError: UNAUTHENTICATED without a session, FORBIDDEN for a student.
