@@ -200,3 +200,17 @@ of the GitHub API.
 **Checked by:** running the same steps in a fresh clone with CI's environment
 variables and no `.env` file. The workflow had not yet run on GitHub, because
 the repository has not been pushed yet.
+
+**Fixed after the rehearsal:** the fresh-clone run of the CI steps passed
+everything except the production dependency audit. It reported advisories in
+`deepmerge-ts` and `mysql2`, inside the Prisma CLI. npm counts the CLI as
+production because `@prisma/client` declares it as an optional peer, so
+`--omit=dev` can't exclude it, and `--omit=peer` turned out not to help
+either. Weakening the gate to "critical only" was rejected. Instead, a
+zero-dependency script fails on any high or critical advisory that isn't on an
+explicit, reasoned allowlist.
+
+The script was tested both ways. With the allowlist as written, it passes.
+With one advisory removed, it fails. Its stale-entry check also caught a
+mistake in the first allowlist: one listed advisory was only of moderate
+severity, so it was removed.

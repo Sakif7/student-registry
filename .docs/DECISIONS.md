@@ -323,7 +323,7 @@ failure points at its cause:
 3. lint;
 4. unit and integration tests with coverage, against a PostgreSQL 18 service
    container;
-5. the production dependency audit.
+5. the dependency audit.
 
 The coverage report is uploaded as a build artefact.
 
@@ -335,15 +335,27 @@ there is no dotenv dependency.
 
 ### Dependency audit
 
-`npm audit` reports one high-severity advisory, GHSA-vfj7-8cjw-p6xm, in
-`braces`: a denial of service through deeply nested glob patterns. It is
-reached only through ESLint's Next.js plugin.
+`npm run audit:deps` audits every dependency, development ones included, and
+fails on any high or critical advisory that isn't on an explicit allowlist
+(`scripts/audit-allowlist.json`). Each allowlist entry names one advisory and
+the reason it is accepted. A new advisory still fails CI, even in a package
+that's already on the list. The script also flags entries that no longer
+apply.
 
-- No patched version of `braces` exists yet.
-- It is a development dependency and only ever processes glob patterns from our
-  own configuration.
-- Production dependencies audit clean, and CI fails on any high-severity
-  advisory in them.
+Three advisories are accepted. None of them is reachable by a user of the app,
+and no fixed release exists within the versions this project can use:
+
+| Advisory            | Package        | Reached through                       | Why it is accepted                                                      |
+| ------------------- | -------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| GHSA-vfj7-8cjw-p6xm | `braces`       | ESLint's Next.js plugin (development) | Only expands glob patterns from our own lint config; no patched release |
+| GHSA-ggr8-5vv4-36mx | `deepmerge-ts` | Prisma CLI (build and deploy time)    | Only merges our own `prisma.config.ts`                                  |
+| GHSA-3f6p-5ww8-9rcr | `mysql2`       | Prisma CLI                            | MySQL driver; this project only connects to PostgreSQL                  |
+
+`npm audit --omit=dev` can't separate the Prisma CLI out: npm counts it as a
+production dependency because `@prisma/client` declares it as an optional peer.
+npm's only proposed fix is a downgrade to Prisma 6, which would undo the Prisma
+7 decision above, so the allowlist is the honest option. Moderate and low
+advisories are reviewed by hand rather than failing the build.
 
 ## Known limitations
 

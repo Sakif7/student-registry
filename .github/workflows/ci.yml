@@ -69,8 +69,7 @@ jobs:
           path: coverage/
           retention-days: 14
 
-      # Production dependencies only: the one known advisory is in a
-      # development-only lint dependency with no patched release (see
-      # .docs/DECISIONS.md).
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
+      # Fails on any high or critical advisory except the ones listed, with
+      # their reasons, in scripts/audit-allowlist.json.
+      - name: Audit dependencies
+        run: npm run audit:deps

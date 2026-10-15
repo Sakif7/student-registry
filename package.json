@@ -23,6 +23,7 @@
     "test:integration": "vitest run --project integration",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --project unit",
+    "audit:deps": "node scripts/audit-deps.mjs",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },
