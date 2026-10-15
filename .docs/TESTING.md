@@ -182,6 +182,28 @@ account is **Overdue**:
 7. Switch to **Liam O'Connor** as a student. **My record** shows the same
    account, with no forms.
 
+### 7. Correcting a fee and reversing a payment
+
+As staff, open **Kwame Mensah** (SMS-2025-0002). This year's fee is overdue
+after a £5,000.00 card payment.
+
+1. In **Payments**, select **Reverse** on **CARD KM 0001**. A dialog explains
+   that the payment stays on record but stops counting. Select **Reverse
+   payment** without a reason, and "Give a reason for the reversal" appears.
+   Enter `Card payment charged back by the bank` and confirm. The payment now
+   shows **Reversed** with the reason; Paid drops to £9,535.00, the overdue
+   amount rises to £9,535.00, and the **Reverse** button for that payment is
+   gone.
+2. In **Fees charged**, select **Correct** on the 2026/27 charge. Change the
+   due date to a date next month, add the note `Payment plan agreed`, and
+   select **Save correction**. **Overdue** reads "Nothing overdue" and the
+   account shows **Balance due**.
+3. Select **Correct** again and change the amount to `4767.50` with the note
+   field empty. "Explain why the amount differs from the standard fee of
+   £9,535.00" appears.
+4. **Chloé Dubois** shows a payment the seed already reversed ("Payment
+   recalled by the bank"), followed by the payment that replaced it.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -236,6 +258,12 @@ curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"amountPence":
 
 # Charge a fee for an academic year (the programme's standard fee by default)
 curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"academicYear":"2027/28"}'   http://localhost:3000/api/students/SMS-2025-0001/fees
+
+# Correct a fee charge (IDs are in the account response)
+curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json"   -d '{"dueDate":"2026-11-30","note":"Payment plan agreed"}'   http://localhost:3000/api/fees/<fee-id>
+
+# Reverse a payment; a second reversal of the same payment returns 409
+curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"reason":"Keyed against the wrong student"}'   http://localhost:3000/api/payments/<payment-id>/reversal
 
 # A change the rules forbid returns 409 with an explanation
 curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"status":"DEFERRED"}' http://localhost:3000/api/students/SMS-2023-0001/status

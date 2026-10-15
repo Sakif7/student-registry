@@ -68,7 +68,14 @@ export function AccountFigures({ account }: { account: Account }) {
 }
 
 /** Fee charges, oldest due date first, with what is paid of each. */
-export function ChargesTable({ account }: { account: Account }) {
+export function ChargesTable({
+  account,
+  actions,
+}: {
+  account: Account;
+  /** Extra controls per charge, e.g. correcting it (staff only). */
+  actions?: (charge: Account["charges"][number]) => ReactNode;
+}) {
   if (account.charges.length === 0) {
     return <p className="text-muted-foreground">No fees have been charged.</p>;
   }
@@ -83,6 +90,11 @@ export function ChargesTable({ account }: { account: Account }) {
           <TableHead>Due</TableHead>
           <TableHead className="text-right">Outstanding</TableHead>
           <TableHead>State</TableHead>
+          {actions && (
+            <TableHead>
+              <span className="sr-only">Actions</span>
+            </TableHead>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -119,6 +131,7 @@ export function ChargesTable({ account }: { account: Account }) {
                 </Badge>
               )}
             </TableCell>
+            {actions && <TableCell>{actions(charge)}</TableCell>}
           </TableRow>
         ))}
       </TableBody>

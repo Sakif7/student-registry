@@ -1,6 +1,6 @@
 // The "Fees and payments" section of a record page. Students see their
 // account read-only; staff also get the forms to charge fees and record
-// payments.
+// payments, and to correct charges and reverse payments.
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -15,7 +15,9 @@ import type { Account } from "@/server/services/fees";
 
 import { AccountFigures, ChargesTable, PaymentsTable } from "./account-tables";
 import { AssignFeeForm } from "./assign-fee-form";
+import { CorrectFeeDialog } from "./correct-fee-dialog";
 import { RecordPaymentForm } from "./record-payment-form";
+import { ReversePaymentDialog } from "./reverse-payment-dialog";
 
 export function AccountSection({
   account,
@@ -57,7 +59,18 @@ export function AccountSection({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ChargesTable account={account} />
+              <ChargesTable
+                account={account}
+                actions={
+                  staff &&
+                  ((charge) => (
+                    <CorrectFeeDialog
+                      charge={charge}
+                      standardFeePence={account.standardFeePence}
+                    />
+                  ))
+                }
+              />
             </CardContent>
           </Card>
           <Card>
@@ -67,7 +80,17 @@ export function AccountSection({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <PaymentsTable account={account} timeZone={timeZone} />
+              <PaymentsTable
+                account={account}
+                timeZone={timeZone}
+                actions={
+                  staff &&
+                  ((payment) =>
+                    payment.reversal ? null : (
+                      <ReversePaymentDialog payment={payment} />
+                    ))
+                }
+              />
             </CardContent>
           </Card>
         </div>

@@ -1,7 +1,10 @@
-// Student accounts: fee charges, payments, and the balance and overdue amount
-// derived from them. Balances are computed on every read, never stored, so a
-// recorded payment shows in the balance immediately and can never drift.
+// Student accounts: fee charges, payments and their corrections, and the
+// balance and overdue amount derived from them. Balances are computed on every
+// read, never stored, so a recorded payment shows in the balance immediately
+// and can never drift.
 import "server-only";
+
+import { z } from "zod";
 
 import {
   addDays,
@@ -16,9 +19,11 @@ import {
   type AllocatedCharge,
   allocatePayments,
   assignFeeSchema,
+  correctFeeSchema,
   DEFAULT_FEE_DUE_DAYS,
   feeDescription,
   recordPaymentSchema,
+  reversePaymentSchema,
   summariseAccount,
   totalPaid,
 } from "@/domain/fees";
@@ -187,6 +192,102 @@ export async function recordPayment(
     throw error;
   }
   return getAccount(session, studentNumber);
+}
+
+/**
+ * Corrects a fee charge's amount and/or due date (staff only). A charge is
+ * the college's own claim, so it can be corrected; an amount that differs
+ * from the standard fee still needs a note saying why.
+ *
+ * @throws AppError: NOT_FOUND, VALIDATION.
+ */
+export async function correctFee(
+  session: Session | null,
+  feeId: string,
+  input: unknown,
+): Promise<Account> {
+  requireStaff(session);
+  const changes = parseInput(correctFeeSchema, input);
+  const charge = isId(feeId)
+    ? await db().feeCharge.findUnique({
+        where: { id: feeId },
+        include: { student: { include: { programme: true } } },
+      })
+    : null;
+  if (!charge) throw new AppError("NOT_FOUND", "There is no such fee charge.");
+
+  const standardFee = charge.student.programme.annualFeePence;
+  const amountPence = changes.amountPence ?? charge.amountPence;
+  if (amountPence !== standardFee && !(changes.note ?? charge.note)) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      note: [
+        `Explain why the amount differs from the standard fee of ${formatMoney(standardFee)}`,
+      ],
+    });
+  }
+
+  await db().feeCharge.update({
+    where: { id: charge.id },
+    data: {
+      amountPence: changes.amountPence,
+      dueDate:
+        changes.dueDate === undefined ? undefined : toDbDate(changes.dueDate),
+      note: changes.note,
+    },
+  });
+  return getAccount(session, charge.student.studentNumber);
+}
+
+/**
+ * Reverses a payment entered by mistake (staff only). The payment stays on
+ * record, marked reversed with the reason, and no longer counts towards the
+ * balance. A payment can be reversed only once.
+ *
+ * @throws AppError: NOT_FOUND, VALIDATION, or CONFLICT if already reversed.
+ */
+export async function reversePayment(
+  session: Session | null,
+  paymentId: string,
+  input: unknown,
+): Promise<Account> {
+  requireStaff(session);
+  const { reason } = parseInput(reversePaymentSchema, input);
+  const payment = isId(paymentId)
+    ? await db().payment.findUnique({
+        where: { id: paymentId },
+        include: {
+          reversal: true,
+          student: { select: { studentNumber: true } },
+        },
+      })
+    : null;
+  if (!payment) throw new AppError("NOT_FOUND", "There is no such payment.");
+  if (payment.reversal) {
+    throw new AppError(
+      "CONFLICT",
+      `This payment was already reversed: ${payment.reversal.reason}`,
+    );
+  }
+
+  try {
+    await db().paymentReversal.create({
+      data: { paymentId: payment.id, reason },
+    });
+  } catch (error) {
+    // Two reversals at the same moment: the unique constraint lets one win.
+    if (
+      violatedUniqueConstraint(error) === "payment_reversals_payment_id_key"
+    ) {
+      throw new AppError("CONFLICT", "This payment was already reversed.");
+    }
+    throw error;
+  }
+  return getAccount(session, payment.student.studentNumber);
+}
+
+/** True for an ID that could be a record's primary key (a UUID). */
+function isId(value: string): boolean {
+  return z.uuid().safeParse(value).success;
 }
 
 async function findStudent(studentNumber: string) {

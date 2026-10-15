@@ -376,3 +376,26 @@ rather than relaxing the rule for tests.
 bypassing the counter, and the counter then issued the same number. The app
 always uses the counter, but this showed that imported data would need its
 counters set. That is now a documented limitation.
+
+## Fee corrections and payment reversals
+
+**What the AI did:** wrote the code to correct a fee charge (its amount, due
+date and note) and to reverse a payment. Both are offered as per-row dialogs
+on the staff record page. A payment can be reversed once; its reversal is a
+separate record, so the payment itself is never edited.
+
+**Checked by:**
+
+- **Integration tests:**
+  - corrections recalculate the account, and moving the due date clears the
+    overdue flag;
+  - a non-standard amount needs a note;
+  - of two simultaneous reversals of the same payment, exactly one succeeds,
+    thanks to the unique constraint on `payment_reversals.payment_id`;
+  - malformed IDs return 404 rather than a database error.
+- **In a real browser:**
+  - the reversal dialog has a proper dialog role and title, and moves focus
+    into the reason field;
+  - a reversal brought Kwame's overdue amount back to £9,535.00 and removed
+    that payment's **Reverse** button;
+  - a due-date correction cleared his overdue flag.
