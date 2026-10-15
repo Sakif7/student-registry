@@ -36,3 +36,43 @@ shift by a day east of UTC fail locally instead of passing on a UTC CI runner.
 The run fails if lines, branches, functions or statements drop below 80%.
 React components aren't measured: their behaviour is covered by the end-to-end
 tests.
+
+## Manual test scenarios
+
+Run these against the demo data: `npm run setup` once, then `npm run dev` and
+open <http://localhost:3000>. `npm run db:seed` resets the data to the
+starting point at any time.
+
+### 1. Choosing a view
+
+1. Open <http://localhost:3000>. The page "Choose a view" offers **Registry
+   staff** and **Student**.
+2. Select **Continue as staff**. You land on **Registry dashboard**, and the
+   header reads "Viewing as Registry staff".
+3. Select **Switch view** in the header. You are back on "Choose a view".
+4. Open <http://localhost:3000/staff> in a private window, which has no session.
+   You are sent to "Choose a view".
+
+## Trying the API with curl
+
+Every write in the app goes through these routes, so the API behaves exactly
+as the UI does. The session is a cookie, so keep it in a cookie jar. On
+Windows, use `curl.exe` in PowerShell, because `curl` there is an alias for
+`Invoke-WebRequest`.
+
+```bash
+# Start a staff session and keep the cookie in cookies.txt
+curl -i -c cookies.txt -H "Content-Type: application/json" \
+  -d '{"role":"staff"}' http://localhost:3000/api/session
+
+# Show the current session
+curl -b cookies.txt http://localhost:3000/api/session
+
+# Errors come back as RFC 9457 problem details, e.g. an unknown student:
+curl -i -H "Content-Type: application/json" \
+  -d '{"role":"student","studentNumber":"SMS-2026-9999"}' \
+  http://localhost:3000/api/session
+# HTTP/1.1 404 Not Found
+# {"type":"about:blank","title":"Not Found","status":404,
+#  "detail":"There is no student with ID SMS-2026-9999.","instance":"/api/session"}
+```

@@ -238,3 +238,33 @@ shared display formatting in `src/lib/format.ts`.
 and that newer ICU data abbreviates September as "Sept". Node and browsers ship
 different ICU versions, so the formatter now builds dates from fixed month and
 weekday names. Server-rendered and browser-rendered text can no longer differ.
+
+## Sessions, API plumbing and the role picker
+
+**What the AI did:** wrote the demo session (cookie parsing and permission
+checks), the Route Handler wrapper, the session API, the browser-side API
+client, and the role picker with the staff and student layouts.
+
+**Checked by:**
+
+- **Unit tests** cover session parsing and permissions, input validation, and
+  the wrapper: problem details, cross-site writes blocked, and a 500 that
+  reveals nothing internal.
+- **Integration tests** call `/api/session` against the database.
+- **In a real browser,** against a production build:
+  - Without a session, `/staff` redirects to the role picker.
+  - Choosing staff sets the cookie and opens the dashboard.
+  - The navigation marks the current page with `aria-current`.
+
+**Caught along the way:**
+
+- **Type error:** `tsc` caught one that the tests couldn't, because Vitest
+  doesn't type-check. The role picker's student status was typed as a plain
+  string instead of the enrolment status.
+- **Active links:** the bundled Next.js docs say `usePathname` suspends on
+  routes with dynamic parameters under Cache Components, which would fail the
+  build. The navigation therefore renders plain links as the Suspense
+  fallback and highlights the current page once the path is known.
+- **Process slip:** one check run was piped through `tail`, which hid its
+  failing exit code. The pre-commit hook caught the lint error before it was
+  committed. Checks now run with `pipefail`.

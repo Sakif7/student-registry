@@ -1,7 +1,9 @@
 // Page header shared by every section: the product name, the section's
 // navigation, and an optional slot on the right (e.g. who is viewing).
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
+
+import { ActiveNavLinks, NavList } from "./nav-links";
 
 /** A link in the section navigation. */
 export interface NavItem {
@@ -30,18 +32,9 @@ export function AppHeader({
         </Link>
         {nav.length > 0 && (
           <nav aria-label="Main">
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-              {nav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <Suspense fallback={<NavList items={nav} />}>
+              <ActiveNavLinks items={nav} />
+            </Suspense>
           </nav>
         )}
         {aside && <div className="ml-auto text-sm">{aside}</div>}
