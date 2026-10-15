@@ -4,6 +4,7 @@
 // with real sign-in would only change how the session is read.
 import "server-only";
 
+import { io } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
@@ -103,13 +104,19 @@ export function requireStudent(session: Session | null): StudentSession {
 
 /**
  * For pages: returns the viewer's session if it has the given role, and
- * otherwise sends them to the role picker.
+ * otherwise sends them to the role picker. Everything a page renders after
+ * this check is request-time data.
  */
 export async function requirePageRole(role: "staff"): Promise<StaffSession>;
 export async function requirePageRole(role: "student"): Promise<StudentSession>;
 export async function requirePageRole(role: Session["role"]): Promise<Session> {
   const session = await currentSession();
   if (session?.role !== role) redirect("/");
+  // With partial prefetching, cookies resolve while Next.js prerenders a
+  // route's shell, so the session read above doesn't stop the prerender.
+  // io() stops it here, before any page reads the clock (new Date()), which
+  // a prerender may not do. At request time it resolves immediately.
+  await io();
   return session;
 }
 

@@ -30,9 +30,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Generated output: the Prisma client and the coverage report.
+    // Generated output: the Prisma client and the test reports.
     "src/generated/**",
     "coverage/**",
+    "playwright-report/**",
+    "test-results/**",
+    "blob-report/**",
     // Local browser-automation artefacts (git-ignored).
     ".playwright-mcp/**",
   ]),

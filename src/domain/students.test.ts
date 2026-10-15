@@ -45,6 +45,16 @@ describe("createStudentSchema", () => {
     });
   });
 
+  it("asks for each empty field by name, rather than calling it invalid", () => {
+    const empty = { ...valid, fullName: " ", email: "", dateOfBirth: "" };
+    expect(errorFor(empty, "fullName")).toBe("Enter the student's full name");
+    expect(errorFor(empty, "email")).toBe("Enter an email address");
+    expect(errorFor(empty, "dateOfBirth")).toBe("Enter a date of birth");
+    expect(errorFor({ ...valid, fullName: "A" }, "fullName")).toBe(
+      "Enter at least 2 characters",
+    );
+  });
+
   it("normalises the email and the spacing of the name", () => {
     const parsed = createStudentSchema(TODAY).parse({
       ...valid,

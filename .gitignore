@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
 
 # uploaded files (UPLOAD_DIR)
 /storage/

@@ -295,6 +295,15 @@ uses `use cache`: every database read happens at request time inside a
 `<Suspense>` boundary with a loading skeleton, and the build fails if a boundary
 is missing.
 
+Partial prefetching is on too, so links prefetch each route's shell. Cookies
+resolve while that shell is prerendered, so reading the session no longer
+stops the prerender: it runs on until the first uncached read. Some pages read
+the clock (`new Date()`) before their first database query, and Next.js
+refuses that during a prerender. The end-to-end tests caught this in the
+production server's log. Every page goes through `requirePageRole`, which now
+calls `io()` after the role check, so prerendering stops there and the page's
+data is always read at request time.
+
 ### Database
 
 - **Access:** Prisma 7 with the PostgreSQL driver adapter. The client is
@@ -405,7 +414,13 @@ date that differed from the browser's would break React hydration.
   in queries, transactions and constraints, which mocks would hide.
 - **End-to-end tests** (Playwright) drive the main journeys in a browser against
   a production build. They cover the React components, so there are no separate
-  component tests and no jsdom.
+  component tests and no jsdom. Each spec file reloads the demo data into the
+  test database first, so every file starts from the same known state.
+- **Accessibility checks** run axe (WCAG 2.1 A and AA) on every kind of page,
+  as staff and as a student, inside the end-to-end suite. They catch missing
+  labels and names and poor contrast. Focus handling in forms and dialogs, and
+  the names of controls, were checked in the browser during the build; a full
+  keyboard-only and screen-reader pass was not done.
 - **The test database** is prepared with `prisma migrate deploy` and emptied
   before each test, never with `prisma migrate reset`. Prisma refuses `reset`
   when an AI agent runs it, so this keeps test runs identical whoever starts
@@ -421,9 +436,12 @@ failure points at its cause:
 3. lint;
 4. unit and integration tests with coverage, against a PostgreSQL 18 service
    container;
-5. the dependency audit.
+5. end-to-end tests in Chromium against the production build, including the
+   accessibility checks;
+6. the dependency audit.
 
-The coverage report is uploaded as a build artefact.
+The coverage report is uploaded as a build artefact, and so is the Playwright
+report when an end-to-end test fails.
 
 ### Environment variables
 

@@ -47,21 +47,30 @@ export function AccountFigures({ account }: { account: Account }) {
         <StandingBadge standing={account.standing} />
       </div>
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {figures.map(([label, value, detail]) => (
-          <div
-            key={label}
-            className={cn(
-              "rounded-lg border p-3",
-              label === "Overdue" &&
-                summary.overduePence > 0 &&
-                "border-red-200 bg-red-50",
-            )}
-          >
-            <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="text-lg font-semibold tabular-nums">{value}</dd>
-            {detail && <dd className="text-xs text-red-900">{detail}</dd>}
-          </div>
-        ))}
+        {figures.map(([label, value, detail]) => {
+          const flagged = label === "Overdue" && summary.overduePence > 0;
+          return (
+            <div
+              key={label}
+              className={cn(
+                "rounded-lg border p-3",
+                flagged && "border-red-200 bg-red-50",
+              )}
+            >
+              {/* Muted grey is too faint on the red tint, so dark red. */}
+              <dt
+                className={cn(
+                  "text-sm",
+                  flagged ? "text-red-900" : "text-muted-foreground",
+                )}
+              >
+                {label}
+              </dt>
+              <dd className="text-lg font-semibold tabular-nums">{value}</dd>
+              {detail && <dd className="text-xs text-red-900">{detail}</dd>}
+            </div>
+          );
+        })}
       </dl>
     </div>
   );

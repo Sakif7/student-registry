@@ -6,12 +6,14 @@ examples of calling the API with curl.
 
 ## Automated tests
 
-| Suite       | What it covers                                                      | Where                               | Command                    |
-| ----------- | ------------------------------------------------------------------- | ----------------------------------- | -------------------------- |
-| Unit        | Pure rules, with no database or network                             | `src/**/*.test.ts`, beside the code | `npm run test:unit`        |
-| Integration | Route handlers and services against a real PostgreSQL test database | `tests/integration/`                | `npm run test:integration` |
+| Suite       | What it covers                                                                     | Where                               | Command                    |
+| ----------- | ---------------------------------------------------------------------------------- | ----------------------------------- | -------------------------- |
+| Unit        | Pure rules, with no database or network                                            | `src/**/*.test.ts`, beside the code | `npm run test:unit`        |
+| Integration | Route handlers and services against a real PostgreSQL test database                | `tests/integration/`                | `npm run test:integration` |
+| End-to-end  | Journeys through the production build in Chromium, with accessibility checks (axe) | `e2e/`                              | `npm run test:e2e`         |
 
-`npm test` runs both suites with a coverage report.
+`npm test` runs all three: the unit and integration suites with a coverage
+report, then the end-to-end suite.
 
 ### Before running the integration tests
 
@@ -28,6 +30,23 @@ The integration tests need PostgreSQL running (`npm run db:up`) and
 
 Unit tests run in the Asia/Dhaka time zone (UTC+6), so date-only values that
 shift by a day east of UTC fail locally instead of passing on a UTC CI runner.
+
+### Before running the end-to-end tests
+
+The end-to-end tests use the same test database. Install the browser once with
+`npx playwright install chromium`. Each run then:
+
+1. Builds the app and starts it on port 3100, pointed at the test database and
+   a temporary upload folder, so nothing touches your own data.
+2. Applies the migrations, and reloads the demo data before each spec file, so
+   every file starts from the same state.
+3. Runs one test at a time. If a test fails, `npx playwright show-report` opens
+   the report, with a screenshot and a trace of the failure.
+
+The specs cover choosing a view and access control, enrolment and the student
+list, fees and the dashboard, the assessment journey (setting, submitting,
+replacing, late work, marking), publishing and withholding results, and an axe
+accessibility scan of every kind of page.
 
 ### Coverage
 

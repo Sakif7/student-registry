@@ -616,3 +616,37 @@ wording.
 deadline would have been told "You can still submit", alongside the notice
 that only enrolled students can submit. The deadline note now only promises
 what the student can actually do.
+
+## End-to-end and accessibility tests
+
+**What the AI did:** added Playwright end-to-end tests that build the app and
+drive it in Chromium, against the test database and the demo data:
+
+- choosing a view and access control, including file downloads;
+- enrolment, the duplicate-email check, search and a status change;
+- fees and the dashboard;
+- the assessment journey: setting an assessment, refusing a disguised file,
+  submitting, replacing, late work and marking;
+- publishing and withholding results;
+- an axe accessibility scan (WCAG 2.1 A and AA) of every kind of page.
+
+`npm test` now runs all three suites, and CI runs the end-to-end tests with
+the report uploaded on failure.
+
+**Caught along the way:**
+
+- **Server errors:** the production server logged "encountered the unstable
+  value `new Date()` while prerendering" for the dashboard and assessments
+  pages. With partial prefetching, cookies resolve while a route's shell is
+  prerendered, so the session check no longer stopped the prerender, and those
+  pages read the clock before their first query. `requirePageRole` now calls
+  `io()` after the role check, as the Next.js documentation recommends. The
+  errors are gone, and the reasoning is in DECISIONS.md.
+- **Contrast:** axe found one failure, a muted label on the red "Overdue"
+  figure of a student record. It now uses dark red.
+- **Error messages:** an empty name gave "Enter at least 2 characters", and
+  an empty email or date of birth gave "valid"/"real" wording. Empty fields now
+  ask for the detail by name.
+- **Hidden previous page:** one test matched text twice because Next.js keeps
+  the previous page mounted but hidden. The test now counts visible matches
+  only.

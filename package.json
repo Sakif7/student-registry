@@ -18,14 +18,15 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "setup": "npm run db:up && npm run db:deploy && npm run db:seed",
-    "test": "vitest run --coverage",
+    "test": "vitest run --coverage && playwright test",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --project unit",
     "audit:deps": "node scripts/audit-deps.mjs",
     "postinstall": "prisma generate",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -46,6 +47,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
     "@types/react": "^19",

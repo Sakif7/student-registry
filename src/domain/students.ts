@@ -42,6 +42,7 @@ const fullNameSchema = z
   .pipe(
     z
       .string()
+      .min(1, "Enter the student's full name")
       .min(2, "Enter at least 2 characters")
       .max(120, "Use 120 characters or fewer")
       .regex(
@@ -54,13 +55,16 @@ const emailSchema = z
   .string({ error: "Enter an email address" })
   .trim()
   .toLowerCase()
+  .min(1, "Enter an email address")
   .pipe(z.email("Enter a valid email address").max(254));
 
 function dateOfBirthSchema(today: CalendarDate) {
   return z
     .string({ error: "Enter a date of birth" })
     .superRefine((value, ctx) => {
-      if (!isCalendarDate(value)) {
+      if (value === "") {
+        ctx.addIssue({ code: "custom", message: "Enter a date of birth" });
+      } else if (!isCalendarDate(value)) {
         ctx.addIssue({
           code: "custom",
           message: "Enter a real date, e.g. 2004-05-17",
