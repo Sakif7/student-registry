@@ -25,13 +25,29 @@ and a Student view. Built with Next.js 16 (App Router), PostgreSQL and Prisma.
    Copy-Item .env.example .env       # Windows PowerShell
    ```
 
-3. Start PostgreSQL 18 in Docker and wait until it is healthy:
+3. Start PostgreSQL 18 in Docker, apply the migrations and load the demo
+   data:
 
    ```bash
-   npm run db:up
+   npm run setup
    ```
 
-   `npm run db:down` stops it again; your data is kept in a Docker volume.
+4. Start the app and open <http://localhost:3000>:
+
+   ```bash
+   npm run dev
+   ```
+
+## Database commands
+
+| Command              | What it does                                            |
+| -------------------- | ------------------------------------------------------- |
+| `npm run db:up`      | Start PostgreSQL in Docker and wait until it is healthy |
+| `npm run db:down`    | Stop it; the data stays in a Docker volume              |
+| `npm run db:deploy`  | Apply any pending migrations                            |
+| `npm run db:seed`    | Replace all data with the demo data                     |
+| `npm run db:migrate` | Create a migration after editing `prisma/schema.prisma` |
+| `npm run db:studio`  | Browse the data in Prisma Studio                        |
 
 ## Documentation
 

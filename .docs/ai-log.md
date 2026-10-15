@@ -141,3 +141,26 @@ the starter page with a minimal shell (shared header, skip link, toasts).
 
 **Checked by:** `npm run db:up` reaches a healthy container running PostgreSQL
 18.6, with its data directory inside the mounted volume.
+
+## Prisma schema, migration and seed
+
+**What the AI did:** wrote the data model, the initial migration (including
+hand-written CHECK constraints), the Prisma configuration, the lazily validated
+environment module, the database client and the first seed data.
+
+**Changed from the research suggestions:**
+
+- **Configuration error handling.** The suggested
+  `try { process.loadEnvFile() } catch {}` would also swallow a malformed
+  `.env`. The config checks that the file exists instead.
+- **Database URL.** Prisma's documented `env("DATABASE_URL")` helper throws when
+  the variable is missing, which would break `prisma generate` during a fresh
+  `npm install`. The config reads `process.env` directly instead.
+
+**Checked by:**
+
+- Running `prisma migrate dev` a second time reported no drift, which confirms
+  Prisma ignores the CHECK constraints.
+- All 14 constraints are present in the database.
+- The seed loads 3 programmes and 7 modules.
+- `npm run check` passes, including type-checking the generated client.

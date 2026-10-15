@@ -213,6 +213,32 @@ uses `use cache`: every database read happens at request time inside a
 `<Suspense>` boundary with a loading skeleton, and the build fails if a boundary
 is missing.
 
+### Database
+
+- **Access:** Prisma 7 with the PostgreSQL driver adapter. The client is
+  generated into `src/generated/prisma` on install and is not committed.
+- **Naming:** tables and columns use snake_case. Primary keys are UUIDv7, which
+  are time-ordered. People are identified by their student numbers in URLs and
+  in the UI.
+- **Invariants:** CHECK constraints in the initial migration enforce rules the
+  schema language can't express:
+  - money is never negative and payments are positive;
+  - marks lie between 0 and 100;
+  - student numbers and academic years keep one format;
+  - emails are lower-case and payment references upper-case, so uniqueness
+    can't be dodged;
+  - a results hold has both its date and its reason;
+  - a status change actually changes the status.
+
+  Prisma ignores CHECK constraints when it compares the schema with the
+  database, so they cause no drift.
+
+- **No cascading deletes:** foreign keys restrict deletes, so a student with
+  fees, payments, submissions or results can't be deleted by accident.
+- **Configuration:** it is validated when first used rather than when a module
+  is imported. `next build` imports server modules without a database, and the
+  first request that needs a missing variable fails with a message naming it.
+
 ### User interface: shadcn/ui on Base UI
 
 - Components come from shadcn/ui with its current defaults: Base UI primitives

@@ -1,0 +1,238 @@
+// Registry data model: programmes and modules, student records, fees and
+// payments, assessments, submissions and results.
+//
+// Conventions:
+// - Money is integer pence (GBP), never floating point.
+// - Calendar dates (birth, due, payment dates) are `date` columns; instants
+//   (deadlines, timestamps) are `timestamptz`.
+// - Balances, overdue flags, late flags and classifications are computed when
+//   read, never stored, so they cannot drift from the rows they derive from.
+// - CHECK constraints the schema language cannot express live in the
+//   migrations (search for "CHECK").
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Where a student stands with the college. Every change is kept in
+/// EnrolmentStatusChange; records are never deleted.
+enum EnrolmentStatus {
+  ENROLLED
+  DEFERRED
+  WITHDRAWN
+  COMPLETED
+
+  @@map("enrolment_status")
+}
+
+/// A course of study, e.g. "BSc (Hons) Computer Science".
+model Programme {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  /// Short code used in filters and URLs, e.g. "BSC-CS".
+  code           String   @unique
+  title          String
+  /// Standard tuition fee per academic year. Copied into a FeeCharge when a
+  /// student is charged, so changing it never rewrites existing charges.
+  annualFeePence Int      @map("annual_fee_pence")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  modules  Module[]
+  students Student[]
+
+  @@map("programmes")
+}
+
+/// A unit of study within a programme; assessments belong to a module.
+model Module {
+  id          String @id @default(uuid(7)) @db.Uuid
+  code        String @unique
+  title       String
+  programmeId String @map("programme_id") @db.Uuid
+
+  programme   Programme    @relation(fields: [programmeId], references: [id])
+  assessments Assessment[]
+
+  @@index([programmeId])
+  @@map("modules")
+}
+
+/// A student record, as kept by the Registry.
+model Student {
+  id                    String          @id @default(uuid(7)) @db.Uuid
+  /// Human-readable ID, e.g. "SMS-2026-0001". Issued once, never changed.
+  studentNumber         String          @unique @map("student_number")
+  fullName              String          @map("full_name")
+  /// Stored lower-case, so uniqueness ignores case.
+  email                 String          @unique
+  dateOfBirth           DateTime        @map("date_of_birth") @db.Date
+  programmeId           String          @map("programme_id") @db.Uuid
+  /// The student's current academic session, e.g. "2026/27".
+  academicYear          String          @map("academic_year")
+  status                EnrolmentStatus @default(ENROLLED)
+  /// Set while staff withhold this student's results; both fields are set
+  /// together or not at all.
+  resultsWithheldAt     DateTime?       @map("results_withheld_at") @db.Timestamptz(3)
+  resultsWithheldReason String?         @map("results_withheld_reason")
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  programme     Programme               @relation(fields: [programmeId], references: [id])
+  statusChanges EnrolmentStatusChange[]
+  feeCharges    FeeCharge[]
+  payments      Payment[]
+  submissions   Submission[]
+  results       AssessmentResult[]
+
+  @@index([programmeId])
+  @@index([status])
+  @@index([academicYear])
+  @@map("students")
+}
+
+/// The last student number issued for each intake year. A student is created
+/// in the same transaction that increments the counter, so numbers are unique
+/// and gap-free.
+model StudentNumberCounter {
+  /// Start year of the intake's academic year, e.g. 2026 for 2026/27.
+  year      Int @id
+  lastValue Int @map("last_value")
+
+  @@map("student_number_counters")
+}
+
+/// One entry per status change, including the initial status at creation.
+model EnrolmentStatusChange {
+  id         String           @id @default(uuid(7)) @db.Uuid
+  studentId  String           @map("student_id") @db.Uuid
+  /// Null for the status the record was created with.
+  fromStatus EnrolmentStatus? @map("from_status")
+  toStatus   EnrolmentStatus  @map("to_status")
+  /// Required for deferral and withdrawal.
+  reason     String?
+  changedAt  DateTime         @default(now()) @map("changed_at") @db.Timestamptz(3)
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([studentId, changedAt])
+  @@map("enrolment_status_changes")
+}
+
+/// What a student is charged for one academic year.
+model FeeCharge {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  studentId    String   @map("student_id") @db.Uuid
+  academicYear String   @map("academic_year")
+  description  String
+  amountPence  Int      @map("amount_pence")
+  dueDate      DateTime @map("due_date") @db.Date
+  /// Why the amount differs from the standard fee, e.g. a scholarship.
+  note         String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, academicYear])
+  @@map("fee_charges")
+}
+
+/// Money received from or on behalf of a student. Never edited or deleted:
+/// a mistake is corrected with a PaymentReversal.
+model Payment {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  studentId   String   @map("student_id") @db.Uuid
+  amountPence Int      @map("amount_pence")
+  paidOn      DateTime @map("paid_on") @db.Date
+  /// Bank or receipt reference, stored trimmed and upper-case. Unique, which
+  /// catches the same transfer being entered twice.
+  reference   String   @unique
+  recordedAt  DateTime @default(now()) @map("recorded_at") @db.Timestamptz(3)
+
+  student  Student          @relation(fields: [studentId], references: [id])
+  reversal PaymentReversal?
+
+  @@index([studentId])
+  @@map("payments")
+}
+
+/// Cancels a payment entered by mistake. A payment can be reversed once.
+model PaymentReversal {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  paymentId  String   @unique @map("payment_id") @db.Uuid
+  reason     String
+  reversedAt DateTime @default(now()) @map("reversed_at") @db.Timestamptz(3)
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@map("payment_reversals")
+}
+
+/// A piece of assessed work set by staff for a module.
+model Assessment {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  moduleId  String    @map("module_id") @db.Uuid
+  title     String
+  deadline  DateTime  @db.Timestamptz(3)
+  /// Set when staff stop accepting submissions; until then late work is
+  /// accepted and flagged.
+  closedAt  DateTime? @map("closed_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  module      Module             @relation(fields: [moduleId], references: [id])
+  submissions Submission[]
+  results     AssessmentResult[]
+
+  @@index([moduleId])
+  @@map("assessments")
+}
+
+/// A student's uploaded work for an assessment. One per student and
+/// assessment: resubmitting before the deadline replaces the file.
+model Submission {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  studentId    String   @map("student_id") @db.Uuid
+  assessmentId String   @map("assessment_id") @db.Uuid
+  /// The name the student uploaded, for display only.
+  fileName     String   @map("file_name")
+  /// Random name of the stored file; never derived from user input.
+  storageKey   String   @unique @map("storage_key")
+  mimeType     String   @map("mime_type")
+  sizeBytes    Int      @map("size_bytes")
+  /// 1 for the first upload, then +1 for each resubmission.
+  attempt      Int      @default(1)
+  /// When the current file was uploaded. Late = submittedAt after the deadline.
+  submittedAt  DateTime @map("submitted_at") @db.Timestamptz(3)
+
+  student    Student    @relation(fields: [studentId], references: [id])
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+
+  @@unique([studentId, assessmentId])
+  @@index([assessmentId])
+  @@map("submissions")
+}
+
+/// A student's mark (0-100) for an assessment. The classification is derived
+/// from the mark. Students see a result only once it is published and their
+/// results are not withheld.
+model AssessmentResult {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  studentId    String    @map("student_id") @db.Uuid
+  assessmentId String    @map("assessment_id") @db.Uuid
+  mark         Int
+  /// Set by "Publish results"; cleared again when the mark is changed.
+  publishedAt  DateTime? @map("published_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  student    Student    @relation(fields: [studentId], references: [id])
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+
+  @@unique([studentId, assessmentId])
+  @@index([assessmentId])
+  @@map("assessment_results")
+}
