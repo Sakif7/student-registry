@@ -21,18 +21,23 @@ Read it before changing behaviour, and add to it when you make a new decision.
   route types are generated) and lint with zero warnings.
 - `npm run format`: apply Prettier, including Tailwind class order.
 - `npm run db:up`, then `npm run setup`: start PostgreSQL, migrate and seed.
-- `npm test`: unit and integration tests with coverage. Use
-  `npm run test:unit` or `npm run test:integration` for one suite. Integration
-  tests need PostgreSQL running and only touch the `*_test` database.
+- `npm test`: unit and integration tests with coverage, then the end-to-end
+  tests. Use `npm run test:unit`, `npm run test:integration` or
+  `npm run test:e2e` for one suite. Integration and end-to-end tests need
+  PostgreSQL running and only touch the `*_test` database. End-to-end tests
+  need Chromium (`npx playwright install chromium`) and build the app first.
+- `npm run audit:deps`: fail on high or critical advisories not on the
+  reviewed allowlist (`scripts/audit-allowlist.json`).
 
 ## Rules
 
 - **Next.js 16 with Cache Components.**
   - Never use `use cache` on registry data.
   - Put every request-time read inside `<Suspense>`.
-  - Read the session cookie before any Prisma call.
-  - Don't call `new Date()` or `Date.now()` before the first request-data read
-    in a Server Component.
+  - Every page reads its data after `requirePageRole`, which ends with
+    `io()`. With partial prefetching, cookies resolve while a route's shell
+    is prerendered, so `io()` is what keeps clock reads and queries out of
+    prerenders.
   - Check `node_modules/next/dist/docs/` before using an API you haven't
     verified.
 - **Writes go through Route Handlers in `src/app/api`,** never Server Actions.
@@ -45,6 +50,13 @@ Read it before changing behaviour, and add to it when you make a new decision.
   - Money is integer pence.
   - Calendar dates are `YYYY-MM-DD` strings.
   - Instants are `Date` objects, displayed in the college time zone.
+  - Deadlines are entered as wall-clock times in the college time zone and
+    converted by the API.
+- **Uploads:** stored under random keys in `UPLOAD_DIR` by
+  `src/server/storage.ts`, and served only as attachments through
+  `download()` in `src/server/http.ts`.
+- **Students only ever receive marks that are published and not withheld:**
+  filter on the server, never only in the page.
 - **Dependencies:**
   - Install them with `npm install` or `npx shadcn@latest add`. Never hand-edit
     dependency names or versions in `package.json`.

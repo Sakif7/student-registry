@@ -471,7 +471,9 @@ and no fixed release exists within the versions this project can use:
 production dependency because `@prisma/client` declares it as an optional peer.
 npm's only proposed fix is a downgrade to Prisma 6, which would undo the Prisma
 7 decision above, so the allowlist is the honest option. Moderate and low
-advisories are reviewed by hand rather than failing the build.
+advisories are reviewed by hand rather than failing the build. At the last
+review the only one was GHSA-rgwj-5xj2-c3m3 (moderate). It is in the same
+unused `mysql2` driver inside the Prisma CLI, so it isn't reachable either.
 
 ## Known limitations
 
@@ -498,4 +500,30 @@ advisories are reviewed by hand rather than failing the build.
 
 ## With more time
 
-Recorded at the end of the build.
+In rough order of value to a real Registry:
+
+- **Real sign-in:** replace the view picker with the college's single
+  sign-on (OpenID Connect). Only `src/server/session.ts` reads the session,
+  so the services wouldn't change. Staff roles would follow, such as
+  Registry, Finance and academic staff, each with narrower permissions.
+- **An audit trail of who did what:** status history, reversals and holds
+  record what changed and why, but not which member of staff did it. That
+  needs real sign-in first.
+- **Bulk work:**
+  - importing students from a spreadsheet, initialising the ID counters;
+  - publishing a whole assessment's marks at once;
+  - exporting marksheets.
+- **Notifications:** emails when results are published or a deadline is
+  near, and reminders for overdue fees.
+- **Individual deadline extensions** for students with mitigating
+  circumstances, and **payment plans** with instalments, rather than moving
+  a charge's single due date.
+- **Modules by year of study:** today an assessment is open to everyone on
+  the programme, whatever their year.
+- **Production hardening:**
+  - object storage and virus scanning for uploads;
+  - balances computed in a database view;
+  - trigram and accent-insensitive search;
+  - structured logging with error reporting.
+- **A full accessibility review** with a keyboard and a screen reader, beyond
+  the automated axe checks.

@@ -266,8 +266,11 @@ client, and the role picker with the staff and student layouts.
   build. The navigation therefore renders plain links as the Suspense
   fallback and highlights the current page once the path is known.
 - **Process slip:** one check run was piped through `tail`, which hid its
-  failing exit code. The pre-commit hook caught the lint error before it was
-  committed. Checks now run with `pipefail`.
+  failing exit code: ESLint was linting the generated coverage report. The
+  commit itself was sound, because the pre-commit hook lints only staged files
+  and the report isn't tracked. But `npm run check` failed in any working copy
+  that had a coverage report, until the next commit (f2a21aa) excluded it.
+  Checks now run with `pipefail`, so a failure can't be hidden that way again.
 
 ## Enrolling students
 
