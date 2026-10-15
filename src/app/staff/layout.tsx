@@ -10,6 +10,7 @@ import { ViewerBadge } from "@/components/viewer-badge";
 const STAFF_NAV: readonly NavItem[] = [
   { href: "/staff", label: "Dashboard" },
   { href: "/staff/students", label: "Students" },
+  { href: "/staff/assessments", label: "Assessments" },
 ];
 
 export default function StaffLayout({ children }: LayoutProps<"/staff">) {

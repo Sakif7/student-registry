@@ -433,3 +433,42 @@ the same domain code as the record page, so the figures always agree.
 - Several curl examples in TESTING.md had been joined onto single lines by an
   earlier scripted edit, which swallowed the line continuations. They are
   split again.
+
+## Setting and managing assessments
+
+**What the AI did:** wrote the assessments feature. Staff set an assessment
+for a module with a title and a deadline typed in college time, move the
+deadline, and close or reopen it. Each assessment page tracks who on the
+programme has submitted, with late work flagged. Forms and API share one
+deadline rule: the form checks it with the API's schema but sends the time as
+typed, and the API converts it to an instant.
+
+**Checked by:**
+
+- **Unit tests** (run with the process in Asia/Dhaka, to catch any reliance on
+  the server's own time zone):
+  - deadlines read as London time in both GMT and BST;
+  - a time in the hour skipped in March is refused;
+  - an autumn time that happens twice resolves to its first occurrence;
+  - a deadline must be in the future, judged when the form is submitted
+    rather than when it was opened.
+- **Integration tests:**
+  - the list orders open assessments by deadline, then the rest;
+  - counts only include students expected to submit;
+  - the tracker lists a withdrawn student who had already submitted;
+  - moving the deadline clears late flags at once;
+  - closing twice keeps the first closing time;
+  - malformed and unknown IDs return 404.
+- **In a real browser:**
+  - an empty form showed all three errors and moved focus to the first;
+  - 01:30 on 28 March 2027 was refused with the explanation;
+  - a 20 November deadline displayed as "Fri 20 Nov 2026, 17:00 GMT", and the
+    tracker listed the three enrolled Computer Science students;
+  - the edit dialog moved the deadline, and closing (after its confirmation,
+    with Cancel focused) and reopening both worked.
+
+**Caught along the way:** the first screenshot after a page load sometimes
+showed loading skeletons even though the page had finished rendering. Checks
+of the page itself, before and after the screenshot, showed the content in
+place, and a second screenshot showed it too. The cause was a stale frame in
+the automated browser, not a flicker in the app.

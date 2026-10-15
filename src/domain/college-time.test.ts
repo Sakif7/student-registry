@@ -8,6 +8,7 @@ import {
   isCalendarDate,
   toDbDate,
   todayIn,
+  wallTimeSchema,
   wallTimeToInstant,
 } from "./college-time";
 
@@ -137,6 +138,32 @@ describe("instantToWallTime", () => {
     const instant = wallTimeToInstant("2026-10-25T01:30", LONDON);
     expect(instant && instantToWallTime(instant, LONDON)).toBe(
       "2026-10-25T01:30",
+    );
+  });
+});
+
+describe("wallTimeSchema", () => {
+  it("accepts a datetime-local value, dropping any seconds", () => {
+    expect(wallTimeSchema.parse("2026-11-20T17:00")).toBe("2026-11-20T17:00");
+    expect(wallTimeSchema.parse(" 2026-11-20T17:00:59.123 ")).toBe(
+      "2026-11-20T17:00",
+    );
+  });
+
+  it("asks for a value when the field is empty", () => {
+    expect(wallTimeSchema.safeParse("").error?.issues[0]?.message).toBe(
+      "Enter a date and time",
+    );
+  });
+
+  it.each([
+    "2026-02-30T12:00",
+    "2026-11-20T24:00",
+    "2026-11-20 17:00",
+    "17:00",
+  ])("rejects %j", (value) => {
+    expect(wallTimeSchema.safeParse(value).error?.issues[0]?.message).toBe(
+      "Enter a real date and time, e.g. 2026-11-20T17:00",
     );
   });
 });

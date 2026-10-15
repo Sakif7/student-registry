@@ -4,8 +4,6 @@
 // and can never drift.
 import "server-only";
 
-import { z } from "zod";
-
 import {
   addDays,
   type CalendarDate,
@@ -33,6 +31,7 @@ import { formatMoney } from "@/lib/format";
 import { collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput, violatedUniqueConstraint } from "../errors";
+import { isId } from "../ids";
 import { requireStaff, requireStaffOrSelf, type Session } from "../session";
 
 export interface FeeChargeView {
@@ -283,11 +282,6 @@ export async function reversePayment(
     throw error;
   }
   return getAccount(session, payment.student.studentNumber);
-}
-
-/** True for an ID that could be a record's primary key (a UUID). */
-function isId(value: string): boolean {
-  return z.uuid().safeParse(value).success;
 }
 
 /** The account standing and figures for one student, for lists. */

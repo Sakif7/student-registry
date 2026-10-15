@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, formatDateTime, formatDays, formatMoney } from "./format";
+import {
+  formatDate,
+  formatDateTime,
+  formatDays,
+  formatFileSize,
+  formatMoney,
+} from "./format";
 
 describe("formatMoney", () => {
   it("formats pence as pounds sterling", () => {
@@ -34,5 +40,14 @@ describe("formatDays", () => {
     expect(formatDays(1)).toBe("1 day");
     expect(formatDays(0)).toBe("0 days");
     expect(formatDays(30)).toBe("30 days");
+  });
+});
+
+describe("formatFileSize", () => {
+  it("uses bytes, KB or MB as the size suits", () => {
+    expect(formatFileSize(900)).toBe("900 bytes");
+    expect(formatFileSize(2048)).toBe("2 KB");
+    expect(formatFileSize(1_572_864)).toBe("1.5 MB");
+    expect(formatFileSize(10 * 1024 * 1024)).toBe("10.0 MB");
   });
 });

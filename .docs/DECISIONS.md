@@ -156,6 +156,19 @@ assessment is open to Enrolled students on its module's programme. It stays
 open after the deadline (late work is accepted and flagged) until staff close
 it. Staff can reopen an assessment or extend its deadline.
 
+- A deadline must be in the future when it is set or moved. A deadline
+  already past would make every submission late, and is far more likely to be
+  a typo than a real intention.
+- Deadlines are typed in college time. A time inside the hour the clocks skip
+  in spring is refused with an explanation, rather than silently moved. A time
+  inside the hour that happens twice in autumn means its first occurrence
+  (BST), the earlier and so the safer reading for students.
+- The submission tracker expects work from the students now enrolled on the
+  programme. A student who submitted and then withdrew is still listed, with
+  their work, but no longer counts towards "submitted of expected".
+- Closing asks for confirmation, because it stops students submitting even
+  late work. Reopening doesn't, because it only restores what was there.
+
 ### Resubmission and late work
 
 - One submission per student per assessment, enforced by a unique constraint.

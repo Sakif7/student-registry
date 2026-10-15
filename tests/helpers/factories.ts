@@ -70,3 +70,23 @@ export async function createAssessment(
     },
   });
 }
+
+/** Records a submission (metadata only; no file is stored). */
+export async function createSubmission(
+  overrides: Partial<Prisma.SubmissionUncheckedCreateInput> & {
+    studentId: string;
+    assessmentId: string;
+  },
+) {
+  const n = next();
+  return db().submission.create({
+    data: {
+      fileName: `essay-${n}.pdf`,
+      storageKey: `test-${n}-${Date.now()}`,
+      mimeType: "application/pdf",
+      sizeBytes: 2048,
+      submittedAt: new Date("2026-11-13T10:00:00.000Z"),
+      ...overrides,
+    },
+  });
+}

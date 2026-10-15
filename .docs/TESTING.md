@@ -232,6 +232,32 @@ below are as of the day the seed runs. As staff:
    `CARD KM 0002`. Select **Dashboard**: Kwame is no longer listed, and the
    total reads "2 students owe £19,485.00".
 
+### 9. Setting an assessment
+
+As staff:
+
+1. Open **Assessments** and select **Set an assessment**. Select **Set
+   assessment** without filling anything in. "Choose a module", "Enter a
+   title" and "Enter a date and time" appear.
+2. Choose **CS4001 Programming Fundamentals**, enter the title
+   `Coursework 1: Algorithms` and the deadline 28 March 2027 at 01:30. "The
+   clocks go forward at that time, so it never happens" appears under
+   **Deadline**: on that day UK clocks jump from 01:00 to 02:00. A date in the
+   past is refused too: "The deadline must be in the future".
+3. Change the deadline to 20 November 2026 at 17:00 and select **Set
+   assessment**. The assessment's page shows the deadline as "Fri 20 Nov
+   2026, 17:00 GMT" and **Open**. Under **Submissions**, "0 of 3 enrolled
+   students have submitted" lists Amelia Hart, Oliver Bennett and Priya
+   Natarajan, the enrolled Computer Science students. Mohammed Al-Farsi has
+   completed the programme, so isn't expected to submit.
+4. Select **Edit title or deadline**, move the deadline to 4 December 2026 at
+   17:00 and save. The page now shows "Fri 4 Dec 2026, 17:00 GMT".
+5. Select **Close to submissions**. A dialog asks you to confirm, with
+   **Cancel** focused. Confirm, and the assessment shows **Closed** with the
+   time it closed. Select **Reopen to submissions**: it is **Open** again.
+6. Open **Assessments**. The list shows the assessment with its deadline,
+   **Open** and "0 of 3" submitted.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -310,4 +336,27 @@ curl -i -b cookies.txt -H "Content-Type: application/json" \
 curl -i -b cookies.txt -H "Content-Type: application/json" \
   -d '{"status":"DEFERRED"}' \
   http://localhost:3000/api/students/SMS-2023-0001/status
+
+# List the module codes, for setting assessments
+curl -b cookies.txt http://localhost:3000/api/modules
+
+# Set an assessment. The deadline is college time (Europe/London); responses
+# give it back as a UTC instant.
+curl -i -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"moduleCode":"CS4001","title":"Coursework 1: Algorithms","deadline":"2026-11-20T17:00"}' \
+  http://localhost:3000/api/assessments
+# HTTP/1.1 201 Created
+# {"assessment":{"id":"...","deadline":"2026-11-20T17:00:00.000Z","state":"OPEN", ...}}
+
+# List assessments, or read one with its submission tracker
+curl -b cookies.txt http://localhost:3000/api/assessments
+curl -b cookies.txt http://localhost:3000/api/assessments/<assessment-id>
+
+# Move the deadline, or close ("closed":true) or reopen ("closed":false)
+curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
+  -d '{"deadline":"2026-12-04T17:00"}' \
+  http://localhost:3000/api/assessments/<assessment-id>
+curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
+  -d '{"closed":true}' \
+  http://localhost:3000/api/assessments/<assessment-id>
 ```

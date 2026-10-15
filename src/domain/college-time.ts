@@ -33,6 +33,30 @@ export const calendarDateSchema = z
   .trim()
   .refine(isCalendarDate, { error: "Enter a real date, e.g. 2026-10-15" });
 
+// A datetime-local field's value; some browsers add seconds.
+const WALL_TIME_INPUT =
+  /^(\d{4}-\d{2}-\d{2})T([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d(?:\.\d{1,3})?)?$/;
+
+/**
+ * Validates a date and time typed or chosen by a person, as a datetime-local
+ * field sends it. Outputs "YYYY-MM-DDTHH:mm", dropping any seconds.
+ */
+export const wallTimeSchema = z
+  .string({ error: "Enter a date and time" })
+  .trim()
+  .min(1, "Enter a date and time")
+  .transform((value, ctx): WallTime => {
+    const match = WALL_TIME_INPUT.exec(value);
+    if (!match || !isCalendarDate(match[1])) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Enter a real date and time, e.g. 2026-11-20T17:00",
+      });
+      return z.NEVER;
+    }
+    return `${match[1]}T${match[2]}:${match[3]}`;
+  });
+
 /**
  * Today's date in the given time zone.
  *

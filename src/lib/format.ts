@@ -49,6 +49,13 @@ export function formatDateTime(instant: Date, timeZone: string): string {
   return `${weekday} ${day} ${MONTHS[month - 1]} ${year}, ${wallTime.slice(11)} ${zoneAbbreviation(instant, timeZone)}`;
 }
 
+/** A file size in bytes, e.g. 2048 → "2 KB" and 1572864 → "1.5 MB". */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} bytes`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 /** "1 day", "2 days". */
 export function formatDays(days: number): string {
   return `${days} ${days === 1 ? "day" : "days"}`;
