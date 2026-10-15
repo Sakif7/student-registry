@@ -1,17 +1,20 @@
 // One assessment: its deadline and state, the controls to change them, and
-// who has submitted.
+// its marksheet of submissions and marks.
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { AssessmentStateBadge } from "@/components/assessments/assessment-badges";
 import { ClosureControl } from "@/components/assessments/closure-control";
 import { EditAssessmentDialog } from "@/components/assessments/edit-assessment-dialog";
-import { SubmissionTracker } from "@/components/assessments/submission-tracker";
+import {
+  Marksheet,
+  type MarksheetRow,
+} from "@/components/assessments/marksheet";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { instantToWallTime } from "@/domain/college-time";
-import { formatDateTime } from "@/lib/format";
+import { formatDateOf, formatDateTime, formatFileSize } from "@/lib/format";
 import { collegeTimeZone } from "@/server/college";
 import { orNotFound } from "@/server/pages";
 import {
@@ -87,18 +90,63 @@ async function AssessmentView({ params }: { params: Params }) {
           </CardContent>
         </Card>
 
-        <section aria-labelledby="submissions-heading">
+        <section aria-labelledby="marksheet-heading">
           <h2
-            id="submissions-heading"
-            className="mb-3 text-xl font-semibold tracking-tight"
+            id="marksheet-heading"
+            className="text-xl font-semibold tracking-tight"
           >
-            Submissions
+            Submissions and marks
           </h2>
-          <SubmissionTracker assessment={assessment} timeZone={timeZone} />
+          <p className="mt-1 mb-4">{submissionSummary(assessment)}</p>
+          {assessment.students.length === 0 ? (
+            <p className="text-muted-foreground">
+              No students are enrolled on {assessment.programme.title} yet.
+            </p>
+          ) : (
+            <Marksheet
+              // Start again from the saved marks after each save.
+              key={assessment.students
+                .map((row) => `${row.studentNumber}:${row.result?.mark ?? ""}`)
+                .join(" ")}
+              assessmentId={assessment.id}
+              title={assessment.title}
+              rows={marksheetRows(assessment, timeZone)}
+            />
+          )}
         </section>
       </div>
     </>
   );
+}
+
+/** E.g. "2 of 7 enrolled students have submitted, 1 late." */
+function submissionSummary(assessment: AssessmentDetail): string {
+  const { submittedCount, expectedCount, lateCount } = assessment;
+  const students = expectedCount === 1 ? "student has" : "students have";
+  const late = lateCount > 0 ? `, ${lateCount} late` : "";
+  return `${submittedCount} of ${expectedCount} enrolled ${students} submitted${late}.`;
+}
+
+/** The marksheet's rows, with dates and sizes formatted for display. */
+function marksheetRows(
+  assessment: AssessmentDetail,
+  timeZone: string,
+): MarksheetRow[] {
+  return assessment.students.map(({ submission, result, ...student }) => ({
+    ...student,
+    submission: submission && {
+      id: submission.id,
+      fileName: submission.fileName,
+      size: formatFileSize(submission.sizeBytes),
+      submittedAt: formatDateTime(submission.submittedAt, timeZone),
+      late: submission.late,
+      replacedTimes: submission.attempt - 1,
+    },
+    mark: result?.mark ?? null,
+    publishedOn: result?.publishedAt
+      ? formatDateOf(result.publishedAt, timeZone)
+      : null,
+  }));
 }
 
 /** What the assessment's state means for students. */

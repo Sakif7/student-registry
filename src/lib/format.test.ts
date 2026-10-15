@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatDate,
+  formatDateOf,
   formatDateTime,
   formatDays,
   formatFileSize,
@@ -49,5 +50,14 @@ describe("formatFileSize", () => {
     expect(formatFileSize(2048)).toBe("2 KB");
     expect(formatFileSize(1_572_864)).toBe("1.5 MB");
     expect(formatFileSize(10 * 1024 * 1024)).toBe("10.0 MB");
+  });
+});
+
+describe("formatDateOf", () => {
+  it("uses the date in the given time zone", () => {
+    // 23:30 UTC on 15 October is already 16 October in London (BST).
+    const lateEvening = new Date("2026-10-15T23:30:00Z");
+    expect(formatDateOf(lateEvening, "Europe/London")).toBe("16 Oct 2026");
+    expect(formatDateOf(lateEvening, "UTC")).toBe("15 Oct 2026");
   });
 });

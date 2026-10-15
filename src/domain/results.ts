@@ -25,14 +25,54 @@ export function classify(mark: number): Classification {
   return "FAIL";
 }
 
+/** A mark: a whole number from 0 to 100. */
+export const markValueSchema = z
+  .number({ error: "Enter a mark from 0 to 100" })
+  .int("Marks are whole numbers")
+  .min(0, "Marks run from 0 to 100")
+  .max(100, "Marks run from 0 to 100");
+
 /** Input for entering or changing a mark. */
-export const markSchema = z.object({
-  mark: z
-    .number({ error: "Enter a mark from 0 to 100" })
-    .int("Marks are whole numbers")
-    .min(0, "Marks run from 0 to 100")
-    .max(100, "Marks run from 0 to 100"),
+export const markSchema = z.object({ mark: markValueSchema });
+
+/**
+ * Input for saving an assessment's marksheet: the marks that changed, keyed by
+ * student ID. A null mark removes the student's mark, e.g. one entered
+ * against the wrong student.
+ */
+export const marksheetSchema = z.object({
+  marks: z
+    .record(
+      z.string().regex(/^SMS-\d{4}-\d{4,}$/i),
+      markValueSchema.nullable(),
+      {
+        error: (issue) =>
+          issue.code === "invalid_key" ? "Not a student ID" : undefined,
+      },
+    )
+    .refine((marks) => Object.keys(marks).length > 0, {
+      error: "There are no marks to save",
+    })
+    .transform((marks) =>
+      Object.fromEntries(
+        Object.entries(marks).map(([number, mark]) => [
+          number.toUpperCase(),
+          mark,
+        ]),
+      ),
+    ),
 });
+
+/**
+ * A mark as typed into the marksheet: blank for no mark, or a whole number
+ * from 0 to 100.
+ */
+export const markFieldSchema = z
+  .string()
+  .trim()
+  .regex(/^\d*$/, "Enter a whole number from 0 to 100")
+  .transform((text) => (text === "" ? null : Number(text)))
+  .pipe(markValueSchema.nullable());
 
 /** The usual reason for withholding results, offered as a preset. */
 export const OUTSTANDING_FEES_REASON = "Outstanding tuition fees";

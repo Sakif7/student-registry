@@ -216,8 +216,15 @@ it. Staff can reopen an assessment or extend its deadline.
 
 Marks are whole numbers from 0 to 100. A mark can be entered without a
 submission (a non-submission, or work marked outside the system), and the
-marksheet shows "No submission" beside it. The classification is derived and
+marksheet shows "Not submitted" beside it. The classification is derived and
 never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
+
+- Marks are entered on each assessment's marksheet and saved together. Only
+  the marks that changed are sent, keyed by student ID, so any error shows
+  beside the right student, and nothing is saved unless every mark is valid.
+- Clearing a mark removes it, for a mark entered against the wrong student.
+- A student keeps their place on the marksheet once they have a mark, even
+  after withdrawing.
 
 ### Publishing and withholding, per student
 

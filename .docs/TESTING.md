@@ -282,6 +282,21 @@ own, plus any other file, such as a text file.
    submitted, "Replaced 1 time", and the file, which downloads. "1 of 3
    enrolled students have submitted".
 
+### 11. Entering marks
+
+Continue from scenario 10, as staff, on the assessment's page.
+
+1. Under **Submissions and marks**, type `72` as Amelia Hart's mark. Her
+   result reads **Distinction**, with "Not saved yet".
+2. Type `3.8` for Oliver Bennett and select **Save marks**. "Enter a whole
+   number from 0 to 100" appears beside his mark, focus moves to it, and
+   nothing is saved.
+3. Change Oliver's mark to `38` and enter `55` for Priya Natarajan, who
+   hasn't submitted (a mark can be given without a submission). Select **Save
+   marks**. "Saved 3 marks." appears, and the results read **Distinction**,
+   **Fail** and **Pass**, each "Not published".
+4. Clear Priya's mark and save. Her mark is removed.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -401,4 +416,10 @@ curl -i -b student.txt -X PUT -F "file=@essay.pdf;type=application/pdf" \
 # Download a submission (staff, or the student who submitted it) under its
 # original name
 curl -OJ -b cookies.txt http://localhost:3000/api/submissions/<submission-id>/file
+
+# Save marks on an assessment's marksheet, keyed by student ID; null removes
+# a mark. The response is the updated marksheet.
+curl -i -b cookies.txt -X PUT -H "Content-Type: application/json" \
+  -d '{"marks":{"SMS-2025-0001":72,"SMS-2026-0001":38}}' \
+  http://localhost:3000/api/assessments/<assessment-id>/marks
 ```

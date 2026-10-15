@@ -1,6 +1,7 @@
 // Assessments: staff set work for a module with a deadline, then can move the
 // deadline, close the assessment to submissions or reopen it. Each assessment
-// tracks who on the programme has submitted, and who submitted late.
+// has a marksheet: who on the programme has submitted (and who late), and
+// their marks.
 import "server-only";
 
 import {
@@ -8,6 +9,11 @@ import {
   updateAssessmentSchema,
 } from "@/domain/assessments";
 import type { EnrolmentStatus } from "@/domain/enrolment";
+import {
+  type Classification,
+  classify,
+  marksheetSchema,
+} from "@/domain/results";
 import {
   type AssessmentState,
   assessmentState,
@@ -18,7 +24,12 @@ import type { Prisma } from "@/generated/prisma/client";
 
 import { collegeTimeZone } from "../college";
 import { db } from "../db";
-import { AppError, parseInput } from "../errors";
+import {
+  AppError,
+  type FieldErrors,
+  parseInput,
+  violatedUniqueConstraint,
+} from "../errors";
 import { isId } from "../ids";
 import { requireSession, requireStaff, type Session } from "../session";
 
@@ -57,12 +68,23 @@ export interface SubmissionView {
   late: boolean;
 }
 
-/** One student's line in an assessment's submission tracker. */
+/** A student's mark for an assessment, as staff see it. */
+export interface ResultView {
+  mark: number;
+  classification: Classification;
+  /** Null until staff publish it to the student. */
+  publishedAt: Date | null;
+}
+
+/** One student's line in an assessment's marksheet. */
 export interface TrackerRow {
   studentNumber: string;
   fullName: string;
   status: EnrolmentStatus;
+  /** Staff have withheld this student's results. */
+  resultsWithheld: boolean;
   submission: SubmissionView | null;
+  result: ResultView | null;
 }
 
 /** An assessment, with every student who should submit or did. */
@@ -70,7 +92,7 @@ export interface AssessmentDetail extends AssessmentSummary {
   createdAt: Date;
   /**
    * The students enrolled on the programme, plus anyone else who submitted
-   * (e.g. a student who withdrew afterwards), by name.
+   * or has a mark (e.g. a student who withdrew afterwards), by name.
    */
   students: TrackerRow[];
 }
@@ -159,12 +181,18 @@ export async function getAssessment(
         OR: [
           { programmeId, status: "ENROLLED" },
           { submissions: { some: { assessmentId: assessment.id } } },
+          { results: { some: { assessmentId: assessment.id } } },
         ],
       },
       select: {
         studentNumber: true,
         fullName: true,
         status: true,
+        resultsWithheldAt: true,
+        results: {
+          where: { assessmentId: assessment.id },
+          select: { mark: true, publishedAt: true },
+        },
         submissions: {
           where: { assessmentId: assessment.id },
           select: {
@@ -183,15 +211,26 @@ export async function getAssessment(
   return {
     ...toSummary(assessment, expectedCount, new Date()),
     createdAt: assessment.createdAt,
-    students: students.map(({ submissions: [submission], ...student }) => ({
-      ...student,
-      submission: submission
-        ? {
-            ...submission,
-            late: isLate(submission.submittedAt, assessment.deadline),
-          }
-        : null,
-    })),
+    students: students.map(
+      ({
+        submissions: [submission],
+        results: [result],
+        resultsWithheldAt,
+        ...student
+      }) => ({
+        ...student,
+        resultsWithheld: resultsWithheldAt !== null,
+        submission: submission
+          ? {
+              ...submission,
+              late: isLate(submission.submittedAt, assessment.deadline),
+            }
+          : null,
+        result: result
+          ? { ...result, classification: classify(result.mark) }
+          : null,
+      }),
+    ),
   };
 }
 
@@ -268,6 +307,96 @@ export async function updateAssessment(
     data: { title: changes.title, deadline: changes.deadline, closedAt },
   });
   return getAssessment(session, assessment.id);
+}
+
+/**
+ * Saves marks from an assessment's marksheet (staff only): the marks that
+ * changed, keyed by student ID, with null removing a mark. A changed mark is
+ * unpublished again, so a student never sees a mark staff haven't released.
+ * Marks can be given with or without a submission.
+ *
+ * @throws AppError: VALIDATION, with an error per student ID that is unknown
+ *   or not on the assessment's programme; NOT_FOUND; CONFLICT if someone else
+ *   saved a mark for the same student at the same moment.
+ */
+export async function saveMarks(
+  session: Session | null,
+  assessmentId: string,
+  input: unknown,
+): Promise<AssessmentDetail> {
+  requireStaff(session);
+  const { marks } = parseInput(marksheetSchema, input);
+  const assessment = isId(assessmentId)
+    ? await db().assessment.findUnique({
+        where: { id: assessmentId },
+        select: { id: true, module: { select: { programmeId: true } } },
+      })
+    : null;
+  if (!assessment) throw assessmentNotFound();
+
+  const students = await db().student.findMany({
+    where: { studentNumber: { in: Object.keys(marks) } },
+    select: {
+      id: true,
+      studentNumber: true,
+      programmeId: true,
+      submissions: { where: { assessmentId }, select: { id: true } },
+      results: { where: { assessmentId }, select: { id: true, mark: true } },
+    },
+  });
+  const fieldErrors: FieldErrors = {};
+  for (const studentNumber of Object.keys(marks)) {
+    const student = students.find((s) => s.studentNumber === studentNumber);
+    if (!student) {
+      fieldErrors[`marks.${studentNumber}`] = ["There is no such student"];
+    } else if (
+      student.programmeId !== assessment.module.programmeId &&
+      student.submissions.length === 0 &&
+      student.results.length === 0
+    ) {
+      fieldErrors[`marks.${studentNumber}`] = [
+        "This student isn't on the assessment's programme",
+      ];
+    }
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    throw new AppError("VALIDATION", "Some marks can't be saved.", fieldErrors);
+  }
+
+  try {
+    await db().$transaction(async (tx) => {
+      for (const student of students) {
+        const mark = marks[student.studentNumber] ?? null;
+        const [existing] = student.results;
+        if (mark === null) {
+          if (existing) {
+            await tx.assessmentResult.delete({ where: { id: existing.id } });
+          }
+        } else if (!existing) {
+          await tx.assessmentResult.create({
+            data: { studentId: student.id, assessmentId, mark },
+          });
+        } else if (existing.mark !== mark) {
+          await tx.assessmentResult.update({
+            where: { id: existing.id },
+            data: { mark, publishedAt: null },
+          });
+        }
+      }
+    });
+  } catch (error) {
+    if (
+      violatedUniqueConstraint(error) ===
+      "assessment_results_student_id_assessment_id_key"
+    ) {
+      throw new AppError(
+        "CONFLICT",
+        "Someone else saved marks for this assessment just now. Reload the page and try again.",
+      );
+    }
+    throw error;
+  }
+  return getAssessment(session, assessmentId);
 }
 
 function assessmentNotFound(): AppError {

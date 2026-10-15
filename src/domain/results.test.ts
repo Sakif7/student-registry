@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   classify,
   isVisibleToStudent,
+  markFieldSchema,
   markSchema,
+  marksheetSchema,
   withholdResultsSchema,
 } from "./results";
 
@@ -66,5 +68,51 @@ describe("isVisibleToStudent", () => {
 
   it("hides even published results while results are withheld", () => {
     expect(isVisibleToStudent(published, true)).toBe(false);
+  });
+});
+
+describe("marksheetSchema", () => {
+  it("takes marks keyed by student ID, and null to remove one", () => {
+    expect(
+      marksheetSchema.parse({
+        marks: { "sms-2025-0001": 72, "SMS-2026-0001": null },
+      }),
+    ).toEqual({ marks: { "SMS-2025-0001": 72, "SMS-2026-0001": null } });
+  });
+
+  it("explains a bad mark next to the student it belongs to", () => {
+    const issue = marksheetSchema.safeParse({
+      marks: { "SMS-2025-0001": 101 },
+    }).error?.issues[0];
+    expect(issue?.path).toEqual(["marks", "SMS-2025-0001"]);
+    expect(issue?.message).toBe("Marks run from 0 to 100");
+  });
+
+  it("needs at least one mark, for real student IDs", () => {
+    expect(
+      marksheetSchema.safeParse({ marks: {} }).error?.issues[0]?.message,
+    ).toBe("There are no marks to save");
+    expect(
+      marksheetSchema.safeParse({ marks: { amelia: 60 } }).error?.issues[0]
+        ?.message,
+    ).toBe("Not a student ID");
+  });
+});
+
+describe("markFieldSchema", () => {
+  it("reads a blank field as no mark and digits as a mark", () => {
+    expect(markFieldSchema.parse("")).toBeNull();
+    expect(markFieldSchema.parse(" 72 ")).toBe(72);
+  });
+
+  it.each([
+    ["72.5", "Enter a whole number from 0 to 100"],
+    ["-3", "Enter a whole number from 0 to 100"],
+    ["abc", "Enter a whole number from 0 to 100"],
+    ["101", "Marks run from 0 to 100"],
+  ])("rejects %j", (text, message) => {
+    expect(markFieldSchema.safeParse(text).error?.issues[0]?.message).toBe(
+      message,
+    );
   });
 });

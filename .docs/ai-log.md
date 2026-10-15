@@ -519,3 +519,30 @@ the automated browser, not a flicker in the app.
   was spotted at once and fixed.
 - The student page said a second upload "replaced the earlier ones". It now
   says only the latest file is kept.
+
+## Entering marks
+
+**What the AI did:** turned each assessment's submission tracker into a
+marksheet with one mark per student. As a mark is typed, the classification
+updates. Saving sends only the marks that changed, keyed by student ID, so any
+error comes back next to the right student; a cleared mark is removed. A
+changed mark goes back to unpublished. Dates and sizes on the marksheet are
+formatted on the server, so the browser can't render them differently.
+
+**Checked by:**
+
+- **Unit tests:** the marksheet schemas, covering blank versus whole-number
+  input, decimals, negatives and text, and student IDs as keys.
+- **Integration tests:**
+  - marks are saved with and without a submission;
+  - saving an unchanged published mark keeps it published, while changing it
+    unpublishes it;
+  - a withdrawn student with a mark stays on the marksheet until the mark is
+    removed;
+  - unknown students and students on other programmes are refused, and
+    nothing is saved.
+- **In a real browser:**
+  - typing 72 showed **Distinction** and "Not saved yet";
+  - 3.8 was refused next to Oliver's mark, with focus moved there;
+  - three marks saved at once, and one more on its own, with the expected
+    messages.

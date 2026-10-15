@@ -37,6 +37,11 @@ export function formatDate(date: CalendarDate): string {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
+/** The date an instant falls on in a time zone, e.g. "1 Oct 2026". */
+export function formatDateOf(instant: Date, timeZone: string): string {
+  return formatDate(instantToWallTime(instant, timeZone).slice(0, 10));
+}
+
 /**
  * An instant shown in a time zone, with the zone's abbreviation, e.g.
  * "Fri 20 Nov 2026, 17:00 GMT".
