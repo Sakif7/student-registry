@@ -317,3 +317,30 @@ checks it.
   - searching "har" finds only Amelia Hart and puts the search in the URL;
   - the status select applies as soon as it changes;
   - "Clear filters" resets the list.
+
+## Editing records and changing status
+
+**What the AI did:** wrote record editing, status changes (allowed changes
+only, with a reason required for deferral or withdrawal, and every change kept
+in the status history), the edit page, the status-change form, and the
+student's own read-only record page.
+
+**Checked by:**
+
+- **Integration tests** cover these cases:
+  - edits never change the student number;
+  - duplicate emails are refused;
+  - disallowed changes return explanatory 409s;
+  - a withdrawn student can be re-admitted;
+  - of two simultaneous status changes to the same record, exactly one wins,
+    because the status is only updated if it is still the one that was read.
+- **Browser check of the `refresh()` decision, with a control.** After a status
+  change made through the form, which calls the Server Action, pressing Back
+  showed the student list with the new status. After the same kind of change
+  made through the API with no refresh, Back showed the old status. The action
+  is needed, and stays.
+
+**Caught by the type-aware lint:** Vitest's asymmetric matchers
+(`expect.any`, `expect.stringMatching`) are typed `any`, which the
+`no-unsafe-assignment` rule flags. The assertions were rewritten without them
+rather than relaxing the rule for tests.

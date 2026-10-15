@@ -288,6 +288,16 @@ browser's Back button reuses cached pages, so without this a dashboard visited
 before recording a payment could still show the old balance. The action
 contains no business logic.
 
+This was checked in a browser against a production build, with a control. A
+status change made through the API with no refresh left the student list
+stale: pressing Back showed the old status. The same change made through the
+form, which calls the action, showed the new status after Back.
+
+A status change only goes through if the status is still the one that was
+read. When two people change the same record at the same moment, one change
+wins and the other gets a 409 asking them to reload. A test sends both changes
+at once.
+
 ### Errors
 
 API errors use RFC 9457 problem details (`application/problem+json`):

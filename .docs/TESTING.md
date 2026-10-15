@@ -123,6 +123,37 @@ scenario 2, or 10 on fresh demo data.
 5. Search for `zzz`. The list says "No students match these filters", with a
    link to clear them.
 
+### 4. Editing a record and changing status
+
+As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**.
+
+1. Under **Change status**, choose **Deferred** and select **Change status**
+   without a reason. The label reads "Reason (required)" and the error "Give a
+   reason for deferral or withdrawal" appears.
+2. Enter the reason `Family circumstances` and select **Change status**. The
+   badge becomes **Deferred**, and the status history gains "Enrolled →
+   Deferred · Family circumstances". The form now offers only **Enrolled** and
+   **Withdrawn**.
+3. Select **Students** in the header. Oliver shows as Deferred. Open his
+   record, change his status back to **Enrolled**, then press the browser's
+   **Back** button. The list shows him as **Enrolled**: pages visited earlier
+   never show stale data after a change.
+4. Open **Mohammed Al-Farsi** (Completed). The status card reads "Completed is
+   final: this record's status can no longer change."
+5. On Oliver's record, select **Edit details**. Change **Academic year** to
+   **2027/28** and select **Save changes**. His student ID is still
+   SMS-2026-0001.
+
+### 5. A student's own record
+
+1. Select **Switch view**, choose **Sofia Rossi · SMS-2026-0003 · Deferred**
+   and select **Continue as student**.
+2. **My record** shows Sofia's details and status history. A note explains
+   that her enrolment is deferred and that she can't submit work. There are
+   no edit or status controls.
+3. Open <http://localhost:3000/staff> as Sofia. You are sent to "Choose a
+   view", because the staff pages are for staff only.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -162,4 +193,13 @@ curl -b cookies.txt "http://localhost:3000/api/students?q=har&status=ENROLLED&pa
 
 # Read a record; the student ID is case-insensitive
 curl -b cookies.txt http://localhost:3000/api/students/sms-2026-0008
+
+# Edit details (any subset of fields)
+curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json"   -d '{"academicYear":"2027/28"}' http://localhost:3000/api/students/SMS-2026-0008
+
+# Change status; deferral and withdrawal need a reason
+curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"status":"WITHDRAWN","reason":"Moved abroad"}'   http://localhost:3000/api/students/SMS-2026-0008/status
+
+# A change the rules forbid returns 409 with an explanation
+curl -i -b cookies.txt -H "Content-Type: application/json"   -d '{"status":"DEFERRED"}' http://localhost:3000/api/students/SMS-2023-0001/status
 ```

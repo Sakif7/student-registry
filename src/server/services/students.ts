@@ -1,6 +1,7 @@
 // Student records: enrolling a student with a gap-free per-year student
-// number, finding students, and reading a record. Every function checks the
-// viewer's permission itself, so no caller can forget to.
+// number, finding students, reading and editing a record, and changing its
+// enrolment status. Every function checks the viewer's permission itself, so
+// no caller can forget to.
 import "server-only";
 
 import { startYearOf } from "@/domain/academic-year";
@@ -10,13 +11,20 @@ import {
   todayIn,
   toDbDate,
 } from "@/domain/college-time";
-import { allowedStatusChanges, type EnrolmentStatus } from "@/domain/enrolment";
+import {
+  allowedStatusChanges,
+  canChangeStatus,
+  ENROLMENT_STATUS_LABELS,
+  type EnrolmentStatus,
+} from "@/domain/enrolment";
 import { formatStudentNumber } from "@/domain/student-number";
 import {
+  changeStatusSchema,
   createStudentSchema,
   type StudentFilters,
   studentFiltersSchema,
   STUDENTS_PAGE_SIZE,
+  updateStudentSchema,
 } from "@/domain/students";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -242,6 +250,113 @@ async function nextStudentSequence(
     RETURNING last_value`;
   if (!counter) throw new Error("The student number counter returned no row.");
   return counter.last_value;
+}
+
+/**
+ * Edits a student's details (staff only). The student number never changes,
+ * even when the academic year does. Status changes go through changeStatus.
+ *
+ * @throws AppError: NOT_FOUND, VALIDATION, or CONFLICT for an email already
+ *   in use.
+ */
+export async function updateStudent(
+  session: Session | null,
+  studentNumber: string,
+  input: unknown,
+): Promise<StudentRecord> {
+  requireStaff(session);
+  const changes = parseInput(updateStudentSchema(collegeToday()), input);
+  const { id } = await findStudentId(studentNumber);
+  const programmeId = changes.programmeCode
+    ? (await findProgramme(changes.programmeCode)).id
+    : undefined;
+
+  try {
+    const student = await db().student.update({
+      where: { id },
+      data: {
+        fullName: changes.fullName,
+        email: changes.email,
+        dateOfBirth:
+          changes.dateOfBirth === undefined
+            ? undefined
+            : toDbDate(changes.dateOfBirth),
+        academicYear: changes.academicYear,
+        programmeId,
+      },
+      include: recordInclude,
+    });
+    return toRecord(student);
+  } catch (error) {
+    throw asDuplicateEmail(error);
+  }
+}
+
+/**
+ * Moves a student to another enrolment status (staff only), recording the
+ * change and its reason in the status history.
+ *
+ * @throws AppError: NOT_FOUND; VALIDATION (e.g. a withdrawal without a
+ *   reason); CONFLICT if the rules don't allow the change, or if someone
+ *   else changed the status in the meantime.
+ */
+export async function changeStatus(
+  session: Session | null,
+  studentNumber: string,
+  input: unknown,
+): Promise<StudentRecord> {
+  requireStaff(session);
+  const { status: to, reason } = parseInput(changeStatusSchema, input);
+  const { id, status: from } = await findStudentId(studentNumber);
+  if (!canChangeStatus(from, to)) {
+    throw new AppError("CONFLICT", statusChangeRefusal(from, to));
+  }
+
+  const student = await db().$transaction(async (tx) => {
+    // Only change the status if it is still the one just read, so that two
+    // people changing the same record at once can't both succeed.
+    const { count } = await tx.student.updateMany({
+      where: { id, status: from },
+      data: { status: to },
+    });
+    if (count === 0) {
+      throw new AppError(
+        "CONFLICT",
+        "Someone else changed this student's status just now. Reload the page and try again.",
+      );
+    }
+    await tx.enrolmentStatusChange.create({
+      data: { studentId: id, fromStatus: from, toStatus: to, reason },
+    });
+    return tx.student.findUniqueOrThrow({
+      where: { id },
+      include: recordInclude,
+    });
+  });
+  return toRecord(student);
+}
+
+function statusChangeRefusal(from: EnrolmentStatus, to: EnrolmentStatus) {
+  if (from === to) {
+    return `The student is already ${ENROLMENT_STATUS_LABELS[to]}.`;
+  }
+  const allowed = allowedStatusChanges(from);
+  if (allowed.length === 0) {
+    return `A ${ENROLMENT_STATUS_LABELS[from]} record is final; its status can't change.`;
+  }
+  return `A ${ENROLMENT_STATUS_LABELS[from]} student can't be marked ${ENROLMENT_STATUS_LABELS[to]}. Allowed: ${allowed.map((status) => ENROLMENT_STATUS_LABELS[status]).join(", ")}.`;
+}
+
+async function findStudentId(studentNumber: string) {
+  const number = studentNumber.toUpperCase();
+  const student = await db().student.findUnique({
+    where: { studentNumber: number },
+    select: { id: true, status: true },
+  });
+  if (!student) {
+    throw new AppError("NOT_FOUND", `There is no student with ID ${number}.`);
+  }
+  return student;
 }
 
 /** Looks up a programme by code, as a field error if it doesn't exist. */
