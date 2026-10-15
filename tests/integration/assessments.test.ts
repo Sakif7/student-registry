@@ -266,7 +266,7 @@ describe("GET /api/assessments", () => {
       assessmentId,
       submittedAt: new Date("2026-10-11T12:00:00Z"),
     });
-    // Hannah submitted, then withdrew: she is no longer expected to submit.
+    // Hannah submitted, then withdrew, so is no longer expected to submit.
     await createSubmission({ studentId: hannah.id, assessmentId });
 
     const response = await listAssessments(
@@ -310,7 +310,7 @@ describe("GET /api/assessments/[assessmentId]", () => {
     const { status, body } = await detail(id);
 
     expect(status).toBe(200);
-    // Liam's programme doesn't include the module, so he isn't listed.
+    // Liam's programme doesn't include the module, so Liam isn't listed.
     expect(body.assessment.students).toMatchObject([
       {
         studentNumber: "SMS-2025-0001",

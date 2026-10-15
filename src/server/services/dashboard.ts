@@ -1,5 +1,6 @@
-// The Registry dashboard: how many students are in each enrolment status, and
-// the overdue worklist of every student with fees unpaid after the due date.
+// The Registry dashboard: how many students are in each enrolment status, the
+// overdue worklist of every student with fees unpaid after the due date, and
+// how many students have marks to publish or results withheld.
 import "server-only";
 
 import { type CalendarDate, toDbDate } from "@/domain/college-time";
@@ -31,6 +32,12 @@ export interface Dashboard {
   /** Longest overdue first. */
   overdueAccounts: OverdueAccount[];
   totalOverduePence: number;
+  results: {
+    /** Students with marks waiting to be published (and no hold). */
+    toPublish: number;
+    /** Students whose results are withheld. */
+    withheld: number;
+  };
 }
 
 /**
@@ -42,7 +49,7 @@ export async function getDashboard(
 ): Promise<Dashboard> {
   requireStaff(session);
   const today = collegeToday();
-  const [groups, candidates] = await Promise.all([
+  const [groups, candidates, toPublish, withheld] = await Promise.all([
     db().student.groupBy({ by: ["status"], _count: { _all: true } }),
     // Only a student with a charge already past its due date can be overdue.
     db().student.findMany({
@@ -55,6 +62,13 @@ export async function getDashboard(
         programme: { select: { title: true } },
       },
     }),
+    db().student.count({
+      where: {
+        resultsWithheldAt: null,
+        results: { some: { publishedAt: null } },
+      },
+    }),
+    db().student.count({ where: { resultsWithheldAt: { not: null } } }),
   ]);
 
   const statusCounts = Object.fromEntries(
@@ -100,5 +114,6 @@ export async function getDashboard(
       (total, account) => total + account.overduePence,
       0,
     ),
+    results: { toPublish, withheld },
   };
 }

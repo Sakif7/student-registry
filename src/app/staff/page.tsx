@@ -1,9 +1,11 @@
 // Registry dashboard: the staff home page. Shows how many students are in
-// each enrolment status, and flags every overdue balance.
+// each enrolment status, flags every overdue balance, and counts the students
+// with marks to publish or results withheld.
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { CountLink } from "@/components/dashboard/count-link";
 import { OverdueTable } from "@/components/dashboard/overdue-table";
 import { StatusCounts } from "@/components/dashboard/status-counts";
 import { PageHeader } from "@/components/page-header";
@@ -66,6 +68,31 @@ async function Dashboard() {
           accounts={dashboard.overdueAccounts}
           totalPence={dashboard.totalOverduePence}
         />
+      </section>
+
+      <section aria-labelledby="results-heading" className="grid gap-3">
+        <h2
+          id="results-heading"
+          className="text-xl font-semibold tracking-tight"
+        >
+          Results
+        </h2>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <li>
+            <CountLink
+              href="/staff/results"
+              label="Students with marks to publish"
+              count={dashboard.results.toPublish}
+            />
+          </li>
+          <li>
+            <CountLink
+              href="/staff/results"
+              label="Students with results withheld"
+              count={dashboard.results.withheld}
+            />
+          </li>
+        </ul>
       </section>
     </div>
   );

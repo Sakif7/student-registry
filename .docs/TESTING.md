@@ -93,9 +93,9 @@ As staff:
    | Enrolment status | Enrolled (the default)                                     |
 
    Select **Enrol student**. You land on Grace's record:
-   - Her ID is **SMS-2026-0008**, the next number after the seeded 0001–0007.
-   - Her email is shown in lower case.
-   - Her status history reads "Record created as Enrolled".
+   - The ID is **SMS-2026-0008**, the next number after the seeded 0001–0007.
+   - The email is shown in lower case.
+   - The status history reads "Record created as Enrolled".
 
 4. Select **Enrol a student** again. Enter another name, the email
    `GRACE.THOMPSON@student.example` and the same other details. Select
@@ -134,14 +134,14 @@ As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**.
    badge becomes **Deferred**, and the status history gains "Enrolled →
    Deferred · Family circumstances". The form now offers only **Enrolled** and
    **Withdrawn**.
-3. Select **Students** in the header. Oliver shows as Deferred. Open his
-   record, change his status back to **Enrolled**, then press the browser's
-   **Back** button. The list shows him as **Enrolled**: pages visited earlier
-   never show stale data after a change.
+3. Select **Students** in the header. Oliver shows as Deferred. Open the
+   record, change the status back to **Enrolled**, then press the browser's
+   **Back** button. The list shows Oliver as **Enrolled**: pages visited
+   earlier never show stale data after a change.
 4. Open **Mohammed Al-Farsi** (Completed). The status card reads "Completed is
    final: this record's status can no longer change."
 5. On Oliver's record, select **Edit details**. Change **Academic year** to
-   **2027/28** and select **Save changes**. His student ID is still
+   **2027/28** and select **Save changes**. The student ID is still
    SMS-2026-0001.
 
 ### 5. A student's own record
@@ -149,8 +149,8 @@ As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**.
 1. Select **Switch view**, choose **Sofia Rossi · SMS-2026-0003 · Deferred**
    and select **Continue as student**.
 2. **My record** shows Sofia's details and status history. A note explains
-   that her enrolment is deferred and that she can't submit work. There are
-   no edit or status controls.
+   that the enrolment is deferred, so no work can be submitted. There are no
+   edit or status controls.
 3. Open <http://localhost:3000/staff> as Sofia. You are sent to "Choose a
    view", because the staff pages are for staff only.
 
@@ -177,8 +177,8 @@ account is **Overdue**:
    fee** without a note. "Explain why the amount differs from the standard fee
    of £9,535.00" appears under **Note**. Add the note `Half scholarship` and
    charge it again. The charge is listed with the note under it.
-6. Record a payment of £20,000.00 for **Liam O'Connor**. His account shows
-   **In credit**.
+6. Record a payment of £20,000.00 for **Liam O'Connor**. Liam's account
+   shows **In credit**.
 7. Switch to **Liam O'Connor** as a student. **My record** shows the same
    account, with no forms.
 
@@ -221,8 +221,8 @@ below are as of the day the seed runs. As staff:
    | Kwame Mensah    | Enrolled  | £4,535.00 | 10 days overdue |
    | Hannah Kowalski | Withdrawn | £9,950.00 | 6 days overdue  |
 
-   Hannah is listed although she has withdrawn, because her debt still needs
-   chasing. Arjun Mehta isn't listed: his fee isn't due for another 5 days.
+   Hannah is listed despite having withdrawn, because the debt still needs
+   chasing. Arjun Mehta isn't listed: that fee isn't due for another 5 days.
 
 3. Open **Students**. The **Fees** column shows the same three students as
    **Overdue**, each with the amount and days overdue. Arjun shows **Balance
@@ -278,24 +278,49 @@ own, plus any other file, such as a text file.
 6. Choose your Word document and select **Replace my work**. **Your
    submission** now shows the Word document and "This is your 2nd upload. Only
    the latest file is kept."
-7. Switch to staff and open the assessment. Amelia's row shows when she
-   submitted, "Replaced 1 time", and the file, which downloads. "1 of 3
+7. Switch to staff and open the assessment. Amelia's row shows when the work
+   was submitted, "Replaced 1 time", and the file, which downloads. "1 of 3
    enrolled students have submitted".
 
 ### 11. Entering marks
 
 Continue from scenario 10, as staff, on the assessment's page.
 
-1. Under **Submissions and marks**, type `72` as Amelia Hart's mark. Her
+1. Under **Submissions and marks**, type `72` as Amelia Hart's mark. The
    result reads **Distinction**, with "Not saved yet".
 2. Type `3.8` for Oliver Bennett and select **Save marks**. "Enter a whole
-   number from 0 to 100" appears beside his mark, focus moves to it, and
+   number from 0 to 100" appears beside Oliver's mark, focus moves to it, and
    nothing is saved.
 3. Change Oliver's mark to `38` and enter `55` for Priya Natarajan, who
    hasn't submitted (a mark can be given without a submission). Select **Save
    marks**. "Saved 3 marks." appears, and the results read **Distinction**,
    **Fail** and **Pass**, each "Not published".
-4. Clear Priya's mark and save. Her mark is removed.
+4. Clear Priya's mark and save. The mark is removed.
+
+### 12. Publishing and withholding results
+
+Continue from scenario 11, as staff.
+
+1. Open **Amelia Hart**'s record. Under **Results**, the fees read **Overdue**
+   with "£9,535.00 overdue", and "Coursework 1: Algorithms" shows 72,
+   **Distinction**, "Not published".
+2. Select **Withhold results**. The dialog explains that Amelia will see no
+   results, and repeats the fees. Keep the reason **Outstanding tuition fees**
+   and confirm. The section now reads "Results withheld since …" with the
+   reason, and **Lift the hold** replaces the publish button.
+3. Switch to **Amelia Hart** as a student and open **Results**. "Your results
+   are being withheld" gives the reason, and no marks are shown.
+4. As staff, select **Lift the hold** on Amelia's record, then **Publish 1
+   mark**. A dialog asks you to confirm, with **Cancel** focused. Confirm, and
+   the section reads "Every mark is published."
+5. As Amelia, **Results** now lists Coursework 1: Algorithms with 72 and
+   **Distinction**.
+6. As staff, open **Results**. Oliver Bennett is listed first, with **Publish
+   1 mark**; Amelia shows "All published". On **Dashboard**, **Results**
+   counts 1 student with marks to publish.
+7. On the assessment's marksheet, change Amelia's mark to `68` and save. It
+   reads "Not published" again, and Amelia's **Results** page no longer shows
+   it until it is published again.
 
 ## Trying the API with curl
 
@@ -422,4 +447,20 @@ curl -OJ -b cookies.txt http://localhost:3000/api/submissions/<submission-id>/fi
 curl -i -b cookies.txt -X PUT -H "Content-Type: application/json" \
   -d '{"marks":{"SMS-2025-0001":72,"SMS-2026-0001":38}}' \
   http://localhost:3000/api/assessments/<assessment-id>/marks
+
+# A student's results: staff see every mark, the student only published ones
+# (and none while withheld)
+curl -b cookies.txt http://localhost:3000/api/students/SMS-2025-0001/results
+curl -b student.txt http://localhost:3000/api/students/SMS-2025-0001/results
+
+# Publish all of a student's unpublished marks; 409 while withheld
+curl -i -b cookies.txt -X POST \
+  http://localhost:3000/api/students/SMS-2025-0001/results/publication
+
+# Withhold a student's results with a reason, then lift the hold
+curl -i -b cookies.txt -X PUT -H "Content-Type: application/json" \
+  -d '{"reason":"Outstanding tuition fees"}' \
+  http://localhost:3000/api/students/SMS-2025-0001/results/hold
+curl -i -b cookies.txt -X DELETE \
+  http://localhost:3000/api/students/SMS-2025-0001/results/hold
 ```

@@ -370,7 +370,7 @@ rather than relaxing the rule for tests.
     straight away;
   - the same reference, typed with different spacing, was refused under
     **Reference**;
-  - Liam's student view shows his £250 credit, with no forms.
+  - Liam's student view shows the £250 credit, with no forms.
 
 **Caught along the way:** a test fixture inserted SMS-2026-0001 directly,
 bypassing the counter, and the counter then issued the same number. The app
@@ -398,7 +398,7 @@ separate record, so the payment itself is never edited.
     into the reason field;
   - a reversal brought Kwame's overdue amount back to £9,535.00 and removed
     that payment's **Reverse** button;
-  - a due-date correction cleared his overdue flag.
+  - a due-date correction cleared Kwame's overdue flag.
 
 ## Registry dashboard and overdue flags
 
@@ -546,3 +546,45 @@ formatted on the server, so the browser can't render them differently.
   - 3.8 was refused next to Oliver's mark, with focus moved there;
   - three marks saved at once, and one more on its own, with the expected
     messages.
+
+## Publishing and withholding results
+
+**What the AI did:**
+
+- **Staff:** the student record gained a **Results** section with every mark
+  and whether it is published. Beside the controls sit the fee standing,
+  **Publish** (with a confirmation, because there is no unpublishing) and
+  **Withhold results** (with the outstanding-fees preset or a reason of the
+  staff member's own).
+- **Students:** a **Results** page shows published marks only, or the reason
+  for a hold.
+- **Worklist:** a staff **Results** page lists students with marks to publish
+  first, and the dashboard counts students with marks to publish and with
+  results withheld.
+- **Server-side filtering:** the filtering happens on the server, so an
+  unpublished or withheld mark is never sent to a student at all.
+
+**Checked by:**
+
+- **Integration tests:**
+  - staff see every mark, while the student gets only published ones;
+  - publishing stamps only unpublished marks and leaves earlier publication
+    dates alone;
+  - publishing is refused while withheld;
+  - a hold hides published marks too, and lifting it brings back only
+    published ones;
+  - withholding again keeps the original date;
+  - the worklist orders and filters students correctly, with their fees;
+  - the dashboard counts don't count a withheld student as waiting to be
+    published.
+- **In a real browser:**
+  - Amelia's results were withheld for fees;
+  - Amelia's own Results page showed only the notice, and the API response
+    Amelia's browser received held no marks;
+  - lifting the hold and publishing, after the confirmation, made the mark
+    visible to Amelia;
+  - the worklist and dashboard counts matched.
+
+**Caught along the way:** some testing-guide steps and test comments used
+gendered pronouns for the fictitious students. They now use names or neutral
+wording.

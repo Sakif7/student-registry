@@ -11,6 +11,7 @@ const STAFF_NAV: readonly NavItem[] = [
   { href: "/staff", label: "Dashboard" },
   { href: "/staff/students", label: "Students" },
   { href: "/staff/assessments", label: "Assessments" },
+  { href: "/staff/results", label: "Results" },
 ];
 
 export default function StaffLayout({ children }: LayoutProps<"/staff">) {

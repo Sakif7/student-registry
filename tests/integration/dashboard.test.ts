@@ -5,7 +5,11 @@ import { toDbDate } from "@/domain/college-time";
 import { db } from "@/server/db";
 import { getDashboard } from "@/server/services/dashboard";
 
-import { createProgramme, createStudent } from "../helpers/factories";
+import {
+  createAssessment,
+  createProgramme,
+  createStudent,
+} from "../helpers/factories";
 import { asStudent, STAFF } from "../helpers/requests";
 
 // 15 October 2026 in London.
@@ -147,6 +151,34 @@ describe("getDashboard", () => {
     expect(dashboard.overdueAccounts).toMatchObject([
       { studentNumber: "SMS-2026-0001", overduePence: 953_500 },
     ]);
+  });
+
+  it("counts students with marks to publish, and with results withheld", async () => {
+    const { id: assessmentId } = await createAssessment();
+    const toPublish = await createStudent();
+    const held = await createStudent({
+      resultsWithheldAt: NOW,
+      resultsWithheldReason: "Outstanding tuition fees",
+    });
+    const allPublished = await createStudent();
+    await db().assessmentResult.createMany({
+      data: [
+        { studentId: toPublish.id, assessmentId, mark: 60 },
+        // Withheld, so not counted as waiting to be published.
+        { studentId: held.id, assessmentId, mark: 50 },
+        {
+          studentId: allPublished.id,
+          assessmentId,
+          mark: 70,
+          publishedAt: NOW,
+        },
+      ],
+    });
+
+    expect((await getDashboard(STAFF)).results).toEqual({
+      toPublish: 1,
+      withheld: 1,
+    });
   });
 
   it("is for staff only", async () => {

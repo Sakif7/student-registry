@@ -240,6 +240,19 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
   withheld automatically: withholding is a staff decision.
 - The server never sends an unpublished or withheld mark to a student. Hiding it
   in the interface alone would not be enough.
+- Publication and holds are independent. A mark is shown to a student only if
+  it is published and their results aren't withheld, checked every time
+  results are read. Even a hold placed at the same moment as publishing still
+  hides everything.
+- Publishing asks for confirmation, because there is no "unpublish": a mark
+  can only be hidden again by changing it, or by withholding.
+- Withholding again changes the reason but keeps the original date. Lifting a
+  hold shows previously published marks again; unpublished marks still need
+  publishing.
+- A Results page lists every student with marks or a hold. Students with marks
+  to publish come first, each with a publish button and their fee standing.
+  The dashboard counts students with marks to publish and with results
+  withheld.
 
 ## Roles
 
