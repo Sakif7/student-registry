@@ -84,7 +84,13 @@ export function SubmissionTracker({
                     )}
                   </TableCell>
                   <TableCell className="max-w-64 whitespace-normal">
-                    <span className="break-all">{submission.fileName}</span>
+                    <a
+                      href={`/api/submissions/${submission.id}/file`}
+                      className="break-all underline underline-offset-4"
+                    >
+                      <span className="sr-only">Download </span>
+                      {submission.fileName}
+                    </a>
                     <div className="text-xs text-muted-foreground">
                       {formatFileSize(submission.sizeBytes)}
                     </div>

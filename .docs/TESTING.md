@@ -258,6 +258,30 @@ As staff:
 6. Open **Assessments**. The list shows the assessment with its deadline,
    **Open** and "0 of 3" submitted.
 
+### 10. Submitting work
+
+Continue from scenario 9. You need a PDF and a Word document (.docx) of your
+own, plus any other file, such as a text file.
+
+1. Switch to **Amelia Hart** as a student and open **Assessments**.
+   "Coursework 1: Algorithms" shows **Not submitted**. Open it.
+2. Select **Submit my work** without choosing a file. "Choose a file to
+   upload" appears under **Your work**.
+3. Choose the text file. "Upload a PDF or a Word document (.docx)" appears
+   before anything is sent.
+4. Make a copy of the text file named `essay.pdf` and choose that. The server
+   checks what the file contains and refuses it: "This file isn't a valid PDF
+   or Word document, whatever its name says".
+5. Choose your PDF and select **Submit my work**. **Your submission** shows
+   the file, its size and when it was submitted, and the form becomes
+   **Replace your work**. Select the file name to download it.
+6. Choose your Word document and select **Replace my work**. **Your
+   submission** now shows the Word document and "This is your 2nd upload. Only
+   the latest file is kept."
+7. Switch to staff and open the assessment. Amelia's row shows when she
+   submitted, "Replaced 1 time", and the file, which downloads. "1 of 3
+   enrolled students have submitted".
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -359,4 +383,22 @@ curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
 curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
   -d '{"closed":true}' \
   http://localhost:3000/api/assessments/<assessment-id>
+
+# Start a student session in a second cookie jar
+curl -i -c student.txt -H "Content-Type: application/json" \
+  -d '{"role":"student","studentNumber":"SMS-2025-0001"}' \
+  http://localhost:3000/api/session
+
+# The student's assessments, each with their own work and whether they can
+# upload now
+curl -b student.txt http://localhost:3000/api/students/SMS-2025-0001/assessments
+
+# Submit work as multipart form data in the field "file": 201 the first time,
+# 200 for a replacement, 415 for a file that isn't a genuine PDF or DOCX
+curl -i -b student.txt -X PUT -F "file=@essay.pdf;type=application/pdf" \
+  http://localhost:3000/api/assessments/<assessment-id>/submission
+
+# Download a submission (staff, or the student who submitted it) under its
+# original name
+curl -OJ -b cookies.txt http://localhost:3000/api/submissions/<submission-id>/file
 ```

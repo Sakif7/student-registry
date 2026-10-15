@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# uploaded files (UPLOAD_DIR)
+/storage/
+
 # playwright MCP browser snapshots
 /.playwright-mcp/
 

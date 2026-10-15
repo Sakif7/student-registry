@@ -183,11 +183,32 @@ it. Staff can reopen an assessment or extend its deadline.
 
 ### Uploads
 
-PDF or DOCX only, up to 10 MB. The file extension, the declared type and the
-file's actual content must all agree; the content check uses `file-type`, which
-also recognises macro-enabled `.docm` files so they can be refused. Files are
-stored under random names outside the public folder and are only ever served as
-downloads, with `X-Content-Type-Options: nosniff`.
+- **Accepted files:** PDF or DOCX only, up to 10 MB.
+- **Three checks that must agree:**
+  - the file extension;
+  - the type the browser declared. "application/octet-stream" or no type is
+    accepted, because browsers send that for types the operating system
+    doesn't know; any other declared type must match the extension;
+  - the file's actual content, checked with `file-type`. It also recognises
+    macro-enabled Word documents (`.docm`), so they are refused even when
+    renamed to `.docx`.
+- **Checks in two places:** the upload form checks the name and size before
+  sending anything, and the server repeats every check.
+- **Oversized uploads are never read into memory:** a declared Content-Length
+  over the limit is refused at once. Otherwise the bytes are counted as they
+  arrive, and reading stops just past 10 MB (plus a little room for the form's
+  own framing).
+- **Storage:** files are stored under random names in `UPLOAD_DIR`, outside
+  the public folder. The name the student gave is kept for display and
+  downloads, cleaned of folders, quotes and control characters.
+- **Downloads only:** files are always served as attachments, with
+  `X-Content-Type-Options: nosniff` and a sandboxing Content-Security-Policy.
+  Only staff and the student who submitted can download a file.
+- **Replacing and races:** a replacement deletes the previous file once the
+  new one is safely recorded, and a failed upload deletes its own file. The
+  rules are checked again at the moment of saving, in a transaction that locks
+  the assessment and the student's submission. Neither a concurrent close nor
+  a second upload can slip past them.
 
 ## Marks and results
 
@@ -426,6 +447,11 @@ advisories are reviewed by hand rather than failing the build.
   its due date, on every visit. That is fine for a college of a few thousand
   students. Much beyond that, the calculation would move into a database view,
   so that only overdue rows are read.
+- **File storage:** submissions live on the server's own disk. Several
+  servers, or a host whose disk is wiped on deploy, would need object storage
+  such as S3. Only the three functions in `src/server/storage.ts` would change.
+- **No virus scanning:** uploads are checked for type, not for malware. A real
+  deployment would scan files (e.g. with ClamAV) before staff download them.
 - **Accents in search:** search matches accents exactly, so `Chloe` doesn't
   find "Chloé". PostgreSQL's `unaccent` extension would fix this.
 - **Search speed:** search scans names, IDs and emails with `ILIKE`, which is

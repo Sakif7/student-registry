@@ -472,3 +472,50 @@ showed loading skeletons even though the page had finished rendering. Checks
 of the page itself, before and after the screenshot, showed the content in
 place, and a second screenshot showed it too. The cause was a stale frame in
 the automated browser, not a flicker in the app.
+
+## Submitting work
+
+**What the AI did:** wrote the submission feature:
+
+- students upload a PDF or Word document for an assessment, replace it until
+  the deadline, and submit late (flagged) until staff close the assessment;
+- staff and the submitting student can download the file;
+- the student view gained an **Assessments** list and a page per assessment,
+  and the staff tracker gained download links;
+- small but genuine sample documents (a one-page PDF and a minimal .docx) are
+  built in code for the tests and, later, the demo data, so the repository
+  holds no binary fixtures.
+
+**Checked by:**
+
+- **Unit tests:** the file checks. A renamed file, a contradicting declared
+  type and a macro-enabled document disguised as .docx are all refused.
+- **Integration tests,** against real files in a temporary folder that each
+  test empties, so stray files would show:
+  - a replacement keeps exactly one file on disk;
+  - a late first submission is accepted and flagged, but can't be replaced;
+  - a closed assessment, a deferred student and another programme's
+    assessment are all refused, and none of them leaves a file behind;
+  - a declared 20 MB upload is refused unread, and a body that never ends is
+    abandoned soon after the limit;
+  - of two simultaneous first uploads exactly one is kept;
+  - downloads carry an attachment header that is safe for accented names;
+  - a file missing from storage returns 404, not a crash.
+- **In a real browser,** as Amelia:
+  - no file and a text file were caught before sending;
+  - a text file renamed `.pdf` was refused by the server's content check;
+  - a PDF was submitted and then replaced by a Word document, leaving one
+    file on disk;
+  - the download had the right headers;
+  - the staff tracker showed "Replaced 1 time" with a working link.
+- **With curl:** the documented upload, refusal and download commands, run
+  against the production build.
+
+**Caught along the way:**
+
+- A test bound on how far the server reads an oversized stream was too tight:
+  streams read a few chunks ahead, so the bound now allows for that.
+- A shell edit turned an escaped `\r\n` in a test into a real line break. It
+  was spotted at once and fixed.
+- The student page said a second upload "replaced the earlier ones". It now
+  says only the latest file is kept.

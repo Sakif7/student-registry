@@ -79,6 +79,89 @@ export async function readJson(request: Request): Promise<unknown> {
   }
 }
 
+/**
+ * Reads a multipart/form-data body, refusing one larger than `maxBytes`
+ * without holding more than that in memory: a declared Content-Length is
+ * checked up front, and the bytes are counted as they arrive.
+ *
+ * @throws AppError: UNSUPPORTED_MEDIA_TYPE unless the body is multipart,
+ *   PAYLOAD_TOO_LARGE (with `tooLarge` as the message), VALIDATION if the
+ *   body can't be read.
+ */
+export async function readFormData(
+  request: Request,
+  maxBytes: number,
+  tooLarge: string,
+): Promise<FormData> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.startsWith("multipart/form-data")) {
+    throw new AppError(
+      "UNSUPPORTED_MEDIA_TYPE",
+      "Send the file as multipart/form-data.",
+    );
+  }
+  if (Number(request.headers.get("content-length")) > maxBytes) {
+    throw new AppError("PAYLOAD_TOO_LARGE", tooLarge);
+  }
+
+  let received = 0;
+  const limited = request.body?.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        received += chunk.byteLength;
+        if (received > maxBytes) {
+          controller.error(new Error("Request body too large"));
+        } else {
+          controller.enqueue(chunk);
+        }
+      },
+    }),
+  );
+  try {
+    return await new Response(limited, {
+      headers: { "content-type": contentType },
+    }).formData();
+  } catch {
+    if (received > maxBytes) throw new AppError("PAYLOAD_TOO_LARGE", tooLarge);
+    throw new AppError("VALIDATION", "The upload couldn't be read.");
+  }
+}
+
+/**
+ * A file download. It is always an attachment, with its type stated and
+ * sniffing off, so a browser never renders an uploaded file as a page.
+ */
+export function download(
+  bytes: Uint8Array,
+  fileName: string,
+  mimeType: string,
+): Response {
+  return new Response(new Uint8Array(bytes), {
+    headers: {
+      "content-type": mimeType,
+      "content-length": String(bytes.byteLength),
+      "content-disposition": contentDisposition(fileName),
+      "x-content-type-options": "nosniff",
+      "content-security-policy": "default-src 'none'; sandbox",
+      "cache-control": "private, no-store",
+    },
+  });
+}
+
+/**
+ * A Content-Disposition header for downloading a file under its own name
+ * (RFC 6266): an ASCII fallback, plus the exact name encoded as UTF-8.
+ */
+export function contentDisposition(fileName: string): string {
+  const fallback = fileName.replace(/[^\x20-\x7e]|["\\]/g, "_");
+  const encoded = encodeURIComponent(fileName).replace(
+    /['()*]/g,
+    (character) =>
+      `%${character.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
+  );
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+
 /** An RFC 9457 problem-details response. */
 export function problem(
   status: number,

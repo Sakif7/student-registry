@@ -11,6 +11,7 @@ import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   type AssessmentState,
   assessmentState,
+  compareAssessments,
   isLate,
 } from "@/domain/submissions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -88,14 +89,6 @@ type AssessmentWithSubmissions = Prisma.AssessmentGetPayload<{
   include: typeof summaryInclude;
 }>;
 
-// Open assessments first, soonest deadline first; then the rest, most
-// recent deadline first.
-const STATE_ORDER: Record<AssessmentState, number> = {
-  OPEN: 0,
-  ACCEPTING_LATE: 1,
-  CLOSED: 2,
-};
-
 /** Every module, for choosing one when setting an assessment. */
 export async function listModules(
   session: Session | null,
@@ -137,14 +130,7 @@ export async function listAssessments(
         now,
       ),
     )
-    .sort(
-      (a, b) =>
-        STATE_ORDER[a.state] - STATE_ORDER[b.state] ||
-        (a.state === "OPEN"
-          ? a.deadline.getTime() - b.deadline.getTime()
-          : b.deadline.getTime() - a.deadline.getTime()) ||
-        a.title.localeCompare(b.title),
-    );
+    .sort(compareAssessments);
 }
 
 /**

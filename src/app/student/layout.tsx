@@ -8,6 +8,7 @@ import { ViewerBadge } from "@/components/viewer-badge";
 
 const STUDENT_NAV: readonly NavItem[] = [
   { href: "/student", label: "My record" },
+  { href: "/student/assessments", label: "Assessments" },
 ];
 
 export default function StudentLayout({ children }: LayoutProps<"/student">) {

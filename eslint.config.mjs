@@ -33,6 +33,8 @@ const eslintConfig = defineConfig([
     // Generated output: the Prisma client and the coverage report.
     "src/generated/**",
     "coverage/**",
+    // Local browser-automation artefacts (git-ignored).
+    ".playwright-mcp/**",
   ]),
 ]);
 

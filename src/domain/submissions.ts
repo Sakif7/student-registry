@@ -44,6 +44,70 @@ export function safeFileName(fileName: string): string {
   return cleaned.slice(0, 120 - extension.length) + extension;
 }
 
+/** Why an uploaded file is refused. */
+export type FileProblem =
+  | "EMPTY"
+  | "TOO_LARGE"
+  | "NOT_A_DOCUMENT"
+  | "MACRO_ENABLED"
+  | "CONTENT_MISMATCH";
+
+export const FILE_PROBLEM_MESSAGES: Record<FileProblem, string> = {
+  EMPTY: "The file is empty",
+  TOO_LARGE: "The file is larger than 10 MB",
+  NOT_A_DOCUMENT: "Upload a PDF or a Word document (.docx)",
+  MACRO_ENABLED:
+    "Macro-enabled Word documents can't be accepted. Save the document as .docx and upload that",
+  CONTENT_MISMATCH:
+    "This file isn't a valid PDF or Word document, whatever its name says",
+};
+
+// What browsers declare when they don't know a file's type.
+const UNKNOWN_TYPES = new Set(["", "application/octet-stream"]);
+
+/**
+ * The checks that need only the file's name and size, so the upload form
+ * can make them before sending anything.
+ */
+export function precheckFile(file: {
+  name: string;
+  size: number;
+}): FileProblem | null {
+  if (file.size === 0) return "EMPTY";
+  if (file.size > MAX_UPLOAD_BYTES) return "TOO_LARGE";
+  if (/\.docm$/i.test(file.name)) return "MACRO_ENABLED";
+  return documentKindOf(file.name) ? null : "NOT_A_DOCUMENT";
+}
+
+/**
+ * Checks an uploaded file. Its extension, the type the browser declared and
+ * the type its content shows must all agree, so a renamed file is refused,
+ * including a macro-enabled Word document renamed to .docx.
+ *
+ * @param file - The file's name, declared MIME type and size.
+ * @param detected - The type its content shows (from file-type), if known.
+ * @returns The kind of document, or why the file is refused.
+ */
+export function checkUploadedFile(
+  file: { name: string; type: string; size: number },
+  detected: { ext: string } | undefined,
+): { kind: DocumentKind } | { problem: FileProblem } {
+  const problem = precheckFile(file);
+  if (problem) return { problem };
+  if (detected?.ext === "docm") return { problem: "MACRO_ENABLED" };
+
+  const kind = documentKindOf(file.name);
+  if (!kind) return { problem: "NOT_A_DOCUMENT" };
+  const declared = file.type.toLowerCase();
+  const declaredOk =
+    UNKNOWN_TYPES.has(declared) ||
+    declared === ACCEPTED_DOCUMENTS[kind].mimeType;
+  if (!declaredOk || detected?.ext !== kind) {
+    return { problem: "CONTENT_MISMATCH" };
+  }
+  return { kind };
+}
+
 /**
  * Where an assessment stands for submissions: open before the deadline,
  * accepting late work after it, and closed once staff close it.
@@ -62,6 +126,28 @@ export function assessmentState(
 ): AssessmentState {
   if (assessment.closedAt) return "CLOSED";
   return now > assessment.deadline ? "ACCEPTING_LATE" : "OPEN";
+}
+
+const STATE_ORDER: Record<AssessmentState, number> = {
+  OPEN: 0,
+  ACCEPTING_LATE: 1,
+  CLOSED: 2,
+};
+
+/**
+ * Orders assessments for lists: open ones first, soonest deadline first, then
+ * the rest, most recent deadline first.
+ */
+export function compareAssessments(
+  a: { state: AssessmentState; deadline: Date; title: string },
+  b: { state: AssessmentState; deadline: Date; title: string },
+): number {
+  const byDeadline = a.deadline.getTime() - b.deadline.getTime();
+  return (
+    STATE_ORDER[a.state] - STATE_ORDER[b.state] ||
+    (a.state === "OPEN" ? byDeadline : -byDeadline) ||
+    a.title.localeCompare(b.title)
+  );
 }
 
 /** Work is late if it was submitted after the deadline (to the millisecond). */
