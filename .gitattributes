@@ -1,0 +1,3 @@
+# Store and check out text files with LF on every OS. Without this, Windows
+# clones (core.autocrlf=true) get CRLF and `prettier --check` fails.
+* text=auto eol=lf
