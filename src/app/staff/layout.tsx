@@ -7,7 +7,10 @@ import { AppHeader, type NavItem } from "@/components/app-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ViewerBadge } from "@/components/viewer-badge";
 
-const STAFF_NAV: readonly NavItem[] = [{ href: "/staff", label: "Dashboard" }];
+const STAFF_NAV: readonly NavItem[] = [
+  { href: "/staff", label: "Dashboard" },
+  { href: "/staff/students", label: "Students" },
+];
 
 export default function StaffLayout({ children }: LayoutProps<"/staff">) {
   return (

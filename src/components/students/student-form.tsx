@@ -98,7 +98,9 @@ export function StudentForm(props: StudentFormProps) {
   }
 
   const cancelHref =
-    props.mode === "edit" ? `/staff/students/${props.studentNumber}` : "/staff";
+    props.mode === "edit"
+      ? `/staff/students/${props.studentNumber}`
+      : "/staff/students";
 
   return (
     <form

@@ -296,3 +296,24 @@ students.
 **Changed after review:** the student's status badge first sat inside the page
 heading, so screen readers announced the title as "Grace Thompson Enrolled".
 It now sits beside the student ID instead.
+
+## Finding students
+
+**What the AI did:** wrote the student search service (name, ID or email, with
+combinable filters and pagination), `GET /api/students`, and the list page.
+The page uses a GET `<Form>`, so the filters live in the URL and the page
+works without JavaScript.
+
+**Caught during review:** Prisma passes `contains` straight to ILIKE, so a
+typed `%` or `_` would act as a wildcard. They are now escaped, and a test
+checks it.
+
+**Checked by:**
+
+- Integration tests cover each filter alone and combined, malformed filters,
+  paging 20 at a time (including a request beyond the last page), and staff-only
+  access.
+- In a real browser:
+  - searching "har" finds only Amelia Hart and puts the search in the URL;
+  - the status select applies as soon as it changes;
+  - "Clear filters" resets the list.

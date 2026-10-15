@@ -1,6 +1,6 @@
 // Student records: enrolling a student with a gap-free per-year student
-// number, and reading a record. Every function checks the viewer's
-// permission itself, so no caller can forget to.
+// number, finding students, and reading a record. Every function checks the
+// viewer's permission itself, so no caller can forget to.
 import "server-only";
 
 import { startYearOf } from "@/domain/academic-year";
@@ -12,7 +12,12 @@ import {
 } from "@/domain/college-time";
 import { allowedStatusChanges, type EnrolmentStatus } from "@/domain/enrolment";
 import { formatStudentNumber } from "@/domain/student-number";
-import { createStudentSchema } from "@/domain/students";
+import {
+  createStudentSchema,
+  type StudentFilters,
+  studentFiltersSchema,
+  STUDENTS_PAGE_SIZE,
+} from "@/domain/students";
 import type { Prisma } from "@/generated/prisma/client";
 
 import { db } from "../db";
@@ -54,6 +59,26 @@ export interface StudentRecord {
   allowedStatusChanges: readonly EnrolmentStatus[];
 }
 
+/** A student as listed in the staff search results. */
+export interface StudentListItem {
+  studentNumber: string;
+  fullName: string;
+  email: string;
+  programme: { code: string; title: string };
+  academicYear: string;
+  status: EnrolmentStatus;
+}
+
+/** One page of search results. */
+export interface StudentPage {
+  items: StudentListItem[];
+  total: number;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  filters: StudentFilters;
+}
+
 const recordInclude = {
   programme: true,
   statusChanges: { orderBy: { changedAt: "asc" } },
@@ -72,6 +97,70 @@ export async function listProgrammes(
     select: { code: true, title: true, annualFeePence: true },
     orderBy: { title: "asc" },
   });
+}
+
+/**
+ * Finds students for the staff list (staff only). The search text matches
+ * the name, student ID or email anywhere, ignoring case; filters combine.
+ * Malformed filter values are ignored rather than rejected.
+ *
+ * @param filters - Raw values, e.g. from the URL: q, programme, status, year
+ *   and page.
+ */
+export async function listStudents(
+  session: Session | null,
+  filters: unknown,
+): Promise<StudentPage> {
+  requireStaff(session);
+  const parsed = studentFiltersSchema.parse(filters);
+  const where = studentsWhere(parsed);
+
+  const total = await db().student.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / STUDENTS_PAGE_SIZE));
+  const page = Math.min(parsed.page, pageCount);
+  const students = await db().student.findMany({
+    where,
+    include: { programme: { select: { code: true, title: true } } },
+    orderBy: [{ fullName: "asc" }, { studentNumber: "asc" }],
+    skip: (page - 1) * STUDENTS_PAGE_SIZE,
+    take: STUDENTS_PAGE_SIZE,
+  });
+
+  return {
+    items: students.map((student) => ({
+      studentNumber: student.studentNumber,
+      fullName: student.fullName,
+      email: student.email,
+      programme: student.programme,
+      academicYear: student.academicYear,
+      status: student.status,
+    })),
+    total,
+    page,
+    pageCount,
+    pageSize: STUDENTS_PAGE_SIZE,
+    filters: { ...parsed, page },
+  };
+}
+
+function studentsWhere(filters: StudentFilters): Prisma.StudentWhereInput {
+  const conditions: Prisma.StudentWhereInput[] = [];
+  if (filters.q) {
+    // Typed % and _ are literal characters, not ILIKE wildcards.
+    const text = filters.q.replace(/[\\%_]/g, "\\$&");
+    conditions.push({
+      OR: [
+        { fullName: { contains: text, mode: "insensitive" } },
+        { studentNumber: { contains: text, mode: "insensitive" } },
+        { email: { contains: text, mode: "insensitive" } },
+      ],
+    });
+  }
+  if (filters.programme)
+    conditions.push({ programme: { code: filters.programme } });
+  if (filters.status) conditions.push({ status: filters.status });
+  if (filters.year) conditions.push({ academicYear: filters.year });
+  return { AND: conditions };
 }
 
 /**

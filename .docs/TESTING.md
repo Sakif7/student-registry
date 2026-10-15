@@ -106,6 +106,23 @@ As staff:
 6. Choose **2025/26** as the academic year and enrol a new student. Their ID
    starts with **SMS-2025-** and continues that year's sequence (0003).
 
+### 3. Finding students
+
+As staff, open **Students**. The list shows every student by name, 11 after
+scenario 2, or 10 on fresh demo data.
+
+1. Type `har` in **Search** and press Enter. Only **Amelia Hart** is listed.
+   The URL now holds the search, so the view can be bookmarked.
+2. Search for `sms-2026-0005`. Searching by student ID ignores case, and finds
+   **Hannah Kowalski**.
+3. Select **Clear filters**, then choose **Withdrawn** under **Status**. The list
+   updates at once and shows only Hannah Kowalski.
+4. Choose **MSc Data Science** under **Programme** as well. The filters
+   combine: still Hannah. Change **Status** to **Enrolled** to see Liam
+   O'Connor and Arjun Mehta.
+5. Search for `zzz`. The list says "No students match these filters", with a
+   link to clear them.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -139,6 +156,9 @@ curl -i -b cookies.txt -H "Content-Type: application/json" \
   http://localhost:3000/api/students
 # HTTP/1.1 201 Created
 # {"student":{"studentNumber":"SMS-2026-0008", ...}}
+
+# Search and filter students; the same parameters as the page
+curl -b cookies.txt "http://localhost:3000/api/students?q=har&status=ENROLLED&page=1"
 
 # Read a record; the student ID is case-insensitive
 curl -b cookies.txt http://localhost:3000/api/students/sms-2026-0008

@@ -389,7 +389,11 @@ advisories are reviewed by hand rather than failing the build.
 
 ## Known limitations
 
-Recorded as features land.
+- **Accents in search:** search matches accents exactly, so `Chloe` doesn't
+  find "Chloé". PostgreSQL's `unaccent` extension would fix this.
+- **Search speed:** search scans names, IDs and emails with `ILIKE`, which is
+  fine for thousands of records. Beyond that, a trigram index (`pg_trgm`)
+  would keep it fast.
 
 ## With more time
 
