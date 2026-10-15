@@ -313,6 +313,20 @@ Asia/Dhaka time zone to catch it.
   when an AI agent runs it, so this keeps test runs identical whoever starts
   them. The setup refuses any database whose name doesn't end in `_test`.
 
+### Continuous integration
+
+GitHub Actions runs on every push and pull request. Each step is separate, so a
+failure points at its cause:
+
+1. format check;
+2. type-check;
+3. lint;
+4. unit and integration tests with coverage, against a PostgreSQL 18 service
+   container;
+5. the production dependency audit.
+
+The coverage report is uploaded as a build artefact.
+
 ### Environment variables
 
 Next.js loads `.env` for the app. The Prisma, Vitest and Playwright

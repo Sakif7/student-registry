@@ -1,0 +1,76 @@
+# Continuous integration: formatting, type-check, lint, unit and integration
+# tests (against a PostgreSQL service container) with coverage, and a
+# dependency audit. Runs on every push and pull request.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Git hooks are for local commits only.
+      HUSKY: 0
+      DATABASE_URL: postgresql://registry:registry@localhost:5432/registry
+      TEST_DATABASE_URL: postgresql://registry:registry@localhost:5432/registry_test
+      APP_TIME_ZONE: Europe/London
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: registry
+          POSTGRES_PASSWORD: registry
+          POSTGRES_DB: registry
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U registry -d registry"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies (also generates the Prisma client)
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and integration tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+
+      # Production dependencies only: the one known advisory is in a
+      # development-only lint dependency with no patched release (see
+      # .docs/DECISIONS.md).
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

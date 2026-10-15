@@ -188,3 +188,15 @@ database CHECK constraints as integration tests.
 - **Constraint names:** each constraint test asserts the specific constraint
   name, so it can't pass because of an unrelated error such as a foreign-key
   violation.
+
+## Continuous integration
+
+**What the AI did:** wrote the GitHub Actions workflow: a PostgreSQL 18 service
+container, the separate check steps, tests with coverage uploaded as an
+artefact, and the production dependency audit. Action versions (`checkout`,
+`setup-node` and `upload-artifact` at v7) come from the research agent's query
+of the GitHub API.
+
+**Checked by:** running the same steps in a fresh clone with CI's environment
+variables and no `.env` file. The workflow had not yet run on GitHub, because
+the repository has not been pushed yet.
