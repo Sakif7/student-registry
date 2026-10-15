@@ -653,3 +653,39 @@ the report uploaded on failure.
 - **Hidden previous page:** one test matched text twice because Next.js keeps
   the previous page mounted but hidden. The test now counts visible matches
   only.
+
+## Final checks
+
+**What the AI did:** completed the README (setup, environment variables,
+scripts, API, AI usage and licences), the "With more time" section of
+DECISIONS.md and the agent instructions, then verified the result as a
+reviewer would meet it.
+
+**Checked by:**
+
+- **A fresh clone, set up from the README:**
+  - `npm install`, which also generates the Prisma client;
+  - migrations and the demo data, against a database of its own;
+  - `npm run check`;
+  - `npm test`: 370 unit and integration tests at 91% line coverage, then 21
+    end-to-end tests;
+  - `npm run audit:deps`.
+
+  Everything passed. The only step skipped was `npm run db:up`, because
+  PostgreSQL was already running and a second checkout would have started a
+  second container on the same port. The rehearsal's database was dropped
+  afterwards.
+
+- **The testing guide's scenarios,** run against freshly seeded data: by the
+  end-to-end suite, and in the browser for the steps it doesn't cover (a
+  closed assessment, a deferred student's assessment page, a withdrawn
+  student on a marksheet, a completed student's results).
+
+**Caught along the way:**
+
+- **Install output:** `npm install` reports "9 high severity
+  vulnerabilities": the three reviewed advisories, counted once per package
+  that carries them. The README now says so, so the line doesn't alarm a
+  reviewer.
+- **Dated example:** a curl example used a fixed deadline that would be
+  refused once the date had passed. It now says to use a future date.

@@ -53,6 +53,12 @@ API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
    npm install
    ```
 
+   npm's summary reports high-severity vulnerabilities. They come from three
+   advisories in development tooling and the Prisma CLI, none of them
+   reachable by the app. Each is reviewed in
+   [DECISIONS.md](.docs/DECISIONS.md#dependency-audit), and
+   `npm run audit:deps` fails if any new one appears.
+
 2. Create your environment file from the example. The defaults work with the
    bundled database.
 

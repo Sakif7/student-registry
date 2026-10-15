@@ -459,15 +459,16 @@ curl -i -b cookies.txt -H "Content-Type: application/json" \
 # List the module codes, for setting assessments
 curl -b cookies.txt http://localhost:3000/api/modules
 
-# Set an assessment. The deadline is college time (Europe/London); responses
-# give it back as a UTC instant.
+# Set an assessment. The deadline is college time (Europe/London) and must be
+# in the future, so adjust the date if this one has passed. Responses give it
+# back as a UTC instant (17:00 GMT in winter is 17:00 UTC).
 curl -i -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"moduleCode":"CS4001","title":"Coursework 1: Algorithms","deadline":"2026-11-20T17:00"}' \
+  -d '{"moduleCode":"CS4002","title":"SQL quiz","deadline":"2026-11-20T17:00"}' \
   http://localhost:3000/api/assessments
 # HTTP/1.1 201 Created
 # {"assessment":{"id":"...","deadline":"2026-11-20T17:00:00.000Z","state":"OPEN", ...}}
 
-# List assessments, or read one with its submission tracker
+# List assessments, or read one with its marksheet
 curl -b cookies.txt http://localhost:3000/api/assessments
 curl -b cookies.txt http://localhost:3000/api/assessments/<assessment-id>
 
