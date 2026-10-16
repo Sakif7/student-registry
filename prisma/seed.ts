@@ -252,7 +252,7 @@ async function main(): Promise<void> {
     });
     await seedHolds(prisma, students, now);
     const logins = await seedLogins(prisma, students, now);
-    const events = await seedAuditTrail(prisma, now);
+    const events = await seedAuditTrail(prisma);
     console.log(
       `Seeded ${PROGRAMMES.length} programmes, ${Object.keys(students).length} students, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions, ${work.marks} marks and ${events} audit events.`,
     );
@@ -728,15 +728,29 @@ async function seedAssessments(
     }
 
     for (const result of seed.marks) {
+      const publishedAt =
+        result.publishedDaysAgo === undefined
+          ? null
+          : daysAgo(result.publishedDaysAgo);
+      // Marks are entered the day before they are published, or two days
+      // after the deadline if they aren't published yet (an hour ago, if
+      // that is still to come).
+      const enteredAt = publishedAt
+        ? new Date(publishedAt.getTime() - MS_PER_DAY)
+        : new Date(
+            Math.min(
+              now.getTime() - 60 * 60 * 1000,
+              deadline.getTime() + 2 * MS_PER_DAY,
+            ),
+          );
       await prisma.assessmentResult.create({
         data: {
           studentId: students[result.student].id,
           assessmentId: assessment.id,
           mark: result.mark,
-          publishedAt:
-            result.publishedDaysAgo === undefined
-              ? null
-              : daysAgo(result.publishedDaysAgo),
+          publishedAt,
+          createdAt: enteredAt,
+          updatedAt: publishedAt ?? enteredAt,
         },
       });
       marks += 1;
@@ -849,10 +863,7 @@ async function seedLogins(
  * enrolment, Tom Reid fees, and Elena Petrova assessments and results; each
  * student submits their own work.
  */
-async function seedAuditTrail(
-  prisma: PrismaClient,
-  now: Date,
-): Promise<number> {
+async function seedAuditTrail(prisma: PrismaClient): Promise<number> {
   const [jane, tom, elena] = await Promise.all(
     DEMO_STAFF.map(async ({ email }) => {
       const user = await prisma.user.findUniqueOrThrow({ where: { email } });
@@ -971,19 +982,10 @@ async function seedAuditTrail(
       });
     }
 
-    // Marks are entered the day before they are published, or two days
-    // after the deadline if they aren't published yet.
+    // Each mark was entered when its row was created (see seedAssessments).
     const publications = new Map<number, number>();
     for (const result of student.results) {
-      const enteredAt = result.publishedAt
-        ? new Date(result.publishedAt.getTime() - MS_PER_DAY)
-        : new Date(
-            Math.min(
-              now.getTime() - 60 * 60 * 1000,
-              result.assessment.deadline.getTime() + 2 * MS_PER_DAY,
-            ),
-          );
-      add(elena, enteredAt, {
+      add(elena, result.createdAt, {
         action: "mark.saved",
         studentId,
         details: {
