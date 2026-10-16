@@ -137,3 +137,22 @@ test("staff see the submission and enter marks", async ({ page }) => {
   await expect(page.getByText("Saved 1 mark.")).toBeVisible();
   await expect(page.getByText("Not published")).toBeVisible();
 });
+
+test("staff sort the assessments by a column, either way", async ({ page }) => {
+  await viewAs(page, "staff");
+  await page.goto("/staff/assessments");
+  const first = page.getByRole("row").nth(1).getByRole("link");
+  // Open ones first, soonest deadline first.
+  await expect(first).toHaveText("Web project proposal");
+
+  await page.getByRole("link", { name: "Programme" }).click();
+  await expect(page).toHaveURL("/staff/assessments?sort=programme&dir=asc");
+  await expect(
+    page.getByRole("columnheader", { name: "Programme" }),
+  ).toHaveAttribute("aria-sort", "ascending");
+  await expect(first).toHaveText("Accounting test");
+
+  await page.getByRole("link", { name: "Programme" }).click();
+  await expect(page).toHaveURL("/staff/assessments?sort=programme&dir=desc");
+  await expect(first).toHaveText("Data pipeline design");
+});

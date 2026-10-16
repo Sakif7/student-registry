@@ -1,6 +1,9 @@
 // Assessment submissions: who may submit and when, which files are accepted,
 // and when work counts as late.
+import { z } from "zod";
+
 import { canSubmitWork, type EnrolmentStatus } from "./enrolment";
+import { type SortDirection, sortDirectionSchema } from "./sorting";
 
 /** Largest file accepted, in bytes (10 MB). */
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -148,6 +151,68 @@ export function compareAssessments(
     (a.state === "OPEN" ? byDeadline : -byDeadline) ||
     a.title.localeCompare(b.title)
   );
+}
+
+/** The columns the staff list of assessments can be sorted by. */
+export const ASSESSMENT_SORTS = [
+  "title",
+  "programme",
+  "deadline",
+  "state",
+  "submitted",
+] as const;
+export type AssessmentSort = (typeof ASSESSMENT_SORTS)[number];
+
+/** The list's order, read from the URL. Unknown values are ignored. */
+export const assessmentOrderSchema = z.object({
+  sort: z.enum(ASSESSMENT_SORTS).optional().catch(undefined),
+  dir: sortDirectionSchema,
+});
+export type AssessmentOrder = z.infer<typeof assessmentOrderSchema>;
+
+/** An assessment as the staff list shows it. */
+interface ListedAssessment {
+  title: string;
+  programme: { title: string };
+  deadline: Date;
+  state: AssessmentState;
+  submittedCount: number;
+  expectedCount: number;
+}
+
+const COLUMN_ORDERS: Record<
+  AssessmentSort,
+  (a: ListedAssessment, b: ListedAssessment) => number
+> = {
+  title: (a, b) => a.title.localeCompare(b.title),
+  programme: (a, b) => a.programme.title.localeCompare(b.programme.title),
+  deadline: (a, b) => a.deadline.getTime() - b.deadline.getTime(),
+  state: (a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state],
+  // By the share of the students expected who have submitted.
+  submitted: (a, b) => submittedShare(a) - submittedShare(b),
+};
+
+/**
+ * Sorts the staff list of assessments by a column, either way. Ties keep the
+ * usual order (compareAssessments), so sorting by state, the default, is
+ * the usual order itself.
+ */
+export function sortAssessments<Assessment extends ListedAssessment>(
+  assessments: readonly Assessment[],
+  sort: AssessmentSort = "state",
+  dir: SortDirection = "asc",
+): Assessment[] {
+  const byColumn = COLUMN_ORDERS[sort];
+  const sign = dir === "asc" ? 1 : -1;
+  return [...assessments].sort(
+    (a, b) => sign * byColumn(a, b) || compareAssessments(a, b),
+  );
+}
+
+function submittedShare(assessment: ListedAssessment): number {
+  return assessment.expectedCount > 0
+    ? assessment.submittedCount / assessment.expectedCount
+    : 0;
 }
 
 /** Work is late if it was submitted after the deadline (to the millisecond). */

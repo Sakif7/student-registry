@@ -22,11 +22,11 @@ import {
   DEFAULT_FEE_DUE_DAYS,
   feeDescription,
 } from "@/domain/fees";
+import type { SortDirection } from "@/domain/sorting";
 import { formatStudentNumber } from "@/domain/student-number";
 import {
   changeStatusSchema,
   createStudentSchema,
-  type SortDirection,
   type StudentFilters,
   studentFiltersSchema,
   type StudentSort,

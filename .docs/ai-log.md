@@ -1277,3 +1277,15 @@ project's rule for ids; it is now named directly.
 
 **Checked by:** the new test, which passes on every staff, student and
 signed-out page.
+
+## Sortable assessments list
+
+**What the AI did:** made the staff list of assessments sortable by title,
+programme, deadline, state or how much has been submitted, either way, with
+the order in the address as on the student list. The list isn't paged, so a
+pure function sorts it after it is read, keeping the usual order (open
+first, soonest deadline first) for ties; sorting by state is that order
+itself. The sort direction moved into a small module both lists share.
+
+**Checked by:** unit tests of each column and direction and of ties, and an
+end-to-end test that sorts by programme and back.

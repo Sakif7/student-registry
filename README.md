@@ -22,7 +22,8 @@ Router), PostgreSQL and Prisma.
   - staff set work per module with a deadline in college time;
   - students upload a PDF or Word document, checked by its content, and can
     replace it until the deadline;
-  - late work is accepted and flagged until staff close the assessment.
+  - late work is accepted and flagged until staff close the assessment;
+  - a list of assessments with sortable columns.
 - **Marks and results:**
   - marks from 0 to 100, classified Fail, Pass (40+), Merit (60+) and
     Distinction (70+);

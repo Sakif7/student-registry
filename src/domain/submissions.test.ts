@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ACCEPTED_DOCUMENTS,
+  type AssessmentState,
   assessmentState,
   checkSubmission,
   checkUploadedFile,
@@ -11,6 +12,7 @@ import {
   MAX_UPLOAD_BYTES,
   precheckFile,
   safeFileName,
+  sortAssessments,
 } from "./submissions";
 
 const deadline = new Date("2026-11-20T17:00:00.000Z");
@@ -227,5 +229,75 @@ describe("compareAssessments", () => {
     expect(
       [...assessments].sort(compareAssessments).map(({ title }) => title),
     ).toEqual(["Soon", "Far", "Later", "Late", "Closed"]);
+  });
+});
+
+describe("sortAssessments", () => {
+  const listed = (
+    title: string,
+    programme: string,
+    deadlineIso: string,
+    state: AssessmentState,
+    submittedCount: number,
+  ) => ({
+    title,
+    programme: { title: programme },
+    deadline: new Date(deadlineIso),
+    state,
+    submittedCount,
+    expectedCount: 4,
+  });
+  const list = [
+    listed("Essay", "BA Business", "2026-10-20T16:00:00Z", "OPEN", 1),
+    listed("Report", "MSc Data", "2026-10-10T16:00:00Z", "ACCEPTING_LATE", 3),
+    listed("Proposal", "BA Business", "2026-11-01T17:00:00Z", "OPEN", 0),
+    listed("Coursework", "BSc Computing", "2026-10-01T16:00:00Z", "CLOSED", 4),
+  ];
+  const titles = (sorted: readonly { title: string }[]) =>
+    sorted.map(({ title }) => title);
+
+  it("keeps the usual order by default: open first, soonest deadline first", () => {
+    expect(titles(sortAssessments(list))).toEqual([
+      "Essay",
+      "Proposal",
+      "Report",
+      "Coursework",
+    ]);
+  });
+
+  it("sorts by a column either way, with ties in the usual order", () => {
+    expect(titles(sortAssessments(list, "programme"))).toEqual([
+      "Essay",
+      "Proposal",
+      "Coursework",
+      "Report",
+    ]);
+    expect(titles(sortAssessments(list, "programme", "desc"))).toEqual([
+      "Report",
+      "Coursework",
+      "Essay",
+      "Proposal",
+    ]);
+    expect(titles(sortAssessments(list, "deadline"))).toEqual([
+      "Coursework",
+      "Report",
+      "Essay",
+      "Proposal",
+    ]);
+    expect(titles(sortAssessments(list, "title"))).toEqual([
+      "Coursework",
+      "Essay",
+      "Proposal",
+      "Report",
+    ]);
+  });
+
+  it("sorts by the share of expected students who have submitted", () => {
+    expect(titles(sortAssessments(list, "submitted", "desc"))).toEqual([
+      "Coursework",
+      "Report",
+      "Essay",
+      "Proposal",
+    ]);
   });
 });

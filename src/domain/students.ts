@@ -10,6 +10,7 @@ import {
   INITIAL_STATUSES,
   statusChangeNeedsReason,
 } from "./enrolment";
+import { sortDirectionSchema } from "./sorting";
 
 /** Youngest and oldest plausible ages on the day a record is saved. */
 export const MIN_AGE = 16;
@@ -161,7 +162,6 @@ export const STUDENT_SORTS = [
   "status",
 ] as const;
 export type StudentSort = (typeof STUDENT_SORTS)[number];
-export type SortDirection = "asc" | "desc";
 
 /**
  * Filters for the staff list, read from the URL. Unknown or malformed values
@@ -187,7 +187,7 @@ export const studentFiltersSchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1).catch(1),
   /** By name unless given; an unknown column or direction is ignored. */
   sort: z.enum(STUDENT_SORTS).optional().catch(undefined),
-  dir: z.enum(["asc", "desc"]).optional().catch(undefined),
+  dir: sortDirectionSchema,
 });
 
 export type CreateStudentInput = z.infer<

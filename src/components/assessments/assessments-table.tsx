@@ -1,16 +1,17 @@
 // Every assessment, with its deadline, state and how many of the students
-// expected to submit have done so.
+// expected to submit have done so. Column headings sort the list.
 import Link from "next/link";
 
+import { SortableHead } from "@/components/sortable-head";
 import {
   Table,
   TableBody,
   TableCaption,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { AssessmentOrder, AssessmentSort } from "@/domain/submissions";
 import { formatDateTime } from "@/lib/format";
 import type { AssessmentSummary } from "@/server/services/assessments";
 
@@ -18,9 +19,12 @@ import { AssessmentStateBadge } from "./assessment-badges";
 
 export function AssessmentsTable({
   assessments,
+  order,
   timeZone,
 }: {
   assessments: AssessmentSummary[];
+  /** How the list is sorted now. */
+  order: AssessmentOrder;
   timeZone: string;
 }) {
   if (assessments.length === 0) {
@@ -42,16 +46,14 @@ export function AssessmentsTable({
 
   return (
     <Table>
-      <TableCaption className="sr-only">
-        Assessments, open ones first by deadline
-      </TableCaption>
+      <TableCaption className="sr-only">Every assessment set</TableCaption>
       <TableHeader>
         <TableRow>
-          <TableHead>Assessment</TableHead>
-          <TableHead>Programme</TableHead>
-          <TableHead>Deadline</TableHead>
-          <TableHead>State</TableHead>
-          <TableHead>Submitted</TableHead>
+          <Sortable order={order} column="title" label="Assessment" />
+          <Sortable order={order} column="programme" label="Programme" />
+          <Sortable order={order} column="deadline" label="Deadline" />
+          <Sortable order={order} column="state" label="State" />
+          <Sortable order={order} column="submitted" label="Submitted" />
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -89,5 +91,33 @@ export function AssessmentsTable({
         ))}
       </TableBody>
     </Table>
+  );
+}
+
+/** A heading that sorts the list by its column, or reverses the order. */
+function Sortable({
+  order,
+  column,
+  label,
+}: {
+  order: AssessmentOrder;
+  column: AssessmentSort;
+  label: string;
+}) {
+  // By state, open first, unless the address says otherwise.
+  const sort = order.sort ?? "state";
+  const dir = order.dir ?? "asc";
+  const active = sort === column;
+  const next = active && dir === "asc" ? "desc" : "asc";
+  return (
+    <SortableHead
+      label={label}
+      direction={active ? dir : undefined}
+      href={
+        column === "state" && next === "asc"
+          ? "/staff/assessments"
+          : `/staff/assessments?sort=${column}&dir=${next}`
+      }
+    />
   );
 }

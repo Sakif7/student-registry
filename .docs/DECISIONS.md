@@ -666,6 +666,16 @@ one after another. It is now a header and tabs.
 - Each row has a menu that opens the record on a given tab (Fees, Results,
   History or Sign-in), or emails the student.
 
+### The assessments list
+
+- Column headings sort the list by title, programme, deadline, state or
+  how much has been submitted (the share of the students expected), either
+  way, with the order in the address as on the student list.
+- The list isn't paged, so it is sorted after it is read, by a pure
+  function in `src/domain/submissions.ts`. Ties keep the usual order: open
+  assessments first, soonest deadline first, then the rest, most recent
+  deadline first. Sorting by state is that usual order, and the default.
+
 ### The dashboard
 
 The first dashboard counted students by status and listed overdue fees. It

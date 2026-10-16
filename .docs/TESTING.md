@@ -425,6 +425,10 @@ As staff:
 1. Open **Assessments**. The eight demo assessments are listed: open ones
    first, soonest deadline first, then the rest, latest deadline first.
    **Algorithms coursework** shows **Closed** and "3 of 3" submitted, "1 late".
+   Select the **Programme** heading: BA (Hons) Business Management's
+   assessments come first, Accounting test before Management essay. Select
+   it again for the reverse order, then **State** to return to the usual
+   one.
 2. Select **Set an assessment**, then **Set assessment** without filling
    anything in. "Choose a module", "Enter a title" and "Enter a date and time"
    appear.
