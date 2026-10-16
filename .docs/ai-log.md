@@ -1012,3 +1012,39 @@ the new History. It now looks in the status history, which it is about.
 **Design note:** recording "by" columns on each table would have shown who
 made each change in place, but left no single trail to browse. The event log
 gives staff both the Activity page and each student's history.
+
+## App shell
+
+**What the AI did:** the first step of the interface the user asked for:
+
+- a sidebar for staff and students, from shadcn/ui, listing the section's
+  pages with icons and the current one marked. It collapses to icons on a
+  desktop and slides in on a phone;
+- a user menu at the foot of the sidebar, with the account page and signing
+  out, replacing the name and button in the old header;
+- breadcrumbs in the page header of deeper pages, naming the record.
+
+The components were added with the shadcn CLI. It wanted to overwrite six
+components the project already had; after formatting, its versions were the
+same as ours, so nothing of ours changed.
+
+**Checked by:**
+
+- `npm run check`;
+- in a browser, on a desktop and at phone width: the sidebar, its collapse,
+  the user menu and its links, and the breadcrumbs;
+- the end-to-end suite, with the tests that signed out or opened the account
+  page now going through the user menu, and the axe scan of every page.
+
+**Caught along the way:**
+
+- **A random width in a prerender:** the development server reported
+  `Math.random()` in a prerendered client component. It was shadcn's menu
+  skeleton, used as the user menu's placeholder; a fixed-size placeholder
+  replaced it.
+- **Lint:** the generated `use-mobile` hook set state inside an effect, which
+  the React lint rules refuse. It now reads the media query through
+  `useSyncExternalStore`.
+- **Contrast:** the axe scan failed on the user menu's avatar: shadcn's
+  initials are grey on light grey. They are now white on the sidebar's
+  near-black.

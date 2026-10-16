@@ -5,7 +5,7 @@ import { DEMO_PASSWORD } from "@/lib/demo-accounts";
 
 import { SESSION_COOKIE } from "../tests/helpers/session-cookie";
 
-import { loadDemoData } from "./support/helpers";
+import { loadDemoData, openUserMenu } from "./support/helpers";
 
 test.beforeAll(loadDemoData);
 
@@ -85,7 +85,8 @@ test("signing out ends the session on the server, not just in the browser", asyn
     200,
   );
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await openUserMenu(page, "Tom Reid");
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
 
   await expect(page).toHaveURL("/login");
   expect((await request.get("/api/students", withOldCookie)).status()).toBe(

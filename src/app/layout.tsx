@@ -1,9 +1,11 @@
-// Root layout: fonts, document metadata, the skip link and the toast outlet
-// shared by every view. Section headers live in the staff and student layouts.
+// Root layout: fonts, document metadata, the skip link, tooltips and the toast
+// outlet shared by every view. The app shell lives in the staff and student
+// layouts.
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
@@ -40,7 +42,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to main content
         </a>
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
         <Toaster />
       </body>
     </html>

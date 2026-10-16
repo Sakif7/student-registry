@@ -42,6 +42,13 @@ async function EditStudent({ params }: { params: Params }) {
   return (
     <>
       <PageHeader
+        breadcrumbs={[
+          { label: "Students", href: "/staff/students" },
+          {
+            label: student.fullName,
+            href: `/staff/students/${student.studentNumber}`,
+          },
+        ]}
         eyebrow={<span className="font-mono">{student.studentNumber}</span>}
         title={`Edit ${student.fullName}`}
         description="The student ID stays the same, even if you change the academic year or programme."

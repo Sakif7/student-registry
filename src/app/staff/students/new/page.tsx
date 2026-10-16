@@ -16,6 +16,7 @@ export default function NewStudentPage() {
   return (
     <>
       <PageHeader
+        breadcrumbs={[{ label: "Students", href: "/staff/students" }]}
         title="Enrol a student"
         description="Create a student record. The student ID is allocated when you save, in the form SMS-year-number."
       />

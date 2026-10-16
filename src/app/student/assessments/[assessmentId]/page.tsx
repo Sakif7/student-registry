@@ -59,6 +59,7 @@ async function AssessmentView({ params }: { params: Params }) {
   return (
     <>
       <PageHeader
+        breadcrumbs={[{ label: "Assessments", href: "/student/assessments" }]}
         eyebrow={`${assessment.module.code} ${assessment.module.title}`}
         title={assessment.title}
       />

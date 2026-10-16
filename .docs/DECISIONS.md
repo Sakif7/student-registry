@@ -589,6 +589,31 @@ data is always read at request time.
   package, a CLI with its own dependency tree, from the runtime dependencies.
 - The app has one light theme; dark mode is out of scope. The toast component
   therefore fixes its theme instead of depending on `next-themes`.
+- Two generated files were changed to fit the app's rules: `use-mobile.ts`
+  reads the screen width through `useSyncExternalStore` rather than setting
+  state in an effect, which the React lint rules refuse; and the sidebar's
+  user menu uses a fixed-size placeholder, because shadcn's menu skeleton
+  picks a random width, which a prerender may not do.
+
+### The app shell
+
+The first version had a header with links. Signed-in pages now sit in an app
+shell, as in most business applications:
+
+- **A sidebar** lists the section's pages with icons, the current one
+  marked. On a desktop it collapses to its icons (Ctrl/⌘+B, or the button
+  in the top bar), with each page's name in a tooltip. On a phone it slides
+  in from the left, and closes once a page is chosen.
+- **A user menu** at its foot shows who is signed in, with their account
+  page and signing out.
+- **Breadcrumbs** on deeper pages, such as a student's record, lead back up.
+  They belong to each page's header rather than the top bar, so they can
+  name the record from the data the page has already read.
+- **The top bar** holds the sidebar button, and room for search.
+- The sidebar remembers whether it was collapsed for as long as the page is
+  open. Reading its cookie on the server would make every page wait on a
+  request-time read before the shell could render, so a full reload opens
+  it again.
 
 ### One write path: Route Handlers
 

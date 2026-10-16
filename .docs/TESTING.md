@@ -131,8 +131,10 @@ in as Amelia Hart.
    `nobody@college.example` with the demo password: the message is the same,
    so the form never reveals who has an account.
 4. Select **Use** beside Jane Okafor, then **Sign in**. You land on **Registry
-   dashboard**, and the header reads "Jane Okafor · Registry staff".
-5. Select **Sign out**. You are back on **Sign in**.
+   dashboard**. The sidebar lists the staff pages, with **Dashboard** marked,
+   and at its foot "Jane Okafor, Registry staff".
+5. Select Jane Okafor at the foot of the sidebar, then **Sign out**. You are
+   back on **Sign in**.
 6. Open <http://localhost:3000/staff/students?q=har>. You are sent to sign in
    first. Sign in as Jane Okafor: you land on the student list, already
    searched for "har".
@@ -161,7 +163,8 @@ check the limit, as it is impractical to reach by hand.
 
 1. Sign in as `tom.reid@college.example` in your browser, and again in a
    private window.
-2. In your browser, select **Tom Reid** in the header. **Your account** shows
+2. In your browser, select Tom Reid at the foot of the sidebar, then **Your
+   account**. **Your account** shows
    Tom's details, and **Where you're signed in** lists both browsers, with
    this one marked **This device**.
 3. Under **Change your password**, enter a wrong current password and a new
@@ -265,7 +268,7 @@ As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**.
    badge becomes **Deferred**, and the status history gains "Enrolled →
    Deferred · Family circumstances". The form now offers only **Enrolled** and
    **Withdrawn**.
-3. Select **Students** in the header. Oliver shows as Deferred. Open the
+3. Select **Students** in the sidebar. Oliver shows as Deferred. Open the
    record, change the status back to **Enrolled**, then press the browser's
    **Back** button. The list shows Oliver as **Enrolled**: pages visited
    earlier never show stale data after a change.
@@ -484,7 +487,7 @@ As staff:
 2. Record a payment of `100` with the reference `CARD KM 0003`. **History**
    gains "Recorded a payment of £100.00 (CARD KM 0003)", by Jane Okafor (or
    whoever you are signed in as).
-3. Select **Activity** in the header. The same payment heads the list, with
+3. Select **Activity** in the sidebar. The same payment heads the list, with
    who made it and a link to Kwame's record. Further down are changes with
    no one student, such as "Set the assessment …".
 4. Sign in as a student: there is no **Activity** page, and

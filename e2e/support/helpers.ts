@@ -2,7 +2,7 @@
 // working out the IDs and dates the demo data uses today.
 import { execSync } from "node:child_process";
 
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 import { academicYearOn, startYearOf } from "@/domain/academic-year";
 import { addDays, todayIn } from "@/domain/college-time";
@@ -57,6 +57,15 @@ export async function viewAs(
       sameSite: "Lax",
     },
   ]);
+}
+
+/**
+ * Opens the signed-in person's menu, at the foot of the sidebar, which holds
+ * "Your account" and "Sign out".
+ */
+export async function openUserMenu(page: Page, name: string): Promise<void> {
+  await page.getByRole("button", { name: new RegExp(name) }).click();
+  await expect(page.getByRole("menu")).toBeVisible();
 }
 
 const TIME_ZONE = "Europe/London";

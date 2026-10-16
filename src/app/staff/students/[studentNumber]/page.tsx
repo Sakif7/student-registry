@@ -75,6 +75,7 @@ async function StudentRecordView({ params }: { params: Params }) {
   return (
     <>
       <PageHeader
+        breadcrumbs={[{ label: "Students", href: "/staff/students" }]}
         eyebrow={
           <span className="flex items-center gap-2">
             <span className="font-mono">{student.studentNumber}</span>

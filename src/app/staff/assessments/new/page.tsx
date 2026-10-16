@@ -16,6 +16,7 @@ export default function NewAssessmentPage() {
   return (
     <>
       <PageHeader
+        breadcrumbs={[{ label: "Assessments", href: "/staff/assessments" }]}
         title="Set an assessment"
         description="Students enrolled on the module's programme can submit a PDF or Word document until you close the assessment."
       />

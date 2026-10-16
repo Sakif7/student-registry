@@ -4,7 +4,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { DEMO_PASSWORD } from "@/lib/demo-accounts";
 
-import { loadDemoData, viewAs } from "./support/helpers";
+import { loadDemoData, openUserMenu, viewAs } from "./support/helpers";
 
 test.beforeAll(loadDemoData);
 
@@ -28,7 +28,8 @@ test("changing one's password signs out the other devices", async ({
   await signInAsTom(otherDevice, DEMO_PASSWORD);
   await signInAsTom(page, DEMO_PASSWORD);
 
-  await page.getByRole("link", { name: "Tom Reid" }).click();
+  await openUserMenu(page, "Tom Reid");
+  await page.getByRole("menuitem", { name: "Your account" }).click();
   await expect(
     page.getByRole("heading", { level: 1, name: "Your account" }),
   ).toBeVisible();
@@ -47,7 +48,8 @@ test("changing one's password signs out the other devices", async ({
   await expect(otherDevice).toHaveURL("/login");
   await elsewhere.close();
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await openUserMenu(page, "Tom Reid");
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page).toHaveURL("/login");
   await signInAsTom(page, NEW_PASSWORD);
 });
