@@ -50,7 +50,7 @@ export function ResultsWorklist({ items }: { items: ResultsWorklistItem[] }) {
           <TableRow key={item.studentNumber}>
             <TableCell>
               <Link
-                href={`/staff/students/${item.studentNumber}#results-heading`}
+                href={`/staff/students/${item.studentNumber}?tab=results`}
                 className="font-medium underline-offset-4 hover:underline"
               >
                 {item.fullName}

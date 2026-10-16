@@ -1251,3 +1251,13 @@ page moved into the shared end-to-end helpers for it.
 **Checked by:** end-to-end tests that withhold results and undo it, lift a
 hold and undo that (the reason comes back), and close an assessment and
 undo it; and the existing test of turning sign-in off and undoing it.
+
+## A results list link left behind by the record's tabs
+
+**What the AI did:** pointed each student's link on the **Results** page at
+their record's Results tab (`?tab=results`). It still pointed at a heading
+anchor from before the record was split into tabs, so it opened the record
+at the top, on the Overview tab.
+
+**Checked by:** an end-to-end test that follows the link and finds the
+Results tab selected.

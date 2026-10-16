@@ -77,3 +77,16 @@ test("staff withhold results for a reason of their own", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole("table")).toHaveCount(0);
 });
+
+test("the results list opens a student's Results tab", async ({ page }) => {
+  await viewAs(page, "staff");
+  await page.goto("/staff/results");
+  await page.getByRole("link", { name: "Kwame Mensah" }).click();
+
+  await expect(page).toHaveURL(
+    `/staff/students/${demoStudent("kwame")}?tab=results`,
+  );
+  await expect(
+    page.getByRole("tab", { name: "Results", selected: true }),
+  ).toBeVisible();
+});
