@@ -401,14 +401,14 @@ below are as of the day the seed runs. As staff:
    charged. Hovering over the ring shows each part's amount.
 3. Under **Needs attention**:
    - **Marks to publish** lists Chloé Dubois, Arjun Mehta and Oliver
-     Bennett, longest waiting first. Select Oliver: his record opens on the
+     Bennett, longest waiting first. Select Oliver: the record opens on the
      **Results** tab.
    - **Work to mark** lists **Machine learning report**, with 1 submission
-     to mark: Hannah's, sent in before she withdrew.
+     to mark: Hannah's, sent in before withdrawing.
    - **Past the deadline** lists **Management essay**, then **Database
      design report**: both still take late work.
    - **Waiting for activation** lists Arjun Mehta, who "Needs a new link".
-     Select him: his record opens on the **Sign-in** tab.
+     Select the name: Arjun's record opens on the **Sign-in** tab.
 4. **Open assessments** shows, soonest deadline first, Systems lab report
    (1 of 2 submitted), Web project proposal (0 of 1), Data pipeline design
    (0 of 2) and Accounting test (0 of 1): each counts the students

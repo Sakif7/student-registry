@@ -1098,7 +1098,7 @@ user had singled out: everything was on one page.
   dialogs, and an axe scan of every tab and of each dialog open.
 
 **Caught along the way:** the demo data showed Amelia Hart's mark published
-two days after her results were withheld, which the app itself refuses. The
+two days after Amelia's results were withheld, which the app itself refuses. The
 seed is fixed in the next commit.
 
 ## Demo data in a believable order
@@ -1106,7 +1106,7 @@ seed is fixed in the next commit.
 **What the AI did:** two fixes to the seed, found while checking the new
 History tab:
 
-- Amelia Hart's results were withheld five days ago, but her coursework mark
+- Amelia Hart's results were withheld five days ago, but Amelia's coursework mark
   was published two days ago, which the app refuses while results are
   withheld. The hold now comes the day after publication.
 - Every activated student showed today as their activation date. Their
@@ -1399,3 +1399,13 @@ screenshots of the tab and page. The axe scan of every staff page had
 grown past the 30 seconds a test may take, so it is now three tests (the
 Registry pages, the record's tabs and the curriculum pages), scanning the
 same pages.
+
+## Demo students by name
+
+**What the AI did:** reworded three steps of the dashboard scenario and two
+test comments that called fictitious students "he" or "she", so that they
+use the students' names, as the rest of the documents do, instead of
+guessing anyone's pronouns.
+
+**Checked by:** a search of the documents, code and tests for gendered
+pronouns, which now finds none.

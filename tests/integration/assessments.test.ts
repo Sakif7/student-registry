@@ -100,7 +100,7 @@ beforeEach(async () => {
     fullName: "Liam O'Connor",
     programmeId: data.id,
   });
-  // Hannah was registered before she withdrew.
+  // Hannah was registered before withdrawing.
   await registerStudents(computingModuleId, [amelia.id, oliver.id, hannah.id]);
 });
 
