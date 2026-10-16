@@ -43,7 +43,7 @@ API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
 ## Prerequisites
 
 - Node.js 24 LTS (22.12 or later also works)
-- Docker, for PostgreSQL (Docker Desktop on Windows and macOS)
+- Docker, for PostgreSQL and Mailpit (Docker Desktop on Windows and macOS)
 
 ## Setup
 
@@ -67,8 +67,8 @@ API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
    Copy-Item .env.example .env       # Windows PowerShell
    ```
 
-3. Start PostgreSQL 18 in Docker, apply the migrations and load the demo
-   data:
+3. Start PostgreSQL 18 and Mailpit in Docker, apply the migrations and load
+   the demo data:
 
    ```bash
    npm run setup
@@ -86,35 +86,42 @@ API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
 
 ## Environment variables
 
-| Variable            | Purpose                                                                                     | Default in `.env.example`                                     |
-| ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `DATABASE_URL`      | The app's PostgreSQL database                                                               | `postgresql://registry:registry@localhost:5432/registry`      |
-| `TEST_DATABASE_URL` | The disposable database for integration and end-to-end tests. Its name must end in `_test`. | `postgresql://registry:registry@localhost:5432/registry_test` |
-| `APP_TIME_ZONE`     | The college's time zone, for deadlines, "today", overdue checks and every displayed time    | `Europe/London`                                               |
-| `UPLOAD_DIR`        | Where submitted files are stored (created on first upload)                                  | `./storage/uploads`                                           |
+| Variable                     | Purpose                                                                                     | Default in `.env.example`                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `DATABASE_URL`               | The app's PostgreSQL database                                                               | `postgresql://registry:registry@localhost:5432/registry`      |
+| `TEST_DATABASE_URL`          | The disposable database for integration and end-to-end tests. Its name must end in `_test`. | `postgresql://registry:registry@localhost:5432/registry_test` |
+| `APP_TIME_ZONE`              | The college's time zone, for deadlines, "today", overdue checks and every displayed time    | `Europe/London`                                               |
+| `UPLOAD_DIR`                 | Where submitted files are stored (created on first upload)                                  | `./storage/uploads`                                           |
+| `SMTP_HOST`, `SMTP_PORT`     | The mail server for activation and password-reset emails                                    | `localhost`, `1025` (Mailpit)                                 |
+| `MAIL_FROM`                  | The sender of those emails                                                                  | `Student Registry <registry@college.example>`                 |
+| `SMTP_USER`, `SMTP_PASSWORD` | Credentials for a real mail service (optional)                                              | not set                                                       |
 
 `.env` is git-ignored and never committed. The example holds no secrets: the
 credentials are the local Docker database's own.
 
+Every email the app sends goes to Mailpit, which keeps it in a web inbox at
+<http://localhost:8025> instead of delivering it. Nothing reaches a real
+address.
+
 ## Scripts
 
-| Command                    | What it does                                                        |
-| -------------------------- | ------------------------------------------------------------------- |
-| `npm run dev`              | Start the development server                                        |
-| `npm run build`, `start`   | Build and serve the production app                                  |
-| `npm run check`            | Format check, type-check and lint, all with zero warnings           |
-| `npm run format`           | Apply Prettier, including Tailwind class order                      |
-| `npm test`                 | Unit and integration tests with coverage, then end-to-end tests     |
-| `npm run test:unit`        | Unit tests only (no database needed)                                |
-| `npm run test:integration` | Integration tests against the test database                         |
-| `npm run test:e2e`         | End-to-end and accessibility tests in Chromium                      |
-| `npm run audit:deps`       | Fail on any high or critical advisory not on the reviewed allowlist |
-| `npm run setup`            | Start PostgreSQL, apply migrations and load the demo data           |
-| `npm run db:up`, `db:down` | Start or stop PostgreSQL in Docker (the data stays in a volume)     |
-| `npm run db:deploy`        | Apply any pending migrations                                        |
-| `npm run db:seed`          | Replace all data, uploaded files included, with the demo data       |
-| `npm run db:migrate`       | Create a migration after editing `prisma/schema.prisma`             |
-| `npm run db:studio`        | Browse the data in Prisma Studio                                    |
+| Command                    | What it does                                                                |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `npm run dev`              | Start the development server                                                |
+| `npm run build`, `start`   | Build and serve the production app                                          |
+| `npm run check`            | Format check, type-check and lint, all with zero warnings                   |
+| `npm run format`           | Apply Prettier, including Tailwind class order                              |
+| `npm test`                 | Unit and integration tests with coverage, then end-to-end tests             |
+| `npm run test:unit`        | Unit tests only (no database needed)                                        |
+| `npm run test:integration` | Integration tests against the test database                                 |
+| `npm run test:e2e`         | End-to-end and accessibility tests in Chromium                              |
+| `npm run audit:deps`       | Fail on any high or critical advisory not on the reviewed allowlist         |
+| `npm run setup`            | Start PostgreSQL and Mailpit, apply migrations and load the demo data       |
+| `npm run db:up`, `db:down` | Start or stop PostgreSQL and Mailpit in Docker (the data stays in a volume) |
+| `npm run db:deploy`        | Apply any pending migrations                                                |
+| `npm run db:seed`          | Replace all data, uploaded files included, with the demo data               |
+| `npm run db:migrate`       | Create a migration after editing `prisma/schema.prisma`                     |
+| `npm run db:studio`        | Browse the data in Prisma Studio                                            |
 
 ## Tests
 

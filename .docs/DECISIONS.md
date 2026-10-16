@@ -443,6 +443,15 @@ failure points at its cause:
 The coverage report is uploaded as a build artefact, and so is the Playwright
 report when an end-to-end test fails.
 
+### Email
+
+Account activation and password resets are sent as email over SMTP, with
+nodemailer. In development and CI the SMTP server is Mailpit, a container in
+`compose.yaml` (and a CI service). It keeps every message in a web inbox at
+<http://localhost:8025> and never delivers it, so the demo can't email a real
+address. A production deployment sets `SMTP_HOST`, `SMTP_PORT` and
+credentials for a real mail service.
+
 ### Environment variables
 
 Next.js loads `.env` for the app. The Prisma, Vitest and Playwright

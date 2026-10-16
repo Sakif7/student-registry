@@ -14,6 +14,15 @@ const envSchema = z.object({
     .default("Europe/London")
     .refine(isTimeZone, "must be an IANA time zone such as Europe/London"),
   UPLOAD_DIR: z.string().min(1).default("./storage/uploads"),
+  // Outgoing email. The defaults point at Mailpit from compose.yaml.
+  SMTP_HOST: z.string().min(1).default("localhost"),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(1025),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  MAIL_FROM: z
+    .string()
+    .min(1)
+    .default("Student Registry <registry@college.example>"),
 });
 
 /** Validated server configuration. */

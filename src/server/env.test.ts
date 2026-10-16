@@ -14,15 +14,37 @@ describe("env", () => {
 
   it("returns the configuration, with defaults for optional variables", async () => {
     vi.stubEnv("DATABASE_URL", "postgresql://user:pass@localhost:5432/app");
-    vi.stubEnv("APP_TIME_ZONE", undefined);
-    vi.stubEnv("UPLOAD_DIR", undefined);
+    for (const name of [
+      "APP_TIME_ZONE",
+      "UPLOAD_DIR",
+      "SMTP_HOST",
+      "SMTP_PORT",
+      "SMTP_USER",
+      "SMTP_PASSWORD",
+      "MAIL_FROM",
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
     const env = await loadEnv();
 
     expect(env()).toEqual({
       DATABASE_URL: "postgresql://user:pass@localhost:5432/app",
       APP_TIME_ZONE: "Europe/London",
       UPLOAD_DIR: "./storage/uploads",
+      // Mailpit from compose.yaml.
+      SMTP_HOST: "localhost",
+      SMTP_PORT: 1025,
+      MAIL_FROM: "Student Registry <registry@college.example>",
     });
+  });
+
+  it("reads the SMTP port as a number and refuses an impossible one", async () => {
+    vi.stubEnv("DATABASE_URL", "postgresql://localhost/app");
+    vi.stubEnv("SMTP_PORT", "587");
+    expect((await loadEnv())().SMTP_PORT).toBe(587);
+
+    vi.stubEnv("SMTP_PORT", "70000");
+    expect(await loadEnv()).toThrow("SMTP_PORT");
   });
 
   it("names every invalid variable in a single error", async () => {

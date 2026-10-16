@@ -39,6 +39,17 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # Catches the emails the end-to-end tests read (activation, resets).
+      mailpit:
+        image: axllent/mailpit:v1.31
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd "/mailpit readyz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
 

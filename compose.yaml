@@ -1,7 +1,11 @@
-# PostgreSQL for local development and tests. The app database (`registry`)
-# and the disposable test database (`registry_test`, created on first
-# `prisma migrate deploy`) live on this one server. The credentials are
-# local-only defaults that match .env.example.
+# Services for local development and tests:
+# - PostgreSQL. The app database (`registry`) and the disposable test database
+#   (`registry_test`, created on first `prisma migrate deploy`) live on this
+#   one server. The credentials are local-only defaults that match
+#   .env.example.
+# - Mailpit, which catches every email the app sends (account activation,
+#   password resets) and shows them in a web inbox at http://localhost:8025,
+#   so nothing is ever delivered to a real address.
 services:
   db:
     image: postgres:18
@@ -17,6 +21,17 @@ services:
       - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U registry -d registry"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  mail:
+    image: axllent/mailpit:v1.31
+    ports:
+      - "1025:1025" # SMTP, where the app sends
+      - "8025:8025" # web inbox and API
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
       interval: 2s
       timeout: 5s
       retries: 30

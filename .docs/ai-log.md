@@ -689,3 +689,16 @@ reviewer would meet it.
   reviewer.
 - **Dated example:** a curl example used a fixed deadline that would be
   refused once the date had passed. It now says to use a future date.
+
+## Email with Mailpit
+
+**What the AI did:** the first step of real sign-in:
+
+- added Mailpit to Docker Compose and to CI;
+- added the SMTP settings to the configuration and `.env.example`;
+- added a small nodemailer-based mailer for the activation and
+  password-reset emails to come.
+
+**Checked by:** starting the new Compose file, with both services healthy,
+then sending a message with the same SMTP settings and reading it back
+through Mailpit's API.
