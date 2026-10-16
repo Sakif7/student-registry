@@ -142,6 +142,7 @@ validation schemas with the API. Tests use Vitest and Playwright with axe, and C
 | `BETTER_AUTH_SECRET`         | Signs session cookies. At least 32 characters; generate one with `openssl rand -base64 32`. | a value for local development only                            |
 | `BETTER_AUTH_URL`            | The app's public address: sign-in only accepts requests from it, and emailed links use it   | `http://localhost:3000`                                       |
 | `SHOW_DEMO_ACCOUNTS`         | Lists the demo accounts and their password on the sign-in page. Off unless set.             | `true`                                                        |
+| `MAILPIT_URL`                | End-to-end tests only: where they read the emails Mailpit caught                            | not set (the tests use `http://localhost:8025`)               |
 
 `.env` is git-ignored and never committed. The example holds no real secrets:
 the database credentials are the local Docker database's own, and the sign-in
