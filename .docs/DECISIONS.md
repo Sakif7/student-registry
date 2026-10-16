@@ -742,6 +742,20 @@ Results, Fees and My record.
   a student only their own data, and only marks that are published and not
   withheld.
 
+### Undo
+
+- Actions that can be reversed straight away confirm with a message that
+  has an **Undo** button for eight seconds: withholding results, lifting a
+  hold, closing or reopening an assessment, and turning a student's sign-in
+  off.
+- Undo makes the opposite request through the same API, so the audit trail
+  records both changes, and a hold put back or an assessment closed again is
+  dated from the undo. Lifting a hold remembers the hold's reason, so Undo
+  puts it back as it was.
+- Publishing marks has no Undo: the student sees them at once. Payments and
+  status changes have none either: they are corrected by a reversal or
+  another status change, each with a reason.
+
 ### One write path: Route Handlers
 
 Every write goes through a Route Handler under `/api`, and the UI calls those

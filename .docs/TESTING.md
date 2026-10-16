@@ -442,7 +442,10 @@ As staff:
    The page shows the new deadline.
 6. Select **Close to submissions**. A dialog asks you to confirm, with
    **Cancel** focused. Confirm: the assessment shows **Closed** with the time
-   it closed. Select **Reopen to submissions**, and it is **Open** again.
+   it closed, and the message offers **Undo**. Select it: the assessment is
+   **Open** again. Close it once more, then select **Reopen to
+   submissions**: it is **Open** again, and that message offers **Undo**
+   too.
 
 ### 10. Submitting work
 
@@ -526,6 +529,10 @@ Continue from scenario 11, as staff.
    until it is published again.
 8. As **Mohammed Al-Farsi** (completed), **Results** lists **Final year
    project** with 68, **Merit**: completed students keep their results.
+9. As staff, on **Liam O'Connor**'s **Results** tab, select **Withhold
+   results** and confirm. The message offers **Undo**: select it, and the
+   results are no longer withheld. On Kwame's **Results** tab, select **Lift
+   the hold**, then **Undo**: the hold is back, with Kwame's reason.
 
 ### 13. Who did what
 

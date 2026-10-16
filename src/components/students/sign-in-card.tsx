@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import type { SignInState } from "@/domain/accounts";
 import { ApiError, apiRequest } from "@/lib/api-client";
+import { toastWithUndo } from "@/lib/undo";
 import { refreshAfterWrite } from "@/server/actions";
 
 import { SignInBadge } from "./sign-in-badge";
@@ -84,15 +85,9 @@ export function SignInCard({
     act(async () => {
       await setEnabled(false);
       setConfirming(false);
-      toast.success(`Sign-in turned off for ${fullName}.`, {
-        action: {
-          label: "Undo",
-          onClick: () =>
-            void act(async () => {
-              await setEnabled(true);
-              toast.success(`Sign-in turned back on for ${fullName}.`);
-            }),
-        },
+      toastWithUndo(`Sign-in turned off for ${fullName}.`, {
+        run: () => setEnabled(true),
+        done: `Sign-in turned back on for ${fullName}.`,
       });
     });
 

@@ -49,7 +49,11 @@ export function ResultsSection({
             )}
           </span>
           {withheld ? (
-            <LiftHoldButton studentNumber={studentNumber} fullName={fullName} />
+            <LiftHoldButton
+              studentNumber={studentNumber}
+              fullName={fullName}
+              reason={withheld.reason}
+            />
           ) : (
             <>
               <WithholdResultsDialog

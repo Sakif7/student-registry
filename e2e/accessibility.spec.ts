@@ -5,7 +5,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
-import { demoStudent, loadDemoData, viewAs } from "./support/helpers";
+import {
+  assessmentPath,
+  demoStudent,
+  loadDemoData,
+  viewAs,
+} from "./support/helpers";
 
 test.beforeAll(loadDemoData);
 
@@ -46,14 +51,6 @@ async function scan(page: Page, label: string, include?: string) {
     })),
     label,
   ).toEqual([]);
-}
-
-async function assessmentPath(page: Page, title: string): Promise<string> {
-  const { assessments } = (await (
-    await page.request.get("/api/assessments")
-  ).json()) as { assessments: { id: string; title: string }[] };
-  const assessment = assessments.find((a) => a.title === title);
-  return `/staff/assessments/${assessment?.id ?? ""}`;
 }
 
 test("signed-out pages", async ({ page }) => {

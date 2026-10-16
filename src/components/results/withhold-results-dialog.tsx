@@ -32,6 +32,7 @@ import {
   withholdResultsSchema,
 } from "@/domain/results";
 import { ApiError, apiRequest } from "@/lib/api-client";
+import { toastWithUndo } from "@/lib/undo";
 import { refreshAfterWrite } from "@/server/actions";
 
 const formSchema = z
@@ -69,7 +70,11 @@ export function WithholdResultsDialog({
       await apiRequest("PUT", `/api/students/${studentNumber}/results/hold`, {
         reason,
       });
-      toast.success(`Results withheld for ${fullName}.`);
+      toastWithUndo(`Results withheld for ${fullName}.`, {
+        run: () =>
+          apiRequest("DELETE", `/api/students/${studentNumber}/results/hold`),
+        done: `Hold lifted for ${fullName}.`,
+      });
       setOpen(false);
       form.reset();
       await refreshAfterWrite();

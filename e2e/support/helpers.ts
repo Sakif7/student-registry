@@ -111,3 +111,18 @@ export function demoStudent(key: keyof typeof DEMO_STUDENTS): StudentNumber {
   const [sequence, yearsAgo] = DEMO_STUDENTS[key];
   return studentNumber(sequence, yearsAgo);
 }
+
+/**
+ * The staff page of a demo assessment, found by its title through the API.
+ * The page must be signed in as staff.
+ */
+export async function assessmentPath(
+  page: Page,
+  title: string,
+): Promise<string> {
+  const { assessments } = (await (
+    await page.request.get("/api/assessments")
+  ).json()) as { assessments: { id: string; title: string }[] };
+  const assessment = assessments.find((a) => a.title === title);
+  return `/staff/assessments/${assessment?.id ?? ""}`;
+}

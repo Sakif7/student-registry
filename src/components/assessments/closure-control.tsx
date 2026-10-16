@@ -2,7 +2,8 @@
 
 // Closes an assessment to submissions, after a confirmation, or reopens it.
 // Closing stops students submitting or replacing work, so it asks first;
-// reopening only restores what was there, so it doesn't.
+// reopening only restores what was there, so it doesn't. Either can be
+// undone from its confirmation.
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ApiError, apiRequest } from "@/lib/api-client";
+import { toastWithUndo } from "@/lib/undo";
 import { refreshAfterWrite } from "@/server/actions";
 
 export function ClosureControl({
@@ -30,15 +32,19 @@ export function ClosureControl({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const patch = (value: boolean) =>
+    apiRequest("PATCH", `/api/assessments/${assessmentId}`, { closed: value });
+
   async function setClosed(value: boolean) {
     setSaving(true);
     try {
-      await apiRequest("PATCH", `/api/assessments/${assessmentId}`, {
-        closed: value,
+      await patch(value);
+      const closedMessage = "Closed to submissions.";
+      const reopenedMessage = "Reopened to submissions.";
+      toastWithUndo(value ? closedMessage : reopenedMessage, {
+        run: () => patch(!value),
+        done: value ? reopenedMessage : closedMessage,
       });
-      toast.success(
-        value ? "Closed to submissions." : "Reopened to submissions.",
-      );
       setOpen(false);
       await refreshAfterWrite();
     } catch (error) {

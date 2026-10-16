@@ -1233,3 +1233,21 @@ for every animation that ends (an endless one, such as a pulse, would never
 finish) and then checks what users see.
 
 **Checked by:** the accessibility spec, every scan of which still passes.
+
+## Undo for reversible actions
+
+**What the AI did:** gave the actions that can be reversed straight away an
+**Undo** button in their confirmation: withholding results, lifting a hold
+(Undo puts it back with the same reason), and closing or reopening an
+assessment. Turning a student's sign-in off already had one; all of them
+now share one helper, which makes the opposite request, says so and
+refreshes the page. Publishing has no Undo, because the student sees the
+marks at once; payments and status changes are corrected with a reason.
+
+No end-to-end test closed an assessment through the page before; the new
+one closes it and undoes that. The helper that finds a demo assessment's
+page moved into the shared end-to-end helpers for it.
+
+**Checked by:** end-to-end tests that withhold results and undo it, lift a
+hold and undo that (the reason comes back), and close an assessment and
+undo it; and the existing test of turning sign-in off and undoing it.
