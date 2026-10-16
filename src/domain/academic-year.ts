@@ -7,7 +7,7 @@ import { addDays, type CalendarDate, instantToWallTime } from "./college-time";
 const ACADEMIC_YEAR = /^(\d{4})\/(\d{2})$/;
 
 /** Month (1-12) in which a new academic year starts. */
-export const ACADEMIC_YEAR_START_MONTH = 9;
+const ACADEMIC_YEAR_START_MONTH = 9;
 
 /**
  * The start year of an academic year, e.g. 2026 for "2026/27".

@@ -50,7 +50,7 @@ export const newPasswordSchema = z
   });
 
 /** Failed sign-ins one email address may make within the window below. */
-export const MAX_FAILED_SIGN_INS = 5;
+const MAX_FAILED_SIGN_INS = 5;
 /** How long a failed sign-in counts against its email address. */
 export const FAILED_SIGN_IN_MINUTES = 15;
 /** Password-reset emails one account may receive in an hour. */

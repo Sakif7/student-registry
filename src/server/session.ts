@@ -32,7 +32,7 @@ export type Session = StaffSession | StudentSession;
  * The session the request's cookie belongs to, or null when there is none, it
  * has expired or been signed out, or the account is disabled.
  */
-export async function sessionFromHeaders(
+async function sessionFromHeaders(
   requestHeaders: Headers,
 ): Promise<Session | null> {
   const result = await auth().api.getSession({ headers: requestHeaders });

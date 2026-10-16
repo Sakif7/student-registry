@@ -43,7 +43,7 @@ export function countByClassification(
 }
 
 /** A mark: a whole number from 0 to 100. */
-export const markValueSchema = z
+const markValueSchema = z
   .number({ error: "Enter a mark from 0 to 100" })
   .int("Marks are whole numbers")
   .min(0, "Marks run from 0 to 100")

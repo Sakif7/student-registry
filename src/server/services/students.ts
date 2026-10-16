@@ -561,7 +561,7 @@ async function findStudentId(studentNumber: string) {
 }
 
 /** Looks up a programme by code, as a field error if it doesn't exist. */
-export async function findProgramme(code: string) {
+async function findProgramme(code: string) {
   const programme = await db().programme.findUnique({ where: { code } });
   if (!programme) {
     throw new AppError("VALIDATION", "Some fields need correcting.", {
@@ -572,7 +572,7 @@ export async function findProgramme(code: string) {
 }
 
 /** Turns the email unique-constraint violation into a field error. */
-export function asDuplicateEmail(error: unknown): unknown {
+function asDuplicateEmail(error: unknown): unknown {
   const constraint = violatedUniqueConstraint(error);
   if (constraint === "students_email_key") {
     return new AppError("CONFLICT", "Some fields need correcting.", {

@@ -14,8 +14,8 @@ import {
 import { sortDirectionSchema } from "./sorting";
 
 /** Youngest and oldest plausible ages on the day a record is saved. */
-export const MIN_AGE = 16;
-export const MAX_AGE = 100;
+const MIN_AGE = 16;
+const MAX_AGE = 100;
 
 /** Students shown per page in the staff list. */
 export const STUDENTS_PAGE_SIZE = 20;

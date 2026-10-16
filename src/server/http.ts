@@ -156,7 +156,7 @@ export function download(
  * A Content-Disposition header for downloading a file under its own name
  * (RFC 6266): an ASCII fallback, plus the exact name encoded as UTF-8.
  */
-export function contentDisposition(fileName: string): string {
+function contentDisposition(fileName: string): string {
   const fallback = fileName.replace(/[^\x20-\x7e]|["\\]/g, "_");
   const encoded = encodeURIComponent(fileName).replace(
     /['()*]/g,
@@ -167,7 +167,7 @@ export function contentDisposition(fileName: string): string {
 }
 
 /** An RFC 9457 problem-details response. */
-export function problem(
+function problem(
   status: number,
   detail: string,
   instance: string,

@@ -1478,3 +1478,34 @@ memory:
 
 **Checked by:** the fresh clone itself, and a search of the documents for
 the features each round added.
+
+## A tidy-up of files, exports and environment
+
+**What the AI did:** asked to make sure nothing unnecessary was left, the AI
+checked every file and export, and the environment files:
+
+- **The environment files:** `.env.example` is committed and `.env` is
+  ignored, as intended (`.env*` is ignored, then `!.env.example` brings the
+  example back). The owner's `.env` predated email and lacked its three
+  variables, which have defaults; it was brought in line with the example.
+  The example and the README now also name `MAILPIT_URL`, which only the
+  end-to-end tests read.
+- **Unused code:** knip, run once through npx rather than installed, found
+  no unused source files or dependencies. What it did report is explained:
+  the demo-sessions script runs as a script, so nothing imports it; the
+  Tailwind loader is named by string in `next.config.ts`;
+  `src/lib/utils.ts` is the path shadcn's `components.json` points to (it
+  now says so in a header comment); and the unused parts of shadcn's
+  components are kept so the files still match shadcn's. Eleven names
+  exported but used only in their own module are now private.
+- **Generated folders:** test reports, coverage, build caches and the AI's
+  own browser screenshots were deleted from the working copy. All are
+  ignored by git and come back when the tests or the app run.
+
+Found along the way: a shell command meant to tidy the new log entry put a
+backtick at the start of every line of this file, because the shell passed
+`\`` on to sed, which reads it as "start of line". The file was restored
+from git and the entry added by a script instead.
+
+**Checked by:** the type-check, lint and tests, and knip again, which now
+reports only the items explained above.

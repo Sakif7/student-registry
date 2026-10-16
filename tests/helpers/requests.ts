@@ -30,7 +30,7 @@ export function asStudent(studentNumber: string): Viewer {
 }
 
 /** The staff member every test signs in as. */
-export const TEST_STAFF = {
+const TEST_STAFF = {
   name: "Rachel Moss",
   email: "rachel.moss@college.example",
 };

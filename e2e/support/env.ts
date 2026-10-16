@@ -7,7 +7,7 @@ import { join } from "node:path";
 export const E2E_PORT = 3100;
 
 /** The folder the app under test stores uploads in; emptied by the seed. */
-export const E2E_UPLOAD_DIR = join(tmpdir(), "student-registry-e2e-uploads");
+const E2E_UPLOAD_DIR = join(tmpdir(), "student-registry-e2e-uploads");
 
 /** The app under test's sign-in secret, which signs its session cookies. */
 export const E2E_AUTH_SECRET = "end-to-end-tests-only-secret-0123456789";
