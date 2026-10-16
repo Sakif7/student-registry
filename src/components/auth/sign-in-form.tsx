@@ -47,7 +47,7 @@ export function SignInForm({
     setProblem(undefined);
     const { error } = await authClient.signIn.email(values);
     if (error) {
-      setProblem(signInProblem(error.status, error.message));
+      setProblem(signInProblem(error));
       return;
     }
     setSignedIn(true);
@@ -157,7 +157,18 @@ export function SignInForm({
   );
 }
 
-function signInProblem(status: number, message: string | undefined): string {
+function signInProblem({
+  status,
+  code,
+  message,
+}: {
+  status: number;
+  code?: string;
+  message?: string;
+}): string {
+  // Too many failed attempts with this email address: the message says for
+  // how long.
+  if (code === "SIGN_IN_LOCKED" && message) return message;
   if (status === 429) {
     return "Too many sign-in attempts. Wait a minute, then try again.";
   }

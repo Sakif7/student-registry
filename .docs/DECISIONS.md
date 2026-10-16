@@ -350,8 +350,21 @@ site.
   These limits are generous on purpose. A college network can put thousands
   of students behind one address, and a tight limit would lock out the whole
   campus at the start of a lecture. They only slow down a flood from one
-  source; protecting each account is a limit per account (see "With more
-  time").
+  source.
+
+- Each account is protected by a limit per email address instead. After 5
+  failed sign-ins with one address within 15 minutes, it is locked: further
+  attempts are refused, without checking the password, until fewer than 5
+  failures in the last 15 minutes are left. The message says how many
+  minutes remain.
+  - Failures count whatever their client address, so spreading guesses
+    across many machines doesn't help.
+  - Failures are recorded for addresses with no account too, so a lock
+    doesn't reveal whether an account exists.
+  - A successful sign-in, or choosing a new password with a reset link,
+    clears the address's failures.
+  - The cost: someone who knows a person's address can lock them out for 15
+    minutes, though a reset link clears the lock.
 
 - **Deploying behind a proxy:** the limits are per client address, which
   Better Auth reads from `X-Forwarded-For`. Next.js fills that header in
@@ -362,8 +375,7 @@ site.
   - a proxy that appends to the header needs Better Auth's `trustedProxies`
     option, or every visitor shares one limit;
   - when the app is reached directly, a client could send its own header to
-    get a fresh limit. A per-account limit would close that gap (see "With
-    more time").
+    get a fresh limit. The limit per email address still holds.
 
 ### Password-reset links
 
@@ -379,7 +391,9 @@ site.
   since its owner received the email, and signs the account out on every
   device.
 - Requests for a link count towards the limit per client address (see
-  "Passwords and attempts").
+  "Passwords and attempts"). An account also receives at most 3 reset emails
+  an hour, however many are requested, so the form can't be used to flood
+  someone's inbox.
 
 ### Demo accounts
 
@@ -672,9 +686,8 @@ In rough order of value to a real Registry:
   plugin), and staff roles such as Registry, Finance and academic staff, each
   with narrower permissions. Only `src/server/session.ts` reads the session,
   so the services wouldn't change.
-- **Stronger sign-in:** a limit on failed attempts per account as well as per
-  address, two-factor authentication for staff, and an email when an account
-  signs in from a new device.
+- **Stronger sign-in:** two-factor authentication for staff, and an email
+  when an account signs in from a new device.
 - **An audit trail of who did what:** status history, reversals and holds
   record what changed and why, but not yet which member of staff did it.
 - **Bulk work:**

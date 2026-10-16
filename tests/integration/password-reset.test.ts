@@ -140,6 +140,18 @@ describe("asking for a reset link", () => {
   });
 });
 
+describe("emails per account", () => {
+  it("are limited to three an hour, whatever the requests", async () => {
+    await createUser({ email: EMAIL, password: OLD_PASSWORD });
+
+    for (let request = 1; request <= 4; request += 1) {
+      expect((await requestReset(EMAIL)).status).toBe(200);
+    }
+
+    expect(sentEmails()).toHaveLength(3);
+  });
+});
+
 describe("following the link", () => {
   it("opens the page for choosing a password, with the token", async () => {
     await createUser({ email: EMAIL, password: OLD_PASSWORD });
@@ -207,6 +219,19 @@ describe("choosing a new password", () => {
     expect(sentEmails().at(-1)?.subject).toBe(
       "Reset your Student Registry password",
     );
+  });
+
+  it("lifts a lock from failed sign-ins", async () => {
+    await createUser({ email: EMAIL, password: OLD_PASSWORD });
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      await signInStatus(EMAIL, "not-the-password");
+    }
+    expect(await signInStatus(EMAIL, OLD_PASSWORD)).toBe(429);
+    const token = await emailedToken(EMAIL);
+
+    await resetPassword(token, NEW_PASSWORD);
+
+    expect(await signInStatus(EMAIL, NEW_PASSWORD)).toBe(200);
   });
 
   it("accepts each link only once", async () => {

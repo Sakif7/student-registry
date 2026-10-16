@@ -94,3 +94,27 @@ test("signing out ends the session on the server, not just in the browser", asyn
   await page.goto("/staff");
   await expect(page).toHaveURL("/login?next=%2Fstaff");
 });
+
+test("repeated wrong passwords lock the address for a while", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("elena.petrova@college.example");
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    await page.getByLabel("Password").fill(`wrong-password-${attempt}`);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(
+      page.getByText("The email address or password is incorrect."),
+    ).toBeVisible();
+  }
+
+  await page.getByLabel("Password").fill(DEMO_PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await expect(
+    page.getByText(
+      "Too many failed attempts to sign in with this email address. Try again in 15 minutes.",
+    ),
+  ).toBeVisible();
+  await expect(page).toHaveURL("/login");
+});

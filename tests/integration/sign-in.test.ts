@@ -177,6 +177,87 @@ describe("signing in", () => {
   });
 });
 
+describe("failed sign-ins with one email address", () => {
+  const LOCKED = {
+    code: "SIGN_IN_LOCKED",
+    message:
+      "Too many failed attempts to sign in with this email address. Try again in 15 minutes.",
+  };
+
+  async function failFiveTimes(email: string) {
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      expect((await signInWith(email, "not-the-password")).status).toBe(401);
+    }
+  }
+
+  it("lock the address for 15 minutes after five, even with the right password", async () => {
+    const user = await createUser({ email: EMAIL, password: PASSWORD });
+    await failFiveTimes(EMAIL);
+
+    const locked = await signInWith(EMAIL, PASSWORD);
+
+    expect(locked.status).toBe(429);
+    expect(await bodyOf(locked)).toMatchObject(LOCKED);
+    expect(await db().session.count({ where: { userId: user.id } })).toBe(0);
+  });
+
+  it("count whatever the letter case, and from any client address", async () => {
+    await createUser({ email: EMAIL, password: PASSWORD });
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      const response = await signInWith(
+        "Rachel.Moss@College.Example",
+        "not-the-password",
+        `198.51.100.${attempt}`,
+      );
+      expect(response.status).toBe(401);
+    }
+
+    expect((await signInWith(EMAIL, PASSWORD)).status).toBe(429);
+  });
+
+  it("lock an address that has no account in the same way, revealing nothing", async () => {
+    await failFiveTimes("nobody@college.example");
+
+    const locked = await signInWith("nobody@college.example", PASSWORD);
+
+    expect(locked.status).toBe(429);
+    expect(await bodyOf(locked)).toMatchObject(LOCKED);
+  });
+
+  it("leave other addresses alone", async () => {
+    await createUser({ email: EMAIL, password: PASSWORD });
+    await createUser({ email: "tom.reid@college.example", password: PASSWORD });
+    await failFiveTimes(EMAIL);
+
+    expect(
+      (await signInWith("tom.reid@college.example", PASSWORD)).status,
+    ).toBe(200);
+  });
+
+  it("stop counting after 15 minutes", async () => {
+    await createUser({ email: EMAIL, password: PASSWORD });
+    await failFiveTimes(EMAIL);
+    await db().signInFailure.updateMany({
+      data: { createdAt: new Date(Date.now() - 15 * 60_000) },
+    });
+
+    expect((await signInWith(EMAIL, PASSWORD)).status).toBe(200);
+  });
+
+  it("are forgotten once the owner signs in", async () => {
+    await createUser({ email: EMAIL, password: PASSWORD });
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      await signInWith(EMAIL, "not-the-password");
+    }
+    expect((await signInWith(EMAIL, PASSWORD)).status).toBe(200);
+
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      expect((await signInWith(EMAIL, "not-the-password")).status).toBe(401);
+    }
+    expect((await signInWith(EMAIL, PASSWORD)).status).toBe(200);
+  });
+});
+
 describe("sessions", () => {
   it("are described by the session endpoint, with the role and student number", async () => {
     await createStudent({ studentNumber: "SMS-2026-0001" });

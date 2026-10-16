@@ -824,3 +824,31 @@ signed cookie.
 - **A test that failed once:** in one full run, a form lost a choice made
   before React had hydrated it. That was an older problem, fixed in its own
   commit just before this one.
+
+## Locking an address after failed sign-ins
+
+**What the AI did:** added the limit per account that the previous step had
+left for later:
+
+- five failed sign-ins with one email address within 15 minutes lock it,
+  from any client address, and the sign-in page says for how many minutes;
+- failures for addresses without an account count the same way, so a lock
+  reveals nothing;
+- a successful sign-in or a new password clears them;
+- an account receives at most three password-reset emails an hour.
+
+The rule itself is a pure function in `src/domain/accounts.ts`; Better
+Auth's `before` and `after` hooks check and record the failures.
+
+**Checked by:**
+
+- unit tests of the rule, including failures that arrive out of order;
+- integration tests through Better Auth's endpoints: the lock even against
+  the right password, letter case and client addresses, unknown addresses,
+  other accounts unaffected, expiry, clearing on sign-in and on a reset, and
+  the email cap;
+- an end-to-end test of the message on the sign-in page.
+
+**Caught along the way:** a unit test expected the lock to lift a minute too
+late. Working through the six failures by hand showed the code was right:
+the lock lifts as soon as fewer than five failures remain in the window.

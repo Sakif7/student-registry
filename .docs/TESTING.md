@@ -138,6 +138,11 @@ in as Amelia Hart.
 7. In a private window, sign in as `hannah.kowalski@student.example` with the
    demo password. "Sign-in is turned off for this account. Contact the
    Registry." appears.
+8. Enter `elena.petrova@college.example` with a wrong password five times,
+   then with the demo password. "Too many failed attempts to sign in with
+   this email address. Try again in 15 minutes." appears. Jane Okafor can
+   still sign in: only Elena's address is locked. `npm run db:seed` lifts
+   the lock at once, along with resetting the data.
 
 Sign-in allows 30 attempts a minute from one address. The integration tests
 check the limit, as it is impractical to reach by hand.

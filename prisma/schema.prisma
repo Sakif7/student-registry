@@ -339,3 +339,16 @@ model RateLimit {
 
   @@map("rate_limits")
 }
+
+/// A failed sign-in, by the email address it used, whether or not an account
+/// has that address. Recent failures lock the address for a while (see
+/// src/domain/accounts.ts); older ones are deleted as new ones arrive.
+model SignInFailure {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  /// In lower case, as Better Auth compares addresses.
+  email     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([email, createdAt])
+  @@map("sign_in_failures")
+}

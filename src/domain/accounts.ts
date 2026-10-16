@@ -1,5 +1,6 @@
-// Sign-in accounts: the password rules, and the shape of the sign-in and
-// password forms. Better Auth enforces the same limits on the server.
+// Sign-in accounts: the password rules, the limit on failed sign-ins, and
+// the shape of the sign-in and password forms. Better Auth enforces the same
+// password limits on the server.
 import { z } from "zod";
 
 /**
@@ -37,6 +38,43 @@ export const newPasswordSchema = z
     path: ["confirmation"],
     error: "The passwords don't match",
   });
+
+/** Failed sign-ins one email address may make within the window below. */
+export const MAX_FAILED_SIGN_INS = 5;
+/** How long a failed sign-in counts against its email address. */
+export const FAILED_SIGN_IN_MINUTES = 15;
+/** Password-reset emails one account may receive in an hour. */
+export const MAX_RESET_EMAILS_PER_HOUR = 3;
+
+const MS_PER_MINUTE = 60_000;
+
+/**
+ * When an email address may next try to sign in, given its failed attempts,
+ * or null if it may now. After {@link MAX_FAILED_SIGN_INS} failures within
+ * {@link FAILED_SIGN_IN_MINUTES}, it waits until enough of them are that old.
+ */
+export function signInLockedUntil(
+  failures: readonly Date[],
+  now: Date,
+): Date | null {
+  const windowMs = FAILED_SIGN_IN_MINUTES * MS_PER_MINUTE;
+  const recent = failures
+    .map((failure) => failure.getTime())
+    .filter((time) => now.getTime() - time < windowMs)
+    .sort((a, b) => b - a);
+  // The lock lifts when the failure that reached the limit leaves the window.
+  const reachedLimit = recent[MAX_FAILED_SIGN_INS - 1];
+  return reachedLimit === undefined ? null : new Date(reachedLimit + windowMs);
+}
+
+/** What someone whose address is locked is told. */
+export function signInLockedMessage(until: Date, now: Date): string {
+  const minutes = Math.max(
+    1,
+    Math.ceil((until.getTime() - now.getTime()) / MS_PER_MINUTE),
+  );
+  return `Too many failed attempts to sign in with this email address. Try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`;
+}
 
 export type SignInInput = z.infer<typeof signInSchema>;
 export type NewPasswordInput = z.infer<typeof newPasswordSchema>;

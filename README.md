@@ -31,8 +31,9 @@ Router), PostgreSQL and Prisma.
   - students only ever receive marks that are published and not withheld.
 - **Sign-in:**
   - staff and students sign in with their email address and a password;
-  - sessions are stored in the database, so signing out ends them at once,
-    and sign-in attempts are rate limited;
+  - sessions are stored in the database, so signing out ends them at once;
+  - five wrong passwords lock the email address for 15 minutes, on top of
+    rate limits per client address;
   - nobody signs up: every account is made for its owner;
   - every page and API call checks the role.
 

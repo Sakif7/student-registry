@@ -1,6 +1,7 @@
 // Sign-in with Better Auth: email and password, sessions stored in
-// PostgreSQL, password-reset links by email, and rate limiting. Nobody signs
-// up: every account is made for its owner (see prisma/seed.ts).
+// PostgreSQL, password-reset links by email, rate limiting, and a lock on an
+// email address after repeated failed sign-ins. Nobody signs up: every
+// account is made for its owner (see prisma/seed.ts).
 //
 // The instance is created on first use, like the database client, so
 // importing this module (as `next build` does) needs no configuration.
@@ -8,14 +9,25 @@ import "server-only";
 
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
 
-import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/domain/accounts";
+import {
+  MAX_PASSWORD_LENGTH,
+  MAX_RESET_EMAILS_PER_HOUR,
+  MIN_PASSWORD_LENGTH,
+  signInLockedMessage,
+} from "@/domain/accounts";
 
 import { db } from "./db";
 import { activationEmail, passwordResetEmail } from "./emails";
 import { env } from "./env";
 import { sendEmailLater } from "./mail";
+import {
+  forgetFailedSignIns,
+  normaliseEmail,
+  recordFailedSignIn,
+  signInLockedFor,
+} from "./sign-in-failures";
 
 const HOUR_SECONDS = 60 * 60;
 
@@ -92,6 +104,16 @@ function createAuth() {
         });
         // A disabled account can't sign in, so a link would only mislead.
         if (!account || account.disabledAt) return;
+        // A few emails an hour at most, so the form can't flood an inbox.
+        // Better Auth has already stored this link with the others.
+        const linksThisHour = await db().verification.count({
+          where: {
+            value: user.id,
+            identifier: { startsWith: "reset-password:" },
+            createdAt: { gt: new Date(Date.now() - HOUR_SECONDS * 1000) },
+          },
+        });
+        if (linksThisHour > MAX_RESET_EMAILS_PER_HOUR) return;
         const message = {
           to: user.email,
           name: user.name,
@@ -104,12 +126,14 @@ function createAuth() {
             : activationEmail(message),
         );
       },
-      // Setting a password from an emailed link proves the address works.
+      // Setting a password from an emailed link proves the address works,
+      // and lifts any lock from failed sign-ins.
       onPasswordReset: async ({ user }) => {
         await db().user.update({
           where: { id: user.id },
           data: { emailVerified: true },
         });
+        await forgetFailedSignIns(user.email);
       },
     },
     // Limits per client address, per minute. A college network can put
@@ -125,6 +149,35 @@ function createAuth() {
         "/sign-in/email": { window: 60, max: 30 },
         "/request-password-reset": { window: 60, max: 10 },
       },
+    },
+    // Failed sign-ins also count against the email address they used,
+    // wherever they come from (see src/domain/accounts.ts). A locked address
+    // is refused before its password is checked.
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-in/email") return;
+        const email = normaliseEmail((ctx.body as { email?: unknown }).email);
+        if (!email) return;
+        const now = new Date();
+        const until = await signInLockedFor(email, now);
+        if (until) {
+          throw new APIError("TOO_MANY_REQUESTS", {
+            message: signInLockedMessage(until, now),
+            code: "SIGN_IN_LOCKED",
+          });
+        }
+      }),
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-in/email") return;
+        const email = normaliseEmail((ctx.body as { email?: unknown }).email);
+        if (!email) return;
+        const { returned, newSession } = ctx.context;
+        if (isAPIError(returned) && returned.statusCode === 401) {
+          await recordFailedSignIn(email);
+        } else if (newSession) {
+          await forgetFailedSignIns(email);
+        }
+      }),
     },
     databaseHooks: {
       session: {
