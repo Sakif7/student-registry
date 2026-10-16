@@ -852,3 +852,20 @@ Auth's `before` and `after` hooks check and record the failures.
 **Caught along the way:** a unit test expected the lock to lift a minute too
 late. Working through the six failures by hand showed the code was right:
 the lock lifts as soon as fewer than five failures remain in the window.
+
+## Unique ids for form fields
+
+**What the AI did:** fixed duplicate element ids. While building the
+forgot-password page, an end-to-end test typed into an "Email" field and
+waited forever: the label led to the sign-in page's "Email" field, which
+Next.js had kept in the document, hidden, after the link was followed. Both
+fields had the id `email`. The same could happen between any two forms that
+share a field name, and it broke the label for screen readers too, not only
+for the test. `FormField` now prefixes its ids with React's `useId()`, as do
+the marksheet and the student filters, and AGENTS.md forbids hard-coded ids.
+
+**Checked by:**
+
+- unit tests: two instances of a field get distinct ids, each label points at
+  its own control, and the hint and error still describe it;
+- the full test suites and `npm run check`.

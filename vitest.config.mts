@@ -1,5 +1,5 @@
 // Test runner configuration. Two projects, both in Node:
-// - unit: pure logic, no I/O (src/**/*.test.ts, next to the code);
+// - unit: pure logic, no I/O (src/**/*.test.ts and .tsx, next to the code);
 // - integration: route handlers and services against a real PostgreSQL test
 //   database (tests/integration).
 // UI behaviour is covered by the Playwright end-to-end tests instead.
@@ -33,7 +33,7 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: "unit", include: ["src/**/*.test.ts"] },
+        test: { name: "unit", include: ["src/**/*.test.{ts,tsx}"] },
       },
       {
         extends: true,
@@ -66,7 +66,7 @@ export default defineConfig({
         "src/app/api/**",
         "src/lib/**",
       ],
-      exclude: ["**/*.test.ts"],
+      exclude: ["**/*.test.{ts,tsx}"],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },
   },

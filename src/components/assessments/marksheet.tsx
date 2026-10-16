@@ -5,6 +5,7 @@
 // the marks that changed are sent, and a cleared mark is removed.
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useId } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -68,6 +69,9 @@ export function Marksheet({
   rows: MarksheetRow[];
 }) {
   const saved = new Map(rows.map((row) => [row.studentNumber, row.mark]));
+  // Unique to this marksheet, as a hidden page's marksheet stays in the
+  // document and may list the same students.
+  const idPrefix = useId();
   const form = useForm({
     resolver: zodResolver(marksheetFormSchema),
     defaultValues: {
@@ -124,7 +128,7 @@ export function Marksheet({
             const parsed = markFieldSchema.safeParse(text);
             const mark = parsed.success ? parsed.data : undefined;
             const error = errors.marks?.[studentNumber]?.message;
-            const errorId = `mark-${studentNumber}-error`;
+            const errorId = `${idPrefix}mark-${studentNumber}-error`;
             return (
               <TableRow key={studentNumber}>
                 <TableCell>

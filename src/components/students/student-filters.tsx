@@ -5,7 +5,7 @@
 // change, and the form still works without JavaScript. With JavaScript,
 // <Form> navigates client-side and the selects apply as soon as they change.
 import Form from "next/form";
-import type { ChangeEvent } from "react";
+import { type ChangeEvent, useId } from "react";
 import Link from "next/link";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -36,6 +36,8 @@ export function StudentFilterBar({
   const filtered = Boolean(
     filters.q || filters.programme || filters.status || filters.year,
   );
+  // Unique to this instance, as hidden pages stay in the document.
+  const id = useId();
 
   return (
     <Form
@@ -46,10 +48,10 @@ export function StudentFilterBar({
       className="mb-6 flex flex-wrap items-end gap-3"
     >
       <div className="grid gap-1.5">
-        <Label htmlFor="q">Search</Label>
+        <Label htmlFor={`${id}q`}>Search</Label>
         <div className="flex gap-2">
           <Input
-            id="q"
+            id={`${id}q`}
             name="q"
             type="search"
             defaultValue={filters.q}
@@ -63,9 +65,9 @@ export function StudentFilterBar({
       </div>
 
       <div className="grid gap-1.5">
-        <Label htmlFor="programme">Programme</Label>
+        <Label htmlFor={`${id}programme`}>Programme</Label>
         <NativeSelect
-          id="programme"
+          id={`${id}programme`}
           name="programme"
           defaultValue={filters.programme ?? ""}
           onChange={applyNow}
@@ -80,9 +82,9 @@ export function StudentFilterBar({
       </div>
 
       <div className="grid gap-1.5">
-        <Label htmlFor="status">Status</Label>
+        <Label htmlFor={`${id}status`}>Status</Label>
         <NativeSelect
-          id="status"
+          id={`${id}status`}
           name="status"
           defaultValue={filters.status ?? ""}
           onChange={applyNow}
@@ -97,9 +99,9 @@ export function StudentFilterBar({
       </div>
 
       <div className="grid gap-1.5">
-        <Label htmlFor="year">Academic year</Label>
+        <Label htmlFor={`${id}year`}>Academic year</Label>
         <NativeSelect
-          id="year"
+          id={`${id}year`}
           name="year"
           defaultValue={filters.year ?? ""}
           onChange={applyNow}

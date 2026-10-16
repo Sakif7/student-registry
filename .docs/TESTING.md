@@ -6,11 +6,11 @@ examples of calling the API with curl.
 
 ## Automated tests
 
-| Suite       | What it covers                                                                     | Where                               | Command                    |
-| ----------- | ---------------------------------------------------------------------------------- | ----------------------------------- | -------------------------- |
-| Unit        | Pure rules, with no database or network                                            | `src/**/*.test.ts`, beside the code | `npm run test:unit`        |
-| Integration | Route handlers and services against a real PostgreSQL test database                | `tests/integration/`                | `npm run test:integration` |
-| End-to-end  | Journeys through the production build in Chromium, with accessibility checks (axe) | `e2e/`                              | `npm run test:e2e`         |
+| Suite       | What it covers                                                                     | Where                                  | Command                    |
+| ----------- | ---------------------------------------------------------------------------------- | -------------------------------------- | -------------------------- |
+| Unit        | Pure rules and server-rendered components, with no database or network             | `src/**/*.test.ts(x)`, beside the code | `npm run test:unit`        |
+| Integration | Route handlers and services against a real PostgreSQL test database                | `tests/integration/`                   | `npm run test:integration` |
+| End-to-end  | Journeys through the production build in Chromium, with accessibility checks (axe) | `e2e/`                                 | `npm run test:e2e`         |
 
 `npm test` runs all three: the unit and integration suites with a coverage
 report, then the end-to-end suite.

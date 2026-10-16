@@ -535,6 +535,19 @@ form `aria-disabled` until React has hydrated it:
 time a form appeared. An end-to-end test found the problem: it chose a module
 the instant the form appeared, and the choice was gone when it submitted.
 
+### Unique ids for form fields
+
+Next.js keeps visited pages mounted while they are hidden (its `<Activity>`
+component), so two forms can be in the document at once. With fixed ids, a
+field called "email" on each would share an id, and the visible label would
+point at the hidden page's control. `FormField` therefore prefixes every id
+with React's `useId()`, which is unique to each form instance and the same
+on the server and in the browser. The marksheet and the student filters build
+their ids the same way.
+
+An end-to-end test found this: after following a link from the sign-in page,
+the new page's "Email" label led to the sign-in page's hidden field.
+
 ### Errors
 
 API errors use RFC 9457 problem details (`application/problem+json`):

@@ -65,6 +65,8 @@ Read it before changing behaviour, and add to it when you make a new decision.
   `download()` in `src/server/http.ts`.
 - **Forms:** use `Form` from `src/components/forms/form.tsx`, never a bare
   `<form>`. It stays `aria-disabled` until React has hydrated it.
+- **Element ids:** never hard-code one. `FormField` makes its own; build any
+  other id from `useId()`, because hidden pages stay in the document.
 - **Students only ever receive marks that are published and not withheld:**
   filter on the server, never only in the page.
 - **Dependencies:**

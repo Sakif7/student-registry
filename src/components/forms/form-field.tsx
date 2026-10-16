@@ -1,7 +1,13 @@
+"use client";
+
 // A labelled form control with its hint and error message. The control gets
 // aria-invalid and aria-describedby, so screen readers announce the hint and
 // the error together with the field.
-import type { ReactNode } from "react";
+//
+// Element ids are unique to each form instance. Next.js keeps visited pages
+// mounted while they are hidden, so two forms with an "email" field can be in
+// the document at once, and a label must still point at its own control.
+import { type ReactNode, useId } from "react";
 
 import {
   Field,
@@ -18,18 +24,20 @@ export interface ControlProps {
 }
 
 export function FormField({
-  id,
+  id: name,
   label,
   description,
   error,
   children,
 }: {
+  /** The field's name, unique within its form. */
   id: string;
   label: string;
   description?: ReactNode;
   error?: string;
   children: (control: ControlProps) => ReactNode;
 }) {
+  const id = `${useId()}${name}`;
   const descriptionId = description ? `${id}-description` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy =
