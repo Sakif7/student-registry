@@ -7,6 +7,7 @@ import {
   normalisePaymentReference,
   recordPaymentSchema,
   summariseAccount,
+  summariseYearFees,
 } from "./fees";
 
 const TODAY = "2026-10-15";
@@ -204,5 +205,96 @@ describe("allocatePayments", () => {
       TODAY,
     );
     expect(charge?.overdue).toBe(true);
+  });
+});
+
+describe("summariseYearFees", () => {
+  const YEAR = "2026/27";
+
+  it("splits a year's charges into paid, overdue and not yet due", () => {
+    const fees = summariseYearFees(
+      [
+        {
+          // Part-paid and past its due date.
+          charges: [
+            { academicYear: YEAR, amountPence: 953_500, dueDate: "2026-10-01" },
+          ],
+          payments: [paid(500_000)],
+        },
+        {
+          charges: [
+            { academicYear: YEAR, amountPence: 953_500, dueDate: "2026-11-14" },
+          ],
+          payments: [],
+        },
+        {
+          // Due today, so not overdue yet.
+          charges: [
+            { academicYear: YEAR, amountPence: 100_000, dueDate: TODAY },
+          ],
+          payments: [],
+        },
+      ],
+      YEAR,
+      TODAY,
+    );
+
+    expect(fees).toEqual({
+      chargedPence: 2_007_000,
+      paidPence: 500_000,
+      overduePence: 453_500,
+      notYetDuePence: 1_053_500,
+    });
+  });
+
+  it("counts payments towards older years first, and leaves other years out", () => {
+    const fees = summariseYearFees(
+      [
+        {
+          charges: [
+            {
+              academicYear: "2025/26",
+              amountPence: 953_500,
+              dueDate: "2025-10-01",
+            },
+            { academicYear: YEAR, amountPence: 953_500, dueDate: "2026-11-14" },
+          ],
+          // Last year's £9,535 is cleared first, leaving £465 for this year.
+          // The reversed payment counts for nothing.
+          payments: [paid(1_000_000), { amountPence: 953_500, reversed: true }],
+        },
+      ],
+      YEAR,
+      TODAY,
+    );
+
+    expect(fees).toEqual({
+      chargedPence: 953_500,
+      paidPence: 46_500,
+      overduePence: 0,
+      notYetDuePence: 907_000,
+    });
+  });
+
+  it("counts an overpayment only up to the charge", () => {
+    const fees = summariseYearFees(
+      [
+        {
+          charges: [
+            { academicYear: YEAR, amountPence: 100_000, dueDate: "2026-10-01" },
+          ],
+          payments: [paid(150_000)],
+        },
+      ],
+      YEAR,
+      TODAY,
+    );
+
+    expect(fees).toEqual({
+      chargedPence: 100_000,
+      paidPence: 100_000,
+      overduePence: 0,
+      notYetDuePence: 0,
+    });
   });
 });

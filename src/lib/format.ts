@@ -63,7 +63,16 @@ export function formatFileSize(bytes: number): string {
 
 /** "1 day", "2 days". */
 export function formatDays(days: number): string {
-  return `${days} ${days === 1 ? "day" : "days"}`;
+  return formatCount(days, "day");
+}
+
+/** A count and its noun, e.g. "1 student", "3 students", "2 people". */
+export function formatCount(
+  count: number,
+  noun: string,
+  plural = `${noun}s`,
+): string {
+  return `${count} ${count === 1 ? noun : plural}`;
 }
 
 /** The zone's short name at that instant, e.g. "GMT" or "BST" for London. */

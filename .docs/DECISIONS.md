@@ -589,11 +589,15 @@ data is always read at request time.
   package, a CLI with its own dependency tree, from the runtime dependencies.
 - The app has one light theme; dark mode is out of scope. The toast component
   therefore fixes its theme instead of depending on `next-themes`.
-- Two generated files were changed to fit the app's rules: `use-mobile.ts`
+- Three generated files were changed to fit the app's rules: `use-mobile.ts`
   reads the screen width through `useSyncExternalStore` rather than setting
-  state in an effect, which the React lint rules refuse; and the sidebar's
-  user menu uses a fixed-size placeholder, because shadcn's menu skeleton
-  picks a random width, which a prerender may not do.
+  state in an effect, which the React lint rules refuse; the sidebar's user
+  menu uses a fixed-size placeholder, because shadcn's menu skeleton picks a
+  random width, which a prerender may not do; and `chart.tsx` reads chart
+  keys and colours through small typed helpers instead of `any` values and
+  template strings, which the type-checked lint rules refuse. Its tooltip
+  also passes a value formatter the whole payload, as Recharts' type says,
+  rather than one data point.
 
 ### The app shell
 
@@ -656,6 +660,68 @@ one after another. It is now a header and tabs.
   them would mean computing every student's account on every visit.
 - Each row has a menu that opens the record on a given tab (Fees, Results,
   History or Sign-in), or emails the student.
+
+### The dashboard
+
+The first dashboard counted students by status and listed overdue fees. It
+now answers the two questions Registry staff start the day with: where do
+things stand, and what needs doing.
+
+- **Figures** across the top: students enrolled, fees overdue, the year's
+  fees collected, marks to publish, work to mark and accounts waiting for
+  activation, each with a line of context.
+- **Charts:**
+  - students by programme, split by status, whose legend opens the student
+    list filtered to a status, and whose programme names open it filtered
+    to the programme (the old status counts live on in that legend);
+  - the academic year's fees: paid, overdue and not yet due;
+  - the year's marks by classification;
+  - the assessments open for submissions, with how many of the students
+    expected have submitted.
+- **Needs attention:** four worklists, each showing the first five items,
+  linking to the work, and linking to the full page where there is one.
+  - Marks to publish: students with marks not yet published and no hold,
+    longest waiting first. A changed mark becomes unpublished again, so it
+    waits from its last save.
+  - Work to mark: submissions without a mark, counted only once the deadline
+    has passed, because until then the student can replace their work.
+  - Past the deadline: assessments still taking late work, oldest deadline
+    first, as a reminder to close them.
+  - Waiting for activation: enrolled students who haven't set a password,
+    those without a link that still works first. Their Sign-in tab sends a
+    new one. Students who have left aren't chased to activate.
+- **Overdue fees,** the worklist from before, unchanged.
+
+How the figures are worked out:
+
+- **The year's fees** apply each student's payments to their oldest charges
+  first, as the account does, so a payment counts towards this year only
+  once older debts are paid. Credit left over counts towards nothing.
+- **The year's marks** are those for assessments whose deadline falls in the
+  academic year by the college's calendar: the query converts each deadline
+  to the college's time zone before comparing dates, so a deadline at 00:30
+  on 1 September (23:30 the day before in UTC) counts in the new year.
+- Raw SQL is used twice, where Prisma can't express the query: matching
+  submissions to marks on both student and assessment, and the time zone
+  conversion. Instants go in as ISO text with a cast: the PostgreSQL adapter
+  sends a `Date` without its offset, to be read in the session's time zone.
+
+How the charts are drawn:
+
+- The ring and the columns use shadcn's chart component, which wraps
+  Recharts. Programme names are too long for a chart's axis, so the
+  programme bars are plain HTML, drawn on the server.
+- Every chart's figures are in text: the fees legend lists every amount, the
+  programme bars carry a line such as "2 enrolled · 1 withdrawn", and the
+  columns have a list that only screen readers get. The drawings themselves
+  are hidden from screen readers, with nothing inside them in the tab order.
+- Colours follow the badges' hues (enrolled green, deferred amber, overdue
+  red), in shades with at least 3:1 contrast against the card. They are
+  defined once in `globals.css`, because Tailwind only emits its palette's
+  variables for the colours the app's classes use.
+- Each card is a section named by its heading, with an id from `useId()`.
+  On a phone the cards stack, and the overdue table scrolls inside its card
+  rather than widening the page.
 
 ### One write path: Route Handlers
 
@@ -840,9 +906,14 @@ unused `mysql2` driver inside the Prisma CLI, so it isn't reachable either.
 - **Balances at scale:** balances are computed in the application from each
   student's charges and payments. The student list does this for one page of
   20 students, but the dashboard does it for every student with a charge past
-  its due date, on every visit. That is fine for a college of a few thousand
-  students. Much beyond that, the calculation would move into a database view,
-  so that only overdue rows are read.
+  its due date, and again for the year's fees, on every visit. That is fine
+  for a college of a few thousand students. Much beyond that, the
+  calculation would move into a database view, so that only overdue rows are
+  read.
+- **Activations at scale:** the dashboard shows the first five students
+  waiting to activate their account, with how many more there are. There is
+  no page listing them all yet: a sign-in filter on the student list would
+  be one.
 - **File storage:** submissions live on the server's own disk. Several
   servers, or a host whose disk is wiped on deploy, would need object storage
   such as S3. Only the three functions in `src/server/storage.ts` would change.

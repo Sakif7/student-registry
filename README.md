@@ -42,6 +42,11 @@ Router), PostgreSQL and Prisma.
   - staff can resend that link, email a password reset link, or turn a
     student's sign-in off, which signs them out everywhere;
   - every page and API call checks the role.
+- **Dashboard:** the day's figures; charts of students by programme and
+  status, the academic year's fees and its marks; worklists of what needs
+  attention (marks to publish, work to mark, assessments past their
+  deadline, accounts waiting for activation); the overdue fees; and the
+  assessments open for submissions.
 - **Interface:** an app shell with a sidebar of the section's pages, which
   collapses to icons or, on a phone, slides in; breadcrumbs on deeper pages;
   a menu for one's account and signing out; a search (Ctrl/⌘+K) for pages,

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   academicYearOn,
   academicYearSchema,
+  academicYearSpan,
   academicYearStart,
   academicYearsAround,
   formatAcademicYear,
@@ -37,6 +38,19 @@ describe("academicYearOn", () => {
 
   it("keeps January to August in the year that started the previous autumn", () => {
     expect(academicYearOn("2027-01-15")).toBe("2026/27");
+  });
+});
+
+describe("academicYearSpan", () => {
+  it("runs from 1 September to 31 August", () => {
+    expect(academicYearSpan("2026/27")).toEqual({
+      first: "2026-09-01",
+      last: "2027-08-31",
+    });
+  });
+
+  it("rejects a malformed year", () => {
+    expect(() => academicYearSpan("2026")).toThrow(RangeError);
   });
 });
 

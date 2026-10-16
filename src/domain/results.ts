@@ -17,12 +17,29 @@ export const CLASSIFICATION_LABELS: Record<Classification, string> = {
   DISTINCTION: "Distinction",
 };
 
+/** Every classification, lowest first. */
+export const CLASSIFICATIONS = [
+  "FAIL",
+  "PASS",
+  "MERIT",
+  "DISTINCTION",
+] as const satisfies readonly Classification[];
+
 /** Classifies a mark from 0 to 100. Boundaries are inclusive (40 is a Pass). */
 export function classify(mark: number): Classification {
   if (mark >= CLASSIFICATION_BOUNDARIES.DISTINCTION) return "DISTINCTION";
   if (mark >= CLASSIFICATION_BOUNDARIES.MERIT) return "MERIT";
   if (mark >= CLASSIFICATION_BOUNDARIES.PASS) return "PASS";
   return "FAIL";
+}
+
+/** How many of the marks fall in each classification. */
+export function countByClassification(
+  marks: readonly number[],
+): Record<Classification, number> {
+  const counts = { FAIL: 0, PASS: 0, MERIT: 0, DISTINCTION: 0 };
+  for (const mark of marks) counts[classify(mark)] += 1;
+  return counts;
 }
 
 /** A mark: a whole number from 0 to 100. */

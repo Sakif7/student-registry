@@ -355,10 +355,34 @@ year's fee is overdue after a £5,000.00 card payment.
 Reset the demo data first with `npm run db:seed`, because the days overdue
 below are as of the day the seed runs. As staff:
 
-1. Open **Dashboard**. Under **Students** it shows All students 10, Enrolled 7,
-   Deferred 1, Withdrawn 1 and Completed 1. Select **Withdrawn**: the student
-   list opens filtered to Withdrawn and shows Hannah Kowalski.
-2. Back on **Dashboard**, **Overdue fees** reads "3 students owe £24,020.00 in
+1. Open **Dashboard**. The figures read 7 enrolled students (10 on record),
+   £24,020.00 of overdue fees (3 students), 3 marks to publish (3 students;
+   1 held), 1 piece of work to mark, and 1 student waiting for activation.
+   **Students by programme** shows Enrolled 7, Deferred 1, Withdrawn 1 and
+   Completed 1, and under **MSc Data Science** "2 enrolled · 1 withdrawn".
+   Select **Withdrawn**: the student list opens filtered to Withdrawn and
+   shows Hannah Kowalski. Back on the dashboard, select **BSc (Hons)
+   Computer Science**: the list shows that programme's four students.
+2. **Fees for** the current academic year reads 56% collected: paid
+   £47,555.00, overdue £24,020.00, not yet due £11,950.00, of £83,525.00
+   charged. Hovering over the ring shows each part's amount.
+3. Under **Needs attention**:
+   - **Marks to publish** lists Chloé Dubois, Arjun Mehta and Oliver
+     Bennett, longest waiting first. Select Oliver: his record opens on the
+     **Results** tab.
+   - **Work to mark** lists **Machine learning report**, with 1 submission
+     to mark: Hannah's, sent in before she withdrew.
+   - **Past the deadline** lists **Management essay**, then **Database
+     design report**: both still take late work.
+   - **Waiting for activation** lists Arjun Mehta, who "Needs a new link".
+     Select him: his record opens on the **Sign-in** tab.
+4. **Open assessments** shows Web project proposal (1 of 3 submitted), Data
+   pipeline design and Accounting test (0 of 2 each), soonest deadline
+   first. **Marks for** the year shows 1 Fail, 2 Pass, 2 Merit and 3
+   Distinction: the Final year project's mark belongs to last year.
+5. Make the window narrow, as on a phone: the cards stack, and the overdue
+   table scrolls sideways inside its card while the page doesn't.
+6. Back on **Dashboard**, **Overdue fees** reads "3 students owe £24,020.00 in
    total past the due date" and lists them, longest overdue first:
 
    | Student         | Status    | Overdue   | Overdue since   |
@@ -370,11 +394,11 @@ below are as of the day the seed runs. As staff:
    Hannah is listed despite having withdrawn, because the debt still needs
    chasing. Arjun Mehta isn't listed: that fee isn't due for another 5 days.
 
-3. Open **Students**. The **Fees** column shows the same three students as
+7. Open **Students**. The **Fees** column shows the same three students as
    **Overdue**, each with the amount and days overdue. Arjun shows **Balance
    due**, Liam **In credit**, Sofia **No fees**, and the rest **Paid in
    full**.
-4. Open **Kwame Mensah** and record a payment of `4535` with the reference
+8. Open **Kwame Mensah** and record a payment of `4535` with the reference
    `CARD KM 0002`. Select **Dashboard**: Kwame is no longer listed, and the
    total reads "2 students owe £19,485.00".
 
@@ -480,8 +504,9 @@ Continue from scenario 11, as staff.
    mark (35, **Fail**) had been published.
 6. As staff, open **Results**. Students with marks to publish come first, each
    with a **Publish** button: Arjun Mehta, Chloé Dubois and Oliver Bennett.
-   Kwame shows **Withheld** with the reason. On **Dashboard**, **Results**
-   counts 3 students with marks to publish and 1 with results withheld.
+   Kwame shows **Withheld** with the reason. On **Dashboard**, the **Marks
+   to publish** figure reads 3, for 3 students with 1 held, and the
+   worklist under **Needs attention** names the same three students.
 7. On **SQL lab test**'s marksheet, change Amelia's mark to `68` and save. It
    reads "Not published" again, and Amelia's **Results** no longer shows it
    until it is published again.

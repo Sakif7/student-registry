@@ -672,6 +672,14 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-chart-enrolled: var(--chart-enrolled);
+  --color-chart-deferred: var(--chart-deferred);
+  --color-chart-withdrawn: var(--chart-withdrawn);
+  --color-chart-completed: var(--chart-completed);
+  --color-chart-paid: var(--chart-paid);
+  --color-chart-overdue: var(--chart-overdue);
+  --color-chart-due: var(--chart-due);
+  --color-chart-primary: var(--chart-primary);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -721,6 +729,16 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* The dashboard's charts, in the hues of the matching badges, dark enough
+     to stand out against a card (3:1). */
+  --chart-enrolled: oklch(59.6% 0.145 163.225); /* emerald-600 */
+  --chart-deferred: oklch(66.6% 0.179 58.318); /* amber-600 */
+  --chart-withdrawn: oklch(55.2% 0.016 285.938); /* zinc-500 */
+  --chart-completed: oklch(58.8% 0.158 241.966); /* sky-600 */
+  --chart-paid: oklch(59.6% 0.145 163.225); /* emerald-600 */
+  --chart-overdue: oklch(57.7% 0.245 27.325); /* red-600 */
+  --chart-due: oklch(66.6% 0.179 58.318); /* amber-600 */
+  --chart-primary: oklch(58.8% 0.158 241.966); /* sky-600 */
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);

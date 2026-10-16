@@ -113,6 +113,55 @@ export function summariseAccount(
   };
 }
 
+/** One academic year's fees across students' accounts. */
+export interface YearFees {
+  chargedPence: number;
+  paidPence: number;
+  /** Unpaid on charges past their due date. */
+  overduePence: number;
+  /** Unpaid on charges not yet past their due date. */
+  notYetDuePence: number;
+}
+
+/**
+ * Totals one academic year's charges across students' accounts: how much of
+ * them is paid, overdue and not yet due. Each student's payments clear their
+ * oldest charges first (see allocatePayments), so a payment counts towards
+ * the year only once the student's older debts are paid, and credit left over
+ * counts towards nothing.
+ *
+ * @param accounts - Each student's charges, with the year each is for, and
+ *   payments.
+ * @param academicYear - The year to total, e.g. "2026/27".
+ * @param today - The college's current date.
+ */
+export function summariseYearFees(
+  accounts: readonly {
+    charges: readonly (ChargeLine & { academicYear: string })[];
+    payments: readonly PaymentLine[];
+  }[],
+  academicYear: string,
+  today: CalendarDate,
+): YearFees {
+  const lines = accounts.flatMap(({ charges, payments }) =>
+    allocatePayments(charges, totalPaid(payments), today).filter(
+      (charge) => charge.academicYear === academicYear,
+    ),
+  );
+  const unpaid = (overdue: boolean) =>
+    sum(
+      lines
+        .filter((line) => line.overdue === overdue)
+        .map((line) => line.outstandingPence),
+    );
+  return {
+    chargedPence: sum(lines.map((line) => line.amountPence)),
+    paidPence: sum(lines.map((line) => line.paidPence)),
+    overduePence: unpaid(true),
+    notYetDuePence: unpaid(false),
+  };
+}
+
 /** One word for the state of an account, for badges and filters. */
 export type AccountStanding = "OVERDUE" | "DUE" | "PAID" | "CREDIT" | "NONE";
 

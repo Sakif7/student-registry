@@ -1146,3 +1146,49 @@ failed too. The assertions are unchanged.
 
 **Checked by:** the full unit and integration run with coverage, and the
 end-to-end suite.
+
+## Dashboard: figures, charts and worklists
+
+**What the AI did:** rebuilt the staff dashboard around the day's work:
+
+- figures for enrolled students, overdue fees, the year's fees collected,
+  marks to publish, work to mark and accounts waiting for activation;
+- charts of students by programme and status, the academic year's fees
+  (paid, overdue, not yet due) and its marks by classification, with each
+  chart's figures also in text;
+- worklists of marks to publish, work to mark, assessments past their
+  deadline and students waiting to activate their account, each leading to
+  the record or assessment concerned;
+- the overdue worklist, and the assessments open for submissions.
+
+It added shadcn's chart component with the shadcn CLI. The CLI's dry run
+listed a package called `cn` among the dependencies, which looked like a
+mistake until the AI checked: the app already uses `cn`, shadcn's own class
+name helper, in every component.
+
+Found and fixed along the way:
+
+- The PostgreSQL adapter sends a `Date` in a raw query without its offset,
+  so the database would read it in its own time zone. Instants now go in as
+  ISO text with a cast, and AGENTS.md says so.
+- On a phone, the overdue table widened the whole page: the dashboard's
+  grids sized their single column to the widest content. They now use
+  `minmax(0, 1fr)` columns, and the table scrolls inside its card.
+- The axe scan found the fees ring in the tab order although it is hidden
+  from screen readers. Recharts gives a pie's root a tab index by default;
+  it is now `-1`.
+- The demo data stamped every mark with the time the seed ran, so every
+  mark seemed to have just been saved. Marks now carry the time the audit
+  trail says they were entered.
+
+**Checked by:**
+
+- unit tests of the year's fee totals (payments clearing older years first,
+  credit counting for nothing) and of counting marks by classification;
+- integration tests of every figure and worklist, including a deadline that
+  falls on 1 September in London but 31 August in UTC (a test that fails if
+  the query compares UTC dates, which the AI tried);
+- end-to-end tests: publishing from the worklist removes the student from
+  it, and the worklists and the chart of students lead to the right pages;
+- the axe scan of the dashboard, and screenshots at desktop, laptop and
+  phone widths.

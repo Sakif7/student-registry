@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   classify,
+  countByClassification,
   isVisibleToStudent,
   markFieldSchema,
   markSchema,
@@ -21,6 +22,17 @@ describe("classify", () => {
     [100, "DISTINCTION"],
   ])("classifies %i as %s", (mark, classification) => {
     expect(classify(mark)).toBe(classification);
+  });
+});
+
+describe("countByClassification", () => {
+  it("counts the marks in each classification, including those with none", () => {
+    expect(countByClassification([35, 40, 59, 74, 81])).toEqual({
+      FAIL: 1,
+      PASS: 2,
+      MERIT: 0,
+      DISTINCTION: 2,
+    });
   });
 });
 

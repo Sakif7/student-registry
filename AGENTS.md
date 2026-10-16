@@ -67,6 +67,13 @@ Read it before changing behaviour, and add to it when you make a new decision.
   `<form>`. It stays `aria-disabled` until React has hydrated it.
 - **Element ids:** never hard-code one. `FormField` makes its own; build any
   other id from `useId()`, because hidden pages stay in the document.
+- **Charts:** draw them with `src/components/ui/chart.tsx` (Recharts) and
+  the `--chart-*` colours in `globals.css`. Hide the drawing from screen
+  readers (`aria-hidden`, with nothing inside in the tab order) and give its
+  figures in text.
+- **Raw SQL:** only where Prisma can't express the query. Pass an instant
+  as `${date.toISOString()}::timestamptz`: the adapter sends a `Date`
+  without its offset.
 - **Every change records who made it:** a service that writes calls
   `recordEvent` (`src/server/audit.ts`) in the same transaction, with an
   event type from `src/domain/audit.ts`. The trail is append-only.

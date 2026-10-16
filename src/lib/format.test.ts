@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatCount,
   formatDate,
   formatDateOf,
   formatDateTime,
@@ -41,6 +42,14 @@ describe("formatDays", () => {
     expect(formatDays(1)).toBe("1 day");
     expect(formatDays(0)).toBe("0 days");
     expect(formatDays(30)).toBe("30 days");
+  });
+});
+
+describe("formatCount", () => {
+  it("uses the singular for one, and the plural given or an added s", () => {
+    expect(formatCount(1, "student")).toBe("1 student");
+    expect(formatCount(0, "student")).toBe("0 students");
+    expect(formatCount(2, "person", "people")).toBe("2 people");
   });
 });
 

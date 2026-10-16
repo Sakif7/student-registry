@@ -2,7 +2,7 @@
 // 31 August 2027.
 import { z } from "zod";
 
-import type { CalendarDate } from "./college-time";
+import { addDays, type CalendarDate } from "./college-time";
 
 const ACADEMIC_YEAR = /^(\d{4})\/(\d{2})$/;
 
@@ -42,6 +42,22 @@ export function isAcademicYear(value: string): boolean {
 /** Writes the academic year starting in `startYear`, e.g. 2026 → "2026/27". */
 export function formatAcademicYear(startYear: number): string {
   return `${startYear}/${String((startYear + 1) % 100).padStart(2, "0")}`;
+}
+
+/**
+ * The first and last days of an academic year, e.g. "2026/27" runs from
+ * "2026-09-01" to "2027-08-31".
+ *
+ * @throws RangeError if the value is not a well-formed academic year.
+ */
+export function academicYearSpan(academicYear: string): {
+  first: CalendarDate;
+  last: CalendarDate;
+} {
+  const start = startYearOf(academicYear);
+  const month = String(ACADEMIC_YEAR_START_MONTH).padStart(2, "0");
+  const first = `${start}-${month}-01`;
+  return { first, last: addDays(`${start + 1}-${month}-01`, -1) };
 }
 
 /** The academic year a calendar date falls in. */
