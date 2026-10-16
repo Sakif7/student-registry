@@ -1,5 +1,5 @@
 // The home address sends each person to their own area: Registry staff to the
-// dashboard, a student to their record, and anyone signed out to sign in.
+// dashboard, a student to their home page, and anyone signed out to sign in.
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 

@@ -47,6 +47,9 @@ Router), PostgreSQL and Prisma.
   attention (marks to publish, work to mark, assessments past their
   deadline, accounts waiting for activation); the overdue fees; and the
   assessments open for submissions.
+- **Student view:** a home page with the next deadline, fees and latest
+  results, and every assessment still taking work; pages for assessments
+  and submissions, results, fees and the student's own record.
 - **Interface:** an app shell with a sidebar of the section's pages, which
   collapses to icons or, on a phone, slides in; breadcrumbs on deeper pages;
   a menu for one's account and signing out; a search (Ctrl/⌘+K) for pages,

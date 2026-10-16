@@ -92,6 +92,8 @@ test("student pages", async ({ page }) => {
     "/student/assessments",
     `/student/assessments/${id ?? ""}`,
     "/student/results",
+    "/student/fees",
+    "/student/record",
     "/student/account",
   ]) {
     await expectNoViolations(page, path);

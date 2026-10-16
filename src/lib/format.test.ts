@@ -6,6 +6,7 @@ import {
   formatDateOf,
   formatDateTime,
   formatDays,
+  formatDaysAway,
   formatFileSize,
   formatMoney,
 } from "./format";
@@ -42,6 +43,18 @@ describe("formatDays", () => {
     expect(formatDays(1)).toBe("1 day");
     expect(formatDays(0)).toBe("0 days");
     expect(formatDays(30)).toBe("30 days");
+  });
+});
+
+describe("formatDaysAway", () => {
+  it.each([
+    [0, "today"],
+    [1, "tomorrow"],
+    [3, "in 3 days"],
+    [-1, "yesterday"],
+    [-3, "3 days ago"],
+  ])("writes %i days as %j", (days, text) => {
+    expect(formatDaysAway(days)).toBe(text);
   });
 });
 

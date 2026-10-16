@@ -1,9 +1,11 @@
 // The pages of each section, for the sidebar and the search palette.
 import {
+  Banknote,
   ClipboardList,
   GraduationCap,
   History,
   House,
+  IdCard,
   LayoutDashboard,
   type LucideIcon,
   Users,
@@ -28,8 +30,10 @@ export const NAV: Record<ShellRole, readonly NavItem[]> = {
     { href: "/staff/activity", label: "Activity", icon: History },
   ],
   student: [
-    { href: "/student", label: "My record", icon: House },
+    { href: "/student", label: "Home", icon: House },
     { href: "/student/assessments", label: "Assessments", icon: ClipboardList },
     { href: "/student/results", label: "Results", icon: GraduationCap },
+    { href: "/student/fees", label: "Fees", icon: Banknote },
+    { href: "/student/record", label: "My record", icon: IdCard },
   ],
 };

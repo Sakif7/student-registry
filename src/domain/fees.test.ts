@@ -4,6 +4,7 @@ import {
   accountStanding,
   allocatePayments,
   correctFeeSchema,
+  nextChargeDue,
   normalisePaymentReference,
   recordPaymentSchema,
   summariseAccount,
@@ -296,5 +297,36 @@ describe("summariseYearFees", () => {
       overduePence: 0,
       notYetDuePence: 0,
     });
+  });
+});
+
+describe("nextChargeDue", () => {
+  it("is the earliest charge not yet due that still has something to pay", () => {
+    const charges = allocatePayments(
+      [
+        { id: "overdue", amountPence: 100_000, dueDate: "2026-10-01" },
+        { id: "later", amountPence: 100_000, dueDate: "2027-01-15" },
+        { id: "sooner", amountPence: 100_000, dueDate: "2026-11-14" },
+      ],
+      0,
+      TODAY,
+    );
+
+    expect(nextChargeDue(charges)).toMatchObject({
+      id: "sooner",
+      outstandingPence: 100_000,
+    });
+  });
+
+  it("skips charges already paid, and is null when nothing is left to pay", () => {
+    const charges = [
+      { id: "paid", amountPence: 100_000, dueDate: "2026-11-14" },
+      { id: "due", amountPence: 100_000, dueDate: "2027-01-15" },
+    ];
+
+    expect(
+      nextChargeDue(allocatePayments(charges, 150_000, TODAY)),
+    ).toMatchObject({ id: "due", outstandingPence: 50_000 });
+    expect(nextChargeDue(allocatePayments(charges, 200_000, TODAY))).toBeNull();
   });
 });

@@ -68,9 +68,12 @@ test("a student sees their own account, without staff controls", async ({
 }) => {
   await viewAs(page, demoStudent("liam"));
   await page.goto("/student");
+  await page.getByRole("link", { name: "Fees", exact: true }).click();
+  await expect(page).toHaveURL("/student/fees");
 
-  await expect(page.getByText("In credit").first()).toBeVisible();
+  const account = page.getByRole("region", { name: "Fees and payments" });
+  await expect(account.getByText("In credit").first()).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Record payment" }),
+    page.getByRole("button", { name: /^(Record a payment|Charge a fee)$/ }),
   ).toHaveCount(0);
 });

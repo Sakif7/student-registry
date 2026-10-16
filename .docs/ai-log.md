@@ -1192,3 +1192,33 @@ Found and fixed along the way:
   it, and the worklists and the chart of students lead to the right pages;
 - the axe scan of the dashboard, and screenshots at desktop, laptop and
   phone widths.
+
+## Student home page
+
+**What the AI did:** gave students a home page in the shell: their next
+deadline (and whether they have submitted, or why they can't), their fees
+(what is left to pay, anything overdue, the next payment due), their latest
+published marks (or why results are withheld), and every assessment still
+taking work. The details, status history and account that used to make up
+the home page moved to new **My record** and **Fees** pages in the sidebar.
+
+The old home page sent a student whose record had gone back to `/`, a
+leftover from the first version's demo role picker. With real sign-in,
+`/` would have sent them straight back: a redirect loop, had it ever
+happened. The student pages now show the 404 page instead, like the rest
+of the app.
+
+The end-to-end check that a student sees no staff controls looked for a
+"Record payment" button, but the staff button is "Record a payment", so the
+check would have passed even if it were there. It now looks for the real
+button names.
+
+**Checked by:**
+
+- unit tests of the next charge due and of "today", "tomorrow" and "in 3
+  days";
+- end-to-end tests: a student's home shows their deadline, fees, results
+  and work, and leads to an assessment; a student with fees overdue and
+  results withheld is told both, and **Your fees** leads to their account;
+- the axe scan of every student page, and screenshots of three students'
+  home pages.

@@ -723,6 +723,25 @@ How the charts are drawn:
   On a phone the cards stack, and the overdue table scrolls inside its card
   rather than widening the page.
 
+### The student's pages
+
+Students have the same shell, with their own pages: Home, Assessments,
+Results, Fees and My record.
+
+- **Home** answers "what do I need to do?":
+  - the next deadline: the soonest assessment still open, and whether the
+    student has submitted, or why they can't;
+  - fees: what is left to pay, anything overdue, and the next payment due;
+  - the latest three published marks, or why results are withheld;
+  - every assessment still taking work, including those past their deadline
+    that still accept late work.
+- The old home page was the student's details, status history and account
+  on one page. Those moved to **My record** and **Fees**, so Home stays
+  short.
+- Every page reads through the same services as the staff pages, which give
+  a student only their own data, and only marks that are published and not
+  withheld.
+
 ### One write path: Route Handlers
 
 Every write goes through a Route Handler under `/api`, and the UI calls those

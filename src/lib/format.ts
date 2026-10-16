@@ -66,6 +66,17 @@ export function formatDays(days: number): string {
   return formatCount(days, "day");
 }
 
+/**
+ * How far away a day is, counted in days from today: "today", "tomorrow",
+ * "in 3 days", "yesterday" or "3 days ago".
+ */
+export function formatDaysAway(days: number): string {
+  if (days === 0) return "today";
+  if (days === 1) return "tomorrow";
+  if (days === -1) return "yesterday";
+  return days > 0 ? `in ${formatDays(days)}` : `${formatDays(-days)} ago`;
+}
+
 /** A count and its noun, e.g. "1 student", "3 students", "2 people". */
 export function formatCount(
   count: number,

@@ -47,7 +47,7 @@ the browser once with `npx playwright install chromium`. Each run then:
    the report, with a screenshot and a trace of the failure.
 
 The specs cover signing in and out, resetting a forgotten password by email,
-access control, enrolment and the student list, fees and the dashboard, the assessment journey (setting, submitting,
+access control, enrolment and the student list, fees and the dashboard, the student's home page, the assessment journey (setting, submitting,
 replacing, late work, marking), publishing and withholding results, the audit trail, and an axe
 accessibility scan of every kind of page.
 
@@ -215,7 +215,7 @@ As staff:
 7. Open Mailpit at <http://localhost:8025>. The email "Activate your Student
    Registry account" to Grace holds a link. Open it in a private window and
    choose a password: "Your account is ready". Sign in there as
-   `grace.thompson@student.example`: you land on **My record** for Grace.
+   `grace.thompson@student.example`: you land on Grace's **Home** page.
 8. Back on Grace's record as staff, reload: **Sign-in** reads **Active**. The
    **Sign-in** tab gives the date of activation and "Signed in on 1 device
    now."
@@ -290,15 +290,29 @@ in the address (`?tab=fees`), so a link or a reload opens it again.
    closes and the record shows 2027/28, with the student ID still
    SMS-2026-0001.
 
-### 5. A student's own record
+### 5. A student's own pages
 
-1. Sign in as **Sofia Rossi** (`sofia.rossi@student.example`), who is
-   deferred.
-2. **My record** shows Sofia's details and status history. A note explains
-   that the enrolment is deferred, so no work can be submitted. There are no
-   edit or status controls.
-3. Open <http://localhost:3000/staff> as Sofia. You are sent back to **My
-   record**, because the staff pages are for staff only.
+1. Sign in as **Priya Natarajan** (`priya.natarajan@student.example`). You
+   land on **Home**: the sidebar lists Home, Assessments, Results, Fees and
+   My record.
+   - **Next deadline** is the Web project proposal, due in 10 days, marked
+     **Submitted**.
+   - **Fees** reads **Paid in full** and "Nothing to pay".
+   - **Latest results** lists Algorithms coursework: 58, **Pass**.
+   - **Assessments taking work** lists the Web project proposal (open,
+     submitted) and the Database design report (past its deadline, not
+     submitted, so late work is still accepted).
+2. Sign out and sign in as **Amelia Hart**. **Fees** reads "£9,535.00 to
+   pay", with the amount overdue and since when. **Latest results** says the
+   results are being withheld, and why. Select **Your fees**: **My fees**
+   lists the charges and payments.
+3. Sign out and sign in as **Sofia Rossi** (`sofia.rossi@student.example`),
+   who is deferred. A note on **Home** explains that the enrolment is
+   deferred, so no work can be submitted, and **Next deadline** says "Only
+   enrolled students can submit work." **My record** shows Sofia's details
+   and status history, with no edit or status controls.
+4. Open <http://localhost:3000/staff> as Sofia. You are sent back to
+   **Home**, because the staff pages are for staff only.
 
 ### 6. Fees and payments
 
@@ -325,8 +339,8 @@ account is **Overdue**:
    charge it again. The charge is listed with the note under it.
 6. Record a payment of £20,000.00 for **Liam O'Connor**. Liam's account
    shows **In credit**.
-7. As **Liam O'Connor**, **My record** shows the same account, with no
-   forms.
+7. As **Liam O'Connor**, **Fees** shows the same account, with no forms,
+   and **Home** sums it up as "In credit".
 
 ### 7. Correcting a fee and reversing a payment
 

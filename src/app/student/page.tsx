@@ -1,25 +1,31 @@
-// The student's home page: their own record and account, read-only.
+// The student's home page: where they stand at a glance (their next
+// deadline, fees and latest results), then every assessment still taking
+// work. Their details are on My record, and their account on Fees.
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { AccountSection } from "@/components/fees/account-section";
+import {
+  DashboardCard,
+  EmptyNote,
+} from "@/components/dashboard/dashboard-card";
+import { FeesSummary } from "@/components/home/fees-summary";
+import { LatestResults } from "@/components/home/latest-results";
+import { NextDeadline } from "@/components/home/next-deadline";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
-import {
-  StatusHistoryCard,
-  StudentDetailsCard,
-} from "@/components/students/student-details";
+import { StudentAssessmentsTable } from "@/components/submissions/student-assessments-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import { collegeTimeZone, collegeToday } from "@/server/college";
-import { AppError } from "@/server/errors";
+import { orNotFound } from "@/server/pages";
 import { getAccount } from "@/server/services/fees";
+import { getResults } from "@/server/services/results";
 import { getStudent } from "@/server/services/students";
+import { listStudentAssessments } from "@/server/services/submissions";
 import { requirePageRole } from "@/server/session";
 
-export const metadata: Metadata = { title: "My record" };
+export const metadata: Metadata = { title: "Home" };
 
 /** What each status means for the student, in their own words. */
 const STATUS_NOTES: Partial<Record<EnrolmentStatus, string>> = {
@@ -37,27 +43,36 @@ export default function StudentHomePage() {
       fallback={
         <div className="grid gap-6">
           <Skeleton className="h-12 w-72" />
-          <Skeleton className="h-64" />
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Skeleton className="h-48 rounded-xl" />
+            <Skeleton className="h-48 rounded-xl" />
+            <Skeleton className="h-48 rounded-xl" />
+          </div>
+          <Skeleton className="h-64 rounded-xl" />
         </div>
       }
     >
-      <MyRecord />
+      <Home />
     </Suspense>
   );
 }
 
-async function MyRecord() {
+async function Home() {
   const session = await requirePageRole("student");
-  const [student, account] = await Promise.all([
-    getStudent(session, session.studentNumber),
-    getAccount(session, session.studentNumber),
-  ]).catch((error: unknown) => {
-    // The record may have gone (e.g. the demo data was reset): choose again.
-    if (error instanceof AppError && error.kind === "NOT_FOUND") redirect("/");
-    throw error;
-  });
-  const note = STATUS_NOTES[student.status];
+  const [student, account, assessments, results] = await orNotFound(
+    Promise.all([
+      getStudent(session, session.studentNumber),
+      getAccount(session, session.studentNumber),
+      listStudentAssessments(session, session.studentNumber),
+      getResults(session, session.studentNumber),
+    ]),
+  );
   const timeZone = collegeTimeZone();
+  const note = STATUS_NOTES[student.status];
+  // Open ones first, soonest deadline first (see compareAssessments).
+  const takingWork = assessments.filter(({ state }) => state !== "CLOSED");
+  const next = assessments.find(({ state }) => state === "OPEN");
+
   return (
     <>
       <PageHeader
@@ -75,15 +90,44 @@ async function MyRecord() {
           <AlertDescription>{note}</AlertDescription>
         </Alert>
       )}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <StudentDetailsCard
-          student={student}
-          today={collegeToday()}
-          timeZone={timeZone}
-        />
-        <StatusHistoryCard student={student} timeZone={timeZone} />
+      <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <DashboardCard title="Next deadline">
+            <NextDeadline
+              assessment={next}
+              today={collegeToday()}
+              timeZone={timeZone}
+            />
+          </DashboardCard>
+          <DashboardCard
+            title="Fees"
+            link={{ href: "/student/fees", label: "Your fees" }}
+          >
+            <FeesSummary account={account} />
+          </DashboardCard>
+          <DashboardCard
+            title="Latest results"
+            link={{ href: "/student/results", label: "All results" }}
+          >
+            <LatestResults results={results} timeZone={timeZone} />
+          </DashboardCard>
+        </div>
+        <DashboardCard
+          title="Assessments taking work"
+          count={takingWork.length}
+          description="Open ones first, soonest deadline first. After the deadline, late work is accepted until the assessment closes."
+          link={{ href: "/student/assessments", label: "All assessments" }}
+        >
+          {takingWork.length > 0 ? (
+            <StudentAssessmentsTable
+              assessments={takingWork}
+              timeZone={timeZone}
+            />
+          ) : (
+            <EmptyNote>No assessment is taking work just now.</EmptyNote>
+          )}
+        </DashboardCard>
       </div>
-      <AccountSection account={account} timeZone={timeZone} className="mt-10" />
     </>
   );
 }

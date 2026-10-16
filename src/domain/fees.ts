@@ -74,6 +74,22 @@ export function allocatePayments<Charge extends ChargeLine>(
     });
 }
 
+/**
+ * The next charge to pay before it becomes overdue: the earliest due date
+ * with something still unpaid, among charges not yet overdue.
+ *
+ * @param charges - Charges with payments applied (see allocatePayments).
+ */
+export function nextChargeDue<Charge extends ChargeLine>(
+  charges: readonly AllocatedCharge<Charge>[],
+): AllocatedCharge<Charge> | null {
+  return (
+    [...charges]
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+      .find((charge) => charge.outstandingPence > 0 && !charge.overdue) ?? null
+  );
+}
+
 /** The total of the payments that count (not reversed). */
 export function totalPaid(payments: readonly PaymentLine[]): number {
   return sum(
