@@ -3,8 +3,11 @@
 import {
   type AuditAction,
   type AuditDetails,
+  MODULE_FIELD_LABELS,
+  PROGRAMME_FIELD_LABELS,
   STUDENT_FIELD_LABELS,
 } from "@/domain/audit";
+import { MODULE_KIND_LABELS } from "@/domain/curriculum";
 import { ENROLMENT_STATUS_LABELS } from "@/domain/enrolment";
 
 import { formatDate, formatMoney } from "./format";
@@ -51,6 +54,23 @@ const DESCRIBE: Describe = {
       : "Emailed a password reset link",
   "sign_in.turned_off": () => "Turned sign-in off",
   "sign_in.turned_on": () => "Turned sign-in back on",
+  "programme.created": ({ code, title }) =>
+    `Set up the programme ${code} ${title}`,
+  "programme.edited": ({ code, fields }) =>
+    `Edited ${code}’s ${list(fields.map((field) => PROGRAMME_FIELD_LABELS[field] ?? field))}`,
+  "programme.module_added": ({ code, moduleCode, yearOfStudy, kind }) =>
+    `Added ${moduleCode} to ${code}, year ${yearOfStudy}, as ${MODULE_KIND_LABELS[kind].toLowerCase()}`,
+  "programme.module_removed": ({ code, moduleCode }) =>
+    `Removed ${moduleCode} from ${code}`,
+  "module.created": ({ code, title }) => `Set up the module ${code} ${title}`,
+  "module.edited": ({ code, fields }) =>
+    `Edited ${code}’s ${list(fields.map((field) => MODULE_FIELD_LABELS[field] ?? field))}`,
+  "academic_year.saved": ({ year, created, studentsChooseModules }) =>
+    `${created ? "Set up" : "Changed"} ${year}’s semesters; students ${studentsChooseModules ? "may" : "may not"} choose their optional modules`,
+  "registration.added": ({ moduleCode, moduleTitle, academicYear }) =>
+    `Registered on ${moduleCode} ${moduleTitle} for ${academicYear}`,
+  "registration.dropped": ({ moduleCode, moduleTitle, academicYear }) =>
+    `Dropped ${moduleCode} ${moduleTitle} for ${academicYear}`,
 };
 
 /**

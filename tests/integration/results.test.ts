@@ -14,6 +14,7 @@ import { listResultsWorklist } from "@/server/services/results";
 
 import {
   createAssessment,
+  createModule,
   createProgramme,
   createStudent,
 } from "../helpers/factories";
@@ -49,8 +50,10 @@ beforeEach(async () => {
   vi.setSystemTime(NOW);
   const programme = await createProgramme();
   const moduleId = (
-    await db().module.create({
-      data: { code: "CS4001", title: "Programming", programmeId: programme.id },
+    await createModule({
+      code: "CS4001",
+      title: "Programming",
+      programmeId: programme.id,
     })
   ).id;
   const essay = await createAssessment({

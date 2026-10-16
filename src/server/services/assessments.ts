@@ -1,13 +1,16 @@
 // Assessments: staff set work for a module with a deadline, then can move the
-// deadline, close the assessment to submissions or reopen it. Each assessment
-// has a marksheet: who on the programme has submitted (and who late), and
-// their marks.
+// deadline, close the assessment to submissions or reopen it. An assessment
+// belongs to the academic year of its deadline, and is for the students
+// registered on its module that year. Each assessment has a marksheet: who
+// has submitted (and who late), and their marks.
 import "server-only";
 
 import {
   createAssessmentSchema,
   updateAssessmentSchema,
 } from "@/domain/assessments";
+import { academicYearAt } from "@/domain/academic-year";
+import type { Semester } from "@/domain/curriculum";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   type Classification,
@@ -38,19 +41,23 @@ import { requireSession, requireStaff, type Session } from "../session";
 export interface ModuleOption {
   code: string;
   title: string;
-  programme: { code: string; title: string };
+  semester: Semester;
 }
 
 /** An assessment as staff see it in the list. */
 export interface AssessmentSummary {
   id: string;
   title: string;
-  module: { code: string; title: string };
-  programme: { code: string; title: string };
+  module: { code: string; title: string; semester: Semester };
+  /** The academic year of its deadline, e.g. "2026/27". */
+  academicYear: string;
   deadline: Date;
   closedAt: Date | null;
   state: AssessmentState;
-  /** Students expected to submit: those now enrolled on the programme. */
+  /**
+   * Students expected to submit: those registered on the module for the
+   * academic year, and now enrolled.
+   */
   expectedCount: number;
   /** How many of the expected students have submitted. */
   submittedCount: number;
@@ -92,20 +99,15 @@ export interface TrackerRow {
 export interface AssessmentDetail extends AssessmentSummary {
   createdAt: Date;
   /**
-   * The students enrolled on the programme, plus anyone else who submitted
-   * or has a mark (e.g. a student who withdrew afterwards), by name.
+   * The students expected to submit, plus anyone else who submitted or has
+   * a mark (e.g. a student who withdrew afterwards), by name.
    */
   students: TrackerRow[];
 }
 
 const summaryInclude = {
-  module: { include: { programme: true } },
-  submissions: {
-    select: {
-      submittedAt: true,
-      student: { select: { status: true, programmeId: true } },
-    },
-  },
+  module: true,
+  submissions: { select: { submittedAt: true, studentId: true } },
 } satisfies Prisma.AssessmentInclude;
 
 type AssessmentWithSubmissions = Prisma.AssessmentGetPayload<{
@@ -118,12 +120,8 @@ export async function listModules(
 ): Promise<ModuleOption[]> {
   requireSession(session);
   return db().module.findMany({
-    select: {
-      code: true,
-      title: true,
-      programme: { select: { code: true, title: true } },
-    },
-    orderBy: [{ programme: { title: "asc" } }, { code: "asc" }],
+    select: { code: true, title: true, semester: true },
+    orderBy: { code: "asc" },
   });
 }
 
@@ -133,26 +131,27 @@ export async function listAssessments(
 ): Promise<AssessmentSummary[]> {
   requireStaff(session);
   const now = new Date();
-  const [assessments, enrolled] = await Promise.all([
-    db().assessment.findMany({ include: summaryInclude }),
-    db().student.groupBy({
-      by: ["programmeId"],
-      where: { status: "ENROLLED" },
-      _count: { _all: true },
-    }),
-  ]);
-  const expected = new Map(
-    enrolled.map((group) => [group.programmeId, group._count._all]),
+  const timeZone = collegeTimeZone();
+  const assessments = await db().assessment.findMany({
+    include: summaryInclude,
+  });
+  const expected = await expectedStudents(
+    assessments.map((assessment) => ({
+      moduleId: assessment.moduleId,
+      academicYear: academicYearAt(assessment.deadline, timeZone),
+    })),
   );
 
   return assessments
-    .map((assessment) =>
-      toSummary(
+    .map((assessment) => {
+      const academicYear = academicYearAt(assessment.deadline, timeZone);
+      return toSummary(
         assessment,
-        expected.get(assessment.module.programmeId) ?? 0,
+        expected.get(cohortKey(assessment.moduleId, academicYear)),
         now,
-      ),
-    )
+        timeZone,
+      );
+    })
     .sort(compareAssessments);
 }
 
@@ -174,43 +173,45 @@ export async function getAssessment(
     : null;
   if (!assessment) throw assessmentNotFound();
 
-  const programmeId = assessment.module.programmeId;
-  const [expectedCount, students] = await Promise.all([
-    db().student.count({ where: { programmeId, status: "ENROLLED" } }),
-    db().student.findMany({
-      where: {
-        OR: [
-          { programmeId, status: "ENROLLED" },
-          { submissions: { some: { assessmentId: assessment.id } } },
-          { results: { some: { assessmentId: assessment.id } } },
-        ],
+  const timeZone = collegeTimeZone();
+  const academicYear = academicYearAt(assessment.deadline, timeZone);
+  const expected =
+    (
+      await expectedStudents([{ moduleId: assessment.moduleId, academicYear }])
+    ).get(cohortKey(assessment.moduleId, academicYear)) ?? new Set<string>();
+  const students = await db().student.findMany({
+    where: {
+      OR: [
+        { id: { in: [...expected] } },
+        { submissions: { some: { assessmentId: assessment.id } } },
+        { results: { some: { assessmentId: assessment.id } } },
+      ],
+    },
+    select: {
+      studentNumber: true,
+      fullName: true,
+      status: true,
+      resultsWithheldAt: true,
+      results: {
+        where: { assessmentId: assessment.id },
+        select: { mark: true, publishedAt: true },
       },
-      select: {
-        studentNumber: true,
-        fullName: true,
-        status: true,
-        resultsWithheldAt: true,
-        results: {
-          where: { assessmentId: assessment.id },
-          select: { mark: true, publishedAt: true },
-        },
-        submissions: {
-          where: { assessmentId: assessment.id },
-          select: {
-            id: true,
-            fileName: true,
-            sizeBytes: true,
-            attempt: true,
-            submittedAt: true,
-          },
+      submissions: {
+        where: { assessmentId: assessment.id },
+        select: {
+          id: true,
+          fileName: true,
+          sizeBytes: true,
+          attempt: true,
+          submittedAt: true,
         },
       },
-      orderBy: [{ fullName: "asc" }, { studentNumber: "asc" }],
-    }),
-  ]);
+    },
+    orderBy: [{ fullName: "asc" }, { studentNumber: "asc" }],
+  });
 
   return {
-    ...toSummary(assessment, expectedCount, new Date()),
+    ...toSummary(assessment, expected, new Date(), timeZone),
     createdAt: assessment.createdAt,
     students: students.map(
       ({
@@ -355,21 +356,21 @@ export async function saveMarks(
   const assessment = isId(assessmentId)
     ? await db().assessment.findUnique({
         where: { id: assessmentId },
-        select: {
-          id: true,
-          title: true,
-          module: { select: { programmeId: true } },
-        },
+        select: { id: true, title: true, moduleId: true, deadline: true },
       })
     : null;
   if (!assessment) throw assessmentNotFound();
+  const academicYear = academicYearAt(assessment.deadline, collegeTimeZone());
 
   const students = await db().student.findMany({
     where: { studentNumber: { in: Object.keys(marks) } },
     select: {
       id: true,
       studentNumber: true,
-      programmeId: true,
+      registrations: {
+        where: { moduleId: assessment.moduleId, academicYear },
+        select: { id: true },
+      },
       submissions: { where: { assessmentId }, select: { id: true } },
       results: { where: { assessmentId }, select: { id: true, mark: true } },
     },
@@ -380,12 +381,12 @@ export async function saveMarks(
     if (!student) {
       fieldErrors[`marks.${studentNumber}`] = ["There is no such student"];
     } else if (
-      student.programmeId !== assessment.module.programmeId &&
+      student.registrations.length === 0 &&
       student.submissions.length === 0 &&
       student.results.length === 0
     ) {
       fieldErrors[`marks.${studentNumber}`] = [
-        "This student isn't on the assessment's programme",
+        "This student isn't registered on the assessment's module",
       ];
     }
   }
@@ -444,29 +445,58 @@ function assessmentNotFound(): AppError {
   return new AppError("NOT_FOUND", "There is no such assessment.");
 }
 
+/** The key of a module's students in an academic year. */
+function cohortKey(moduleId: string, academicYear: string): string {
+  return `${moduleId} ${academicYear}`;
+}
+
+/**
+ * The students expected to submit for modules in academic years: those
+ * registered on the module for the year who are now enrolled, by cohortKey.
+ */
+async function expectedStudents(
+  cohorts: readonly { moduleId: string; academicYear: string }[],
+): Promise<Map<string, Set<string>>> {
+  const expected = new Map<string, Set<string>>();
+  if (cohorts.length === 0) return expected;
+  const registrations = await db().moduleRegistration.findMany({
+    where: {
+      moduleId: { in: [...new Set(cohorts.map((c) => c.moduleId))] },
+      academicYear: { in: [...new Set(cohorts.map((c) => c.academicYear))] },
+      student: { status: "ENROLLED" },
+    },
+    select: { moduleId: true, academicYear: true, studentId: true },
+  });
+  for (const { moduleId, academicYear, studentId } of registrations) {
+    const key = cohortKey(moduleId, academicYear);
+    expected.set(key, (expected.get(key) ?? new Set()).add(studentId));
+  }
+  return expected;
+}
+
 function toSummary(
   assessment: AssessmentWithSubmissions,
-  expectedCount: number,
+  expected: ReadonlySet<string> | undefined,
   now: Date,
+  timeZone: string,
 ): AssessmentSummary {
   const { deadline, module: moduleRow } = assessment;
-  const fromExpected = assessment.submissions.filter(
-    ({ student }) =>
-      student.status === "ENROLLED" &&
-      student.programmeId === moduleRow.programmeId,
+  const fromExpected = assessment.submissions.filter(({ studentId }) =>
+    expected?.has(studentId),
   );
   return {
     id: assessment.id,
     title: assessment.title,
-    module: { code: moduleRow.code, title: moduleRow.title },
-    programme: {
-      code: moduleRow.programme.code,
-      title: moduleRow.programme.title,
+    module: {
+      code: moduleRow.code,
+      title: moduleRow.title,
+      semester: moduleRow.semester,
     },
+    academicYear: academicYearAt(deadline, timeZone),
     deadline,
     closedAt: assessment.closedAt,
     state: assessmentState(assessment, now),
-    expectedCount,
+    expectedCount: expected?.size ?? 0,
     submittedCount: fromExpected.length,
     lateCount: fromExpected.filter(({ submittedAt }) =>
       isLate(submittedAt, deadline),

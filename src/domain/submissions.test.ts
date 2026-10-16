@@ -77,7 +77,7 @@ describe("assessmentState and isLate", () => {
 describe("checkSubmission", () => {
   const base = {
     status: "ENROLLED" as const,
-    onProgramme: true,
+    registered: true,
     assessment: open,
     alreadySubmitted: false,
     now: before,
@@ -133,10 +133,10 @@ describe("checkSubmission", () => {
     },
   );
 
-  it("refuses an assessment from another programme", () => {
-    expect(checkSubmission({ ...base, onProgramme: false })).toEqual({
+  it("refuses an assessment on a module the student isn't registered on", () => {
+    expect(checkSubmission({ ...base, registered: false })).toEqual({
       allowed: false,
-      reason: "NOT_ON_PROGRAMME",
+      reason: "NOT_REGISTERED",
     });
   });
 });
@@ -235,23 +235,23 @@ describe("compareAssessments", () => {
 describe("sortAssessments", () => {
   const listed = (
     title: string,
-    programme: string,
+    moduleCode: string,
     deadlineIso: string,
     state: AssessmentState,
     submittedCount: number,
   ) => ({
     title,
-    programme: { title: programme },
+    module: { code: moduleCode },
     deadline: new Date(deadlineIso),
     state,
     submittedCount,
     expectedCount: 4,
   });
   const list = [
-    listed("Essay", "BA Business", "2026-10-20T16:00:00Z", "OPEN", 1),
-    listed("Report", "MSc Data", "2026-10-10T16:00:00Z", "ACCEPTING_LATE", 3),
-    listed("Proposal", "BA Business", "2026-11-01T17:00:00Z", "OPEN", 0),
-    listed("Coursework", "BSc Computing", "2026-10-01T16:00:00Z", "CLOSED", 4),
+    listed("Essay", "BM4001", "2026-10-20T16:00:00Z", "OPEN", 1),
+    listed("Report", "DS7001", "2026-10-10T16:00:00Z", "ACCEPTING_LATE", 3),
+    listed("Proposal", "BM4001", "2026-11-01T17:00:00Z", "OPEN", 0),
+    listed("Coursework", "CS4001", "2026-10-01T16:00:00Z", "CLOSED", 4),
   ];
   const titles = (sorted: readonly { title: string }[]) =>
     sorted.map(({ title }) => title);
@@ -266,13 +266,13 @@ describe("sortAssessments", () => {
   });
 
   it("sorts by a column either way, with ties in the usual order", () => {
-    expect(titles(sortAssessments(list, "programme"))).toEqual([
+    expect(titles(sortAssessments(list, "module"))).toEqual([
       "Essay",
       "Proposal",
       "Coursework",
       "Report",
     ]);
-    expect(titles(sortAssessments(list, "programme", "desc"))).toEqual([
+    expect(titles(sortAssessments(list, "module", "desc"))).toEqual([
       "Report",
       "Coursework",
       "Essay",

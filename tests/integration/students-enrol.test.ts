@@ -229,6 +229,7 @@ describe("GET /api/programmes", () => {
           code: "BSC-CS",
           title: "BSc (Hons) Computer Science",
           annualFeePence: 953_500,
+          years: 3,
         },
       ],
     });

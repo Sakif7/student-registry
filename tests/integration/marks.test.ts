@@ -6,9 +6,11 @@ import { db } from "@/server/db";
 
 import {
   createAssessment,
+  createModule,
   createProgramme,
   createStudent,
   createSubmission,
+  registerStudents,
 } from "../helpers/factories";
 import {
   apiRequest,
@@ -42,25 +44,20 @@ let hannah: { id: string };
 beforeEach(async () => {
   const computing = await createProgramme({ code: "BSC-CS" });
   const data = await createProgramme({ code: "MSC-DS" });
-  assessmentId = (
-    await createAssessment({
-      moduleId: (
-        await db().module.create({
-          data: {
-            code: "CS4001",
-            title: "Programming",
-            programmeId: computing.id,
-          },
-        })
-      ).id,
+  const moduleId = (
+    await createModule({
+      code: "CS4001",
+      title: "Programming",
+      programmeId: computing.id,
     })
   ).id;
+  assessmentId = (await createAssessment({ moduleId })).id;
   amelia = await createStudent({
     studentNumber: "SMS-2025-0001",
     fullName: "Amelia Hart",
     programmeId: computing.id,
   });
-  await createStudent({
+  const oliver = await createStudent({
     studentNumber: "SMS-2026-0001",
     fullName: "Oliver Bennett",
     programmeId: computing.id,
@@ -76,6 +73,8 @@ beforeEach(async () => {
     fullName: "Liam O'Connor",
     programmeId: data.id,
   });
+  // Hannah was registered before she withdrew; Liam is on another programme.
+  await registerStudents(moduleId, [amelia.id, oliver.id, hannah.id]);
   await createSubmission({ studentId: amelia.id, assessmentId });
 });
 
@@ -161,7 +160,7 @@ describe("PUT /api/assessments/[assessmentId]/marks", () => {
     ).toBe(0);
   });
 
-  it("refuses unknown students and other programmes' students, saving nothing", async () => {
+  it("refuses unknown students and students not on the module, saving nothing", async () => {
     expect(
       await save({
         "SMS-2025-0001": 70,
@@ -174,7 +173,7 @@ describe("PUT /api/assessments/[assessmentId]/marks", () => {
         detail: "Some marks can't be saved.",
         errors: {
           "marks.SMS-2026-0004": [
-            "This student isn't on the assessment's programme",
+            "This student isn't registered on the assessment's module",
           ],
           "marks.SMS-2099-0001": ["There is no such student"],
         },

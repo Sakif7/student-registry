@@ -156,7 +156,7 @@ export function compareAssessments(
 /** The columns the staff list of assessments can be sorted by. */
 export const ASSESSMENT_SORTS = [
   "title",
-  "programme",
+  "module",
   "deadline",
   "state",
   "submitted",
@@ -173,7 +173,7 @@ export type AssessmentOrder = z.infer<typeof assessmentOrderSchema>;
 /** An assessment as the staff list shows it. */
 interface ListedAssessment {
   title: string;
-  programme: { title: string };
+  module: { code: string };
   deadline: Date;
   state: AssessmentState;
   submittedCount: number;
@@ -185,7 +185,7 @@ const COLUMN_ORDERS: Record<
   (a: ListedAssessment, b: ListedAssessment) => number
 > = {
   title: (a, b) => a.title.localeCompare(b.title),
-  programme: (a, b) => a.programme.title.localeCompare(b.programme.title),
+  module: (a, b) => a.module.code.localeCompare(b.module.code),
   deadline: (a, b) => a.deadline.getTime() - b.deadline.getTime(),
   state: (a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state],
   // By the share of the students expected who have submitted.
@@ -221,10 +221,11 @@ export function isLate(submittedAt: Date, deadline: Date): boolean {
 }
 
 export type SubmissionRefusal =
-  "NOT_ON_PROGRAMME" | "NOT_ENROLLED" | "CLOSED" | "DEADLINE_PASSED";
+  "NOT_REGISTERED" | "NOT_ENROLLED" | "CLOSED" | "DEADLINE_PASSED";
 
 export const SUBMISSION_REFUSAL_MESSAGES: Record<SubmissionRefusal, string> = {
-  NOT_ON_PROGRAMME: "This assessment isn't part of your programme.",
+  NOT_REGISTERED:
+    "You aren't registered on this assessment's module this year.",
   NOT_ENROLLED: "Only enrolled students can submit work.",
   CLOSED: "This assessment is closed to submissions.",
   DEADLINE_PASSED:
@@ -242,12 +243,13 @@ export type SubmissionCheck =
  */
 export function checkSubmission(input: {
   status: EnrolmentStatus;
-  onProgramme: boolean;
+  /** Registered on the module for the academic year of the deadline. */
+  registered: boolean;
   assessment: { deadline: Date; closedAt: Date | null };
   alreadySubmitted: boolean;
   now: Date;
 }): SubmissionCheck {
-  if (!input.onProgramme) return { allowed: false, reason: "NOT_ON_PROGRAMME" };
+  if (!input.registered) return { allowed: false, reason: "NOT_REGISTERED" };
   if (!canSubmitWork(input.status))
     return { allowed: false, reason: "NOT_ENROLLED" };
   const state = assessmentState(input.assessment, input.now);

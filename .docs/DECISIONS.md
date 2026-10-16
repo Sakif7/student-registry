@@ -97,6 +97,97 @@ and stays on the overdue list.
   unknown status from an old bookmark, is ignored rather than turned into an
   error page.
 
+## Curriculum and module registration
+
+The brief asked for students on a programme, and for assessments set for a
+module; it didn't ask how programmes are made of modules, who takes which,
+or when. The first version answered with seeded modules that each belonged
+to one programme, and every student on the programme took every module.
+That isn't how a registry works, so the curriculum is now modelled.
+
+### Programmes and modules
+
+- **A programme** has a code (which never changes, like a student ID), a
+  title, a standard annual fee, a length in years of study, and the credits
+  a student takes each year (e.g. 120 for an undergraduate, 180 for a
+  one-year MSc).
+- **A module** has a code, a title, its credits (in multiples of 5, as in
+  UK credit frameworks) and when it is taught: semester 1, semester 2 or all
+  year. Modules are a catalogue that programmes share: a module such as
+  Introduction to Artificial Intelligence can be an option in two
+  programmes.
+- **A programme's structure** places modules in each year of study, as
+  **core** (every student in that year takes it) or **optional** (students
+  take some). A module appears once in a programme. Core modules can't take
+  more credits than a year carries; options can offer more, since students
+  take only some.
+- **Changes are checked against what depends on them.** A programme can't
+  get shorter than its structure or its students' years, nor carry fewer
+  credits than a year's core modules. A module's credits can't change once
+  students are registered on it, because their totals were worked out with
+  the old figure: a new module is set up instead.
+- **Changing a structure doesn't touch existing registrations.** A new core
+  module reaches students when they are next registered, e.g. when they move
+  year. Rewriting registrations behind staff's backs would surprise them;
+  an action to apply a structure to everyone is listed under "With more
+  time".
+
+### The academic calendar
+
+- Each academic year has two semesters, with dates staff set: one after the
+  other, without overlapping, inside the year (1 September to 31 August).
+  A CHECK constraint holds the database to the same rule.
+- An academic year without dates is allowed: pages then name semesters
+  without dates.
+- Each academic year also has a switch that lets students choose their own
+  optional modules. It is off until staff turn it on.
+
+### Module registration
+
+- **Students have a year of study,** from 1 to their programme's length,
+  and are registered on modules for each academic year: their current
+  session.
+- **Registering for the year is automatic.** Enrolling a student, a return
+  to Enrolled, and a change of programme, year of study or academic year
+  register the student for their programme and year, in the same
+  transaction:
+  - the core modules they lack are added;
+  - modules from outside the year are dropped, unless the student has
+    submitted work or has a mark for them that year, which keeps them;
+  - options in the year stay as they are;
+  - registrations of other academic years stay, as the student's history.
+- **Options are added by staff,** within the year's credits: a registration
+  that would take the year past them is refused. A row lock on the student
+  serialises registrations, so two made at once can't both fit; a test
+  runs them together to prove it.
+- **Students choose their own options** while their academic year's switch
+  is on, under the same rules; staff can change registrations at any time.
+- **Dropping** is for options and for modules from outside the year. Core
+  modules can't be dropped, and nor can a module the student has work for.
+- Only enrolled students can be registered. Deferred, withdrawn and
+  completed students keep the registrations they had.
+- Every registration and drop goes into the audit trail, by whoever made
+  it, including the student choosing an option.
+
+### Assessments follow registration
+
+- An assessment belongs to the academic year its deadline falls in, by the
+  college's calendar, and is for the students registered on its module that
+  year. They can submit (if enrolled), they are expected to submit, and
+  marks can be given to them, or to anyone who already has work for it.
+- A student sees the assessments of their modules for each year they were
+  registered, and any they submitted work for, even after dropping the
+  module.
+
+### Moving the existing data
+
+The migration keeps what existing data meant. Every module becomes a core
+module in the first year of the programme it belonged to; programmes become
+three years of 120 credits and modules 30-credit, all-year modules, until
+staff say otherwise; and every student is registered on their programme's
+modules for their academic year. The same students take the same
+assessments as before.
+
 ## Fees and payments
 
 ### One fee charge per student per academic year
@@ -151,10 +242,10 @@ academic year (a database unique constraint).
 
 ### Who can submit, and when
 
-Modules belong to a programme; they are seeded, with no admin screens. An
-assessment is open to Enrolled students on its module's programme. It stays
-open after the deadline (late work is accepted and flagged) until staff close
-it. Staff can reopen an assessment or extend its deadline.
+An assessment is open to Enrolled students registered on its module for the
+academic year of its deadline (see "Module registration"). It stays open
+after the deadline (late work is accepted and flagged) until staff close it.
+Staff can reopen an assessment or extend its deadline.
 
 - A deadline must be in the future when it is set or moved. A deadline
   already past would make every submission late, and is far more likely to be
@@ -163,9 +254,10 @@ it. Staff can reopen an assessment or extend its deadline.
   in spring is refused with an explanation, rather than silently moved. A time
   inside the hour that happens twice in autumn means its first occurrence
   (BST), the earlier and so the safer reading for students.
-- The submission tracker expects work from the students now enrolled on the
-  programme. A student who submitted and then withdrew is still listed, with
-  their work, but no longer counts towards "submitted of expected".
+- The submission tracker expects work from the students registered on the
+  module that year who are now enrolled. A student who submitted and then
+  withdrew is still listed, with their work, but no longer counts towards
+  "submitted of expected".
 - Closing asks for confirmation, because it stops students submitting even
   late work. Reopening doesn't, because it only restores what was there.
 
@@ -668,7 +760,7 @@ one after another. It is now a header and tabs.
 
 ### The assessments list
 
-- Column headings sort the list by title, programme, deadline, state or
+- Column headings sort the list by title, module, deadline, state or
   how much has been submitted (the share of the students expected), either
   way, with the order in the address as on the student list.
 - The list isn't paged, so it is sorted after it is read, by a pure
@@ -997,6 +1089,11 @@ In rough order of value to a real Registry:
   a charge's single due date.
 - **Modules by year of study:** today an assessment is open to everyone on
   the programme, whatever their year.
+- **More registration tools:** progressing a whole year's students to the
+  next year at once; registering a student on a module from outside their
+  programme (an elective from another programme, or a resit); applying a
+  changed structure to the students already registered; prerequisites,
+  module capacities, and dates for when students may choose.
 - **More from the lists:** sorting the results list too, a sign-in filter on
   the student list (to see everyone waiting to activate), and row actions
   on the assessments list.

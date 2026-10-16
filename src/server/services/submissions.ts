@@ -5,6 +5,7 @@ import "server-only";
 
 import { fileTypeFromBuffer } from "file-type";
 
+import { academicYearAt } from "@/domain/academic-year";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   ACCEPTED_DOCUMENTS,
@@ -23,6 +24,7 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 
 import { recordEvent } from "../audit";
+import { collegeTimeZone } from "../college";
 import { db } from "../db";
 import { AppError, type ErrorKind, violatedUniqueConstraint } from "../errors";
 import { isId } from "../ids";
@@ -85,16 +87,11 @@ export async function listStudentAssessments(
   const student = await findStudent(number);
   const assessments = await db().assessment.findMany({
     where: visibleTo(student),
-    include: {
-      module: true,
-      submissions: {
-        where: { studentId: student.id },
-        select: SUBMISSION_FIELDS,
-      },
-    },
+    include: assessmentInclude(student),
   });
   const now = new Date();
   return assessments
+    .filter((assessment) => takes(assessment))
     .map((assessment) => toStudentAssessment(assessment, student, now))
     .sort(compareAssessments);
 }
@@ -114,16 +111,10 @@ export async function getStudentAssessment(
   const assessment = isId(assessmentId)
     ? await db().assessment.findFirst({
         where: { id: assessmentId, ...visibleTo(student) },
-        include: {
-          module: true,
-          submissions: {
-            where: { studentId: student.id },
-            select: SUBMISSION_FIELDS,
-          },
-        },
+        include: assessmentInclude(student),
       })
     : null;
-  if (!assessment) throw assessmentNotFound();
+  if (!assessment || !takes(assessment)) throw assessmentNotFound();
   return toStudentAssessment(assessment, student, new Date());
 }
 
@@ -165,14 +156,22 @@ export async function submitWork(
           title: string;
           deadline: Date;
           closed_at: Date | null;
-          programme_id: string;
+          module_id: string;
         }[]
       >`
-        SELECT a.title, a.deadline, a.closed_at, m.programme_id
-        FROM assessments a JOIN modules m ON m.id = a.module_id
-        WHERE a.id = ${assessmentId}::uuid
-        FOR SHARE OF a`;
+        SELECT title, deadline, closed_at, module_id
+        FROM assessments
+        WHERE id = ${assessmentId}::uuid
+        FOR SHARE`;
       if (!assessment) throw assessmentNotFound();
+      const registration = await tx.moduleRegistration.findFirst({
+        where: {
+          studentId: student.id,
+          moduleId: assessment.module_id,
+          academicYear: academicYearAt(assessment.deadline, collegeTimeZone()),
+        },
+        select: { id: true },
+      });
       const [existing] = await tx.$queryRaw<
         { id: string; storage_key: string; attempt: number }[]
       >`
@@ -184,7 +183,7 @@ export async function submitWork(
       const now = new Date();
       const verdict = checkSubmission({
         status: student.status,
-        onProgramme: assessment.programme_id === student.programmeId,
+        registered: registration !== null,
         assessment: {
           deadline: assessment.deadline,
           closedAt: assessment.closed_at,
@@ -294,7 +293,6 @@ export async function getSubmissionFile(
 interface StudentForSubmissions {
   id: string;
   status: EnrolmentStatus;
-  programmeId: string;
 }
 
 async function findStudent(
@@ -302,7 +300,7 @@ async function findStudent(
 ): Promise<StudentForSubmissions> {
   const student = await db().student.findUnique({
     where: { studentNumber },
-    select: { id: true, status: true, programmeId: true },
+    select: { id: true, status: true },
   });
   if (!student) {
     throw new AppError(
@@ -313,32 +311,69 @@ async function findStudent(
   return student;
 }
 
-/** Assessments on the student's programme, and any they submitted to. */
+/**
+ * Assessments on modules the student has ever been registered on, and any
+ * they submitted to. takes() then keeps those of the right academic year.
+ */
 function visibleTo(
   student: StudentForSubmissions,
 ): Prisma.AssessmentWhereInput {
   return {
     OR: [
-      { module: { programmeId: student.programmeId } },
+      { module: { registrations: { some: { studentId: student.id } } } },
       { submissions: { some: { studentId: student.id } } },
     ],
   };
 }
 
+/** An assessment, with the student's own work and registrations. */
+function assessmentInclude(student: StudentForSubmissions) {
+  return {
+    module: {
+      include: {
+        registrations: {
+          where: { studentId: student.id },
+          select: { academicYear: true },
+        },
+      },
+    },
+    submissions: {
+      where: { studentId: student.id },
+      select: SUBMISSION_FIELDS,
+    },
+  } satisfies Prisma.AssessmentInclude;
+}
+
+type AssessmentForStudent = Prisma.AssessmentGetPayload<{
+  include: ReturnType<typeof assessmentInclude>;
+}>;
+
+/** The student was registered on the module for the assessment's year. */
+function registeredFor(assessment: AssessmentForStudent): boolean {
+  const year = academicYearAt(assessment.deadline, collegeTimeZone());
+  return assessment.module.registrations.some(
+    (registration) => registration.academicYear === year,
+  );
+}
+
+/**
+ * Whether the assessment is the student's: they are registered on its
+ * module for its year, or they submitted work for it (which they keep
+ * seeing, even after dropping the module).
+ */
+function takes(assessment: AssessmentForStudent): boolean {
+  return registeredFor(assessment) || assessment.submissions.length > 0;
+}
+
 function toStudentAssessment(
-  assessment: Prisma.AssessmentGetPayload<{
-    include: {
-      module: true;
-      submissions: { select: typeof SUBMISSION_FIELDS };
-    };
-  }>,
+  assessment: AssessmentForStudent,
   student: StudentForSubmissions,
   now: Date,
 ): StudentAssessment {
   const [submission] = assessment.submissions;
   const verdict = checkSubmission({
     status: student.status,
-    onProgramme: assessment.module.programmeId === student.programmeId,
+    registered: registeredFor(assessment),
     assessment,
     alreadySubmitted: submission !== undefined,
     now,
@@ -387,8 +422,9 @@ function fileRefused(problem: FileProblem): AppError {
 
 function submissionRefused(reason: SubmissionRefusal): AppError {
   switch (reason) {
-    case "NOT_ON_PROGRAMME":
-      // Another programme's assessment is none of the student's business.
+    case "NOT_REGISTERED":
+      // An assessment on a module the student doesn't take is none of their
+      // business.
       return assessmentNotFound();
     case "NOT_ENROLLED":
       return new AppError("FORBIDDEN", SUBMISSION_REFUSAL_MESSAGES[reason]);

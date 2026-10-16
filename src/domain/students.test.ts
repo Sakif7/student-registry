@@ -38,11 +38,22 @@ describe("ageOn", () => {
 });
 
 describe("createStudentSchema", () => {
-  it("accepts a valid record and starts it as Enrolled by default", () => {
+  it("accepts a valid record and starts it as Enrolled, in year 1, by default", () => {
     expect(createStudentSchema(TODAY).parse(valid)).toEqual({
       ...valid,
+      yearOfStudy: 1,
       status: "ENROLLED",
     });
+  });
+
+  it("takes a year of study, as a number or as a form sends it", () => {
+    expect(
+      createStudentSchema(TODAY).parse({ ...valid, yearOfStudy: "2" }),
+    ).toMatchObject({ yearOfStudy: 2 });
+    expect(
+      createStudentSchema(TODAY).safeParse({ ...valid, yearOfStudy: 0 }).error
+        ?.issues[0]?.message,
+    ).toBe("Choose a year of study");
   });
 
   it("asks for each empty field by name, rather than calling it invalid", () => {

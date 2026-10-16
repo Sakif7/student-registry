@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SEMESTER_LABELS } from "@/domain/curriculum";
 import type { AssessmentOrder, AssessmentSort } from "@/domain/submissions";
 import { formatDateTime } from "@/lib/format";
 import type { AssessmentSummary } from "@/server/services/assessments";
@@ -50,7 +51,7 @@ export function AssessmentsTable({
       <TableHeader>
         <TableRow>
           <Sortable order={order} column="title" label="Assessment" />
-          <Sortable order={order} column="programme" label="Programme" />
+          <Sortable order={order} column="module" label="Module" />
           <Sortable order={order} column="deadline" label="Deadline" />
           <Sortable order={order} column="state" label="State" />
           <Sortable order={order} column="submitted" label="Submitted" />
@@ -67,11 +68,15 @@ export function AssessmentsTable({
                 {assessment.title}
               </Link>
               <div className="text-xs text-muted-foreground">
-                {assessment.module.code} {assessment.module.title}
+                {assessment.academicYear} ·{" "}
+                {SEMESTER_LABELS[assessment.module.semester]}
               </div>
             </TableCell>
             <TableCell className="min-w-36 whitespace-normal">
-              {assessment.programme.title}
+              <span className="font-mono text-xs">
+                {assessment.module.code}
+              </span>{" "}
+              {assessment.module.title}
             </TableCell>
             <TableCell>
               {formatDateTime(assessment.deadline, timeZone)}

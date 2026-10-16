@@ -4,6 +4,7 @@
 import { z } from "zod";
 
 import type { CalendarDate } from "./college-time";
+import type { ModuleKind } from "./curriculum";
 import type { EnrolmentStatus } from "./enrolment";
 
 /** The details each kind of event records. */
@@ -54,6 +55,35 @@ export interface AuditDetails {
   "sign_in.link_sent": { kind: "activation" | "reset" };
   "sign_in.turned_off": Record<string, never>;
   "sign_in.turned_on": Record<string, never>;
+  "programme.created": { code: string; title: string };
+  /** Which details changed, by field name (see PROGRAMME_FIELD_LABELS). */
+  "programme.edited": { code: string; fields: string[] };
+  "programme.module_added": {
+    code: string;
+    moduleCode: string;
+    yearOfStudy: number;
+    kind: ModuleKind;
+  };
+  "programme.module_removed": { code: string; moduleCode: string };
+  "module.created": { code: string; title: string };
+  /** Which details changed, by field name (see MODULE_FIELD_LABELS). */
+  "module.edited": { code: string; fields: string[] };
+  /** An academic year's calendar set up (created) or changed. */
+  "academic_year.saved": {
+    year: string;
+    created: boolean;
+    studentsChooseModules: boolean;
+  };
+  "registration.added": {
+    moduleCode: string;
+    moduleTitle: string;
+    academicYear: string;
+  };
+  "registration.dropped": {
+    moduleCode: string;
+    moduleTitle: string;
+    academicYear: string;
+  };
 }
 
 export type AuditAction = keyof AuditDetails;
@@ -75,6 +105,22 @@ export const STUDENT_FIELD_LABELS: Record<string, string> = {
   dateOfBirth: "date of birth",
   programmeCode: "programme",
   academicYear: "academic year",
+  yearOfStudy: "year of study",
+};
+
+/** A programme's details, by field name, as the edit event lists them. */
+export const PROGRAMME_FIELD_LABELS: Record<string, string> = {
+  title: "title",
+  annualFeePence: "annual fee",
+  years: "length",
+  creditsPerYear: "credits per year",
+};
+
+/** A module's details, by field name, as the edit event lists them. */
+export const MODULE_FIELD_LABELS: Record<string, string> = {
+  title: "title",
+  credits: "credits",
+  semester: "semester",
 };
 
 /** Events shown per page of the staff activity log. */

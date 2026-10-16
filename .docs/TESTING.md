@@ -69,37 +69,54 @@ starting point at any time.
 
 ### Demo data
 
-The seed loads three programmes (each with its modules) and ten fictitious
-students. Dates are relative to the day the seed runs. The IDs below assume
-the 2026/27 academic year; in a later year the years in them move on by the
-same amount.
+The seed loads three programmes, a catalogue of 35 modules and ten
+fictitious students. Dates are relative to the day the seed runs. The IDs
+below assume the 2026/27 academic year; in a later year the years in them
+move on by the same amount.
 
-| Student           | ID            | Programme                     | Status    | Fees (on the day the seed runs)                                |
-| ----------------- | ------------- | ----------------------------- | --------- | -------------------------------------------------------------- |
-| Mohammed Al-Farsi | SMS-2023-0001 | BSc (Hons) Computer Science   | Completed | Paid in full                                                   |
-| Amelia Hart       | SMS-2025-0001 | BSc (Hons) Computer Science   | Enrolled  | Second year; this year's £9,535.00 overdue by 20 days          |
-| Kwame Mensah      | SMS-2025-0002 | BA (Hons) Business Management | Enrolled  | Second year; £4,535.00 overdue by 10 days after a part-payment |
-| Oliver Bennett    | SMS-2026-0001 | BSc (Hons) Computer Science   | Enrolled  | Paid in full                                                   |
-| Priya Natarajan   | SMS-2026-0002 | BSc (Hons) Computer Science   | Enrolled  | Paid in full                                                   |
-| Sofia Rossi       | SMS-2026-0003 | BA (Hons) Business Management | Deferred  | Deferred 12 days ago; fee corrected to £0.00 with a note       |
-| Liam O'Connor     | SMS-2026-0004 | MSc Data Science              | Enrolled  | Overpaid: £250.00 in credit                                    |
-| Hannah Kowalski   | SMS-2026-0005 | MSc Data Science              | Withdrawn | Withdrew 8 days ago; still owes £9,950.00, overdue by 6 days   |
-| Chloé Dubois      | SMS-2026-0006 | BA (Hons) Business Management | Enrolled  | Paid in full after a payment recalled by the bank was reversed |
-| Arjun Mehta       | SMS-2026-0007 | MSc Data Science              | Enrolled  | £11,950.00 due in 5 days, not yet overdue                      |
+- **Programmes:** BSc (Hons) Computer Science and BA (Hons) Business
+  Management take 3 years of 120 credits; MSc Data Science 1 year of 180.
+  Each year has core modules and options. Introduction to Artificial
+  Intelligence (AI4001) is an option in the first year of both bachelor's
+  degrees, and Data Visualisation (DS5001) in their second.
+- **Academic years:** 2025/26 and 2026/27 have their semesters: semester 1
+  from 21 September to 22 January, semester 2 from 1 February to 11 June.
+  Students don't choose their own modules until staff allow it.
+- **Registrations:** each student is registered on their year's core
+  modules and options that make up the year's credits, except Priya (105 of
+  120 credits) and Arjun (165 of 180), who still have an option to choose.
 
-Each programme has assessments in every state. Deadlines are at 17:00 college
-time; "late" means submitted after the deadline.
+| Student           | ID            | Programme                     | Year | Status    | Fees (on the day the seed runs)                                |
+| ----------------- | ------------- | ----------------------------- | ---- | --------- | -------------------------------------------------------------- |
+| Mohammed Al-Farsi | SMS-2023-0001 | BSc (Hons) Computer Science   | 3    | Completed | Paid in full                                                   |
+| Amelia Hart       | SMS-2025-0001 | BSc (Hons) Computer Science   | 2    | Enrolled  | This year's £9,535.00 overdue by 20 days                       |
+| Kwame Mensah      | SMS-2025-0002 | BA (Hons) Business Management | 2    | Enrolled  | £4,535.00 overdue by 10 days after a part-payment              |
+| Oliver Bennett    | SMS-2026-0001 | BSc (Hons) Computer Science   | 1    | Enrolled  | Paid in full                                                   |
+| Priya Natarajan   | SMS-2026-0002 | BSc (Hons) Computer Science   | 1    | Enrolled  | Paid in full                                                   |
+| Sofia Rossi       | SMS-2026-0003 | BA (Hons) Business Management | 1    | Deferred  | Deferred 12 days ago; fee corrected to £0.00 with a note       |
+| Liam O'Connor     | SMS-2026-0004 | MSc Data Science              | 1    | Enrolled  | Overpaid: £250.00 in credit                                    |
+| Hannah Kowalski   | SMS-2026-0005 | MSc Data Science              | 1    | Withdrawn | Withdrew 8 days ago; still owes £9,950.00, overdue by 6 days   |
+| Chloé Dubois      | SMS-2026-0006 | BA (Hons) Business Management | 1    | Enrolled  | Paid in full after a payment recalled by the bank was reversed |
+| Arjun Mehta       | SMS-2026-0007 | MSc Data Science              | 1    | Enrolled  | £11,950.00 due in 5 days, not yet overdue                      |
 
-| Assessment              | Module | Deadline           | State                                    | Submissions and marks                                                                                |
-| ----------------------- | ------ | ------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Web project proposal    | CS5003 | in 10 days         | Open                                     | Priya                                                                                                |
-| Data pipeline design    | DS7002 | in 14 days         | Open                                     | None                                                                                                 |
-| Accounting test         | BM4002 | in 20 days         | Open                                     | None                                                                                                 |
-| Database design report  | CS4002 | 2 days ago         | Past deadline, still accepting late work | Oliver (81, not published)                                                                           |
-| Management essay        | BM4001 | 7 days ago         | Past deadline, still accepting late work | Kwame (35, Fail, published); Chloé, late (62, Merit, not published)                                  |
-| Machine learning report | DS7001 | 5 days ago         | Closed yesterday                         | Hannah, before withdrawing; Liam (71, Distinction, published); Arjun, late (45, Pass, not published) |
-| Algorithms coursework   | CS4001 | 14 days ago        | Closed 3 days ago                        | Oliver (74, Distinction); Priya, late (58, Pass); Amelia, replaced once (66, Merit); all published   |
-| Final year project      | CS5003 | about 7 months ago | Closed                                   | Mohammed (68, Merit, published)                                                                      |
+Assessments come in every state. Each is for the students registered on its
+module in the academic year of its deadline: first-years, second-years or
+MSc students. Deadlines are at 17:00 college time; "late" means submitted
+after the deadline.
+
+| Assessment                     | Module | Deadline              | State                                    | Submissions and marks                                                                                |
+| ------------------------------ | ------ | --------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Systems lab report             | CS4003 | in 10 days            | Open                                     | Priya                                                                                                |
+| Web project proposal           | CS5003 | in 12 days            | Open                                     | None                                                                                                 |
+| Data pipeline design           | DS7002 | in 14 days            | Open                                     | None                                                                                                 |
+| Accounting test                | BM4002 | in 20 days            | Open                                     | None                                                                                                 |
+| Database design report         | CS4002 | 2 days ago            | Past deadline, still accepting late work | Oliver (81, not published)                                                                           |
+| Management essay               | BM4001 | 7 days ago            | Past deadline, still accepting late work | Chloé, late (62, Merit, not published)                                                               |
+| Machine learning report        | DS7001 | 5 days ago            | Closed yesterday                         | Hannah, before withdrawing; Liam (71, Distinction, published); Arjun, late (45, Pass, not published) |
+| Organisational behaviour essay | BM5001 | 9 days ago            | Closed 4 days ago                        | Kwame (35, Fail, published)                                                                          |
+| Algorithms coursework          | CS4001 | 14 days ago           | Closed 3 days ago                        | Oliver (74, Distinction); Priya, late (58, Pass); both published                                     |
+| Software design report         | CS5001 | 21 days ago           | Closed 10 days ago                       | Amelia, replaced once (66, Merit, published)                                                         |
+| Final year project             | CS6001 | 24 April of last year | Closed                                   | Mohammed (68, Merit, published)                                                                      |
 
 Amelia Hart's results are withheld for outstanding tuition fees, so Amelia
 sees none of them. Every submission is a real PDF or Word file that downloads.
@@ -297,11 +314,11 @@ in the address (`?tab=fees`), so a link or a reload opens it again.
 1. Sign in as **Priya Natarajan** (`priya.natarajan@student.example`). You
    land on **Home**: the sidebar lists Home, Assessments, Results, Fees and
    My record.
-   - **Next deadline** is the Web project proposal, due in 10 days, marked
+   - **Next deadline** is the Systems lab report, due in 10 days, marked
      **Submitted**.
    - **Fees** reads **Paid in full** and "Nothing to pay".
    - **Latest results** lists Algorithms coursework: 58, **Pass**.
-   - **Assessments taking work** lists the Web project proposal (open,
+   - **Assessments taking work** lists the Systems lab report (open,
      submitted) and the Database design report (past its deadline, not
      submitted, so late work is still accepted).
 2. Sign out and sign in as **Amelia Hart**. **Fees** reads "£9,535.00 to
@@ -392,9 +409,10 @@ below are as of the day the seed runs. As staff:
      design report**: both still take late work.
    - **Waiting for activation** lists Arjun Mehta, who "Needs a new link".
      Select him: his record opens on the **Sign-in** tab.
-4. **Open assessments** shows Web project proposal (1 of 3 submitted), Data
-   pipeline design and Accounting test (0 of 2 each), soonest deadline
-   first. **Marks for** the year shows 1 Fail, 2 Pass, 2 Merit and 3
+4. **Open assessments** shows, soonest deadline first, Systems lab report
+   (1 of 2 submitted), Web project proposal (0 of 1), Data pipeline design
+   (0 of 2) and Accounting test (0 of 1): each counts the students
+   registered on its module. **Marks for** the year shows 1 Fail, 2 Pass, 2 Merit and 3
    Distinction: the Final year project's mark belongs to last year.
 5. Make the window narrow, as on a phone: the cards stack, and the overdue
    table scrolls sideways inside its card while the page doesn't.
@@ -422,13 +440,12 @@ below are as of the day the seed runs. As staff:
 
 As staff:
 
-1. Open **Assessments**. The eight demo assessments are listed: open ones
+1. Open **Assessments**. The eleven demo assessments are listed: open ones
    first, soonest deadline first, then the rest, latest deadline first.
-   **Algorithms coursework** shows **Closed** and "3 of 3" submitted, "1 late".
-   Select the **Programme** heading: BA (Hons) Business Management's
-   assessments come first, Accounting test before Management essay. Select
-   it again for the reverse order, then **State** to return to the usual
-   one.
+   **Algorithms coursework** shows **Closed** and "2 of 2" submitted, "1 late".
+   Select the **Module** heading: the list goes by module code, with the
+   Management essay (BM4001) first. Select it again for the reverse order,
+   then **State** to return to the usual one.
 2. Select **Set an assessment**, then **Set assessment** without filling
    anything in. "Choose a module", "Enter a title" and "Enter a date and time"
    appear.
@@ -440,10 +457,9 @@ As staff:
 4. Choose a date about four weeks ahead at 17:00 and select **Set
    assessment**. The assessment's page shows the deadline with its weekday and
    time zone, such as "Fri 20 Nov 2026, 17:00 GMT" (BST in summer), and
-   **Open**. Under **Submissions and marks**, "0 of 3 enrolled students have
-   submitted" lists Amelia Hart, Oliver Bennett and Priya Natarajan, the
-   enrolled Computer Science students. Mohammed Al-Farsi has completed the
-   programme, so isn't expected to submit.
+   **Open**. Under **Submissions and marks**, "0 of 2 registered students
+   have submitted" lists Oliver Bennett and Priya Natarajan, the first-years
+   registered on CS4002. Amelia Hart, a second-year, isn't on the module.
 5. Select **Edit title or deadline**, move the deadline a week later and save.
    The page shows the new deadline.
 6. Select **Close to submissions**. A dialog asks you to confirm, with
@@ -458,8 +474,8 @@ As staff:
 Continue from scenario 9. You need a PDF and a Word document (.docx) of your
 own, plus any other file, such as a text file.
 
-1. As **Amelia Hart**, open **Assessments**. **SQL lab test** shows **Not
-   submitted**. Open it.
+1. As **Priya Natarajan**, open **Assessments**. **SQL lab test** shows
+   **Not submitted**. Open it.
 2. Select **Submit my work** without choosing a file. "Choose a file to
    upload" appears under **Your work**.
 3. Choose the text file. "Upload a PDF or a Word document (.docx)" appears
@@ -478,26 +494,26 @@ own, plus any other file, such as a text file.
    be replaced afterwards. Submit your PDF: it shows **Late**, and no
    replacement is offered.
 8. Open **Algorithms coursework**: "This assessment is closed to
-   submissions", with Amelia's submission shown.
+   submissions", with Priya's submission shown.
 9. As **Sofia Rossi** (deferred), open **Assessments**, then **Management
    essay**: "Only enrolled students can submit work."
-10. As staff, open **SQL lab test**. Amelia's row shows when the work was
+10. As staff, open **SQL lab test**. Priya's row shows when the work was
     submitted, "Replaced 1 time", and the file, which downloads.
 
 ### 11. Entering marks
 
 Continue from scenario 10, as staff, on **SQL lab test**.
 
-1. Under **Submissions and marks**, type `72` as Amelia Hart's mark. The
-   result reads **Distinction**, with "Not saved yet".
+1. Under **Submissions and marks**, type `72` as Priya Natarajan's mark.
+   The result reads **Distinction**, with "Not saved yet".
 2. Type `3.8` for Oliver Bennett and select **Save marks**. "Enter a whole
    number from 0 to 100" appears beside Oliver's mark, focus moves to it, and
    nothing is saved.
-3. Change Oliver's mark to `38` and enter `55` for Priya Natarajan, who
-   hasn't submitted (a mark can be given without a submission). Select **Save
-   marks**. "Saved 3 marks." appears, and the results read **Distinction**,
-   **Fail** and **Pass**, each "Not published".
-4. Clear Priya's mark and save. The mark is removed.
+3. Change Oliver's mark to `38`: Oliver hasn't submitted, and a mark can be
+   given without a submission. Select **Save marks**. "Saved 2 marks."
+   appears, and the results read **Fail** and **Distinction**, each "Not
+   published".
+4. Clear Oliver's mark and save. The mark is removed.
 5. Open **Machine learning report**. Hannah Kowalski is listed as
    **Withdrawn**, with the work submitted before withdrawing: a student who
    submitted stays on the marksheet.
@@ -508,30 +524,30 @@ Continue from scenario 11, as staff.
 
 1. Open **Amelia Hart**'s record, then the **Results** tab. The fees read
    **Overdue** with "£9,535.00 overdue", and a notice reads "Results withheld
-   since …" with the reason "Outstanding tuition fees". **Algorithms coursework** shows
-   66, **Merit**, published; **SQL lab test** shows 72, **Distinction**, "Not
-   published".
+   since …" with the reason "Outstanding tuition fees". **Software design
+   report** shows 66, **Merit**, published.
 2. As **Amelia Hart**, open **Results**. "Your results are being withheld"
    gives the reason, and no marks are shown.
 3. As staff, select **Lift the hold** on Amelia's **Results** tab. As Amelia,
-   **Results** now lists **Algorithms coursework** only: the SQL lab test mark
-   isn't published yet.
-4. As staff, select **Publish 1 mark**. A dialog asks you to confirm, with
-   **Cancel** focused. Confirm, and the section reads "Every mark is
-   published." As Amelia, **Results** lists both marks.
+   **Results** now lists **Software design report**: 66, **Merit**.
+4. As staff, open **Priya Natarajan**'s **Results** tab: **SQL lab test**
+   shows 72, **Distinction**, "Not published". Select **Publish 1 mark**. A
+   dialog asks you to confirm, with **Cancel** focused. Confirm, and the
+   section reads "Every mark is published." As Priya, **Results** lists the
+   SQL lab test and Algorithms coursework.
 5. As staff, open **Kwame Mensah**'s **Results** tab and select **Withhold
    results**. Choose
    **Another reason** and confirm with the box empty: "Give a reason" appears.
    Enter `Awaiting an academic misconduct panel` and confirm. As Kwame,
-   **Results** shows that reason and no marks, although the Management essay
-   mark (35, **Fail**) had been published.
+   **Results** shows that reason and no marks, although the Organisational
+   behaviour essay mark (35, **Fail**) had been published.
 6. As staff, open **Results**. Students with marks to publish come first, each
    with a **Publish** button: Arjun Mehta, Chloé Dubois and Oliver Bennett.
    Kwame shows **Withheld** with the reason. On **Dashboard**, the **Marks
    to publish** figure reads 3, for 3 students with 1 held, and the
    worklist under **Needs attention** names the same three students.
-7. On **SQL lab test**'s marksheet, change Amelia's mark to `68` and save. It
-   reads "Not published" again, and Amelia's **Results** no longer shows it
+7. On **SQL lab test**'s marksheet, change Priya's mark to `68` and save.
+   It reads "Not published" again, and Priya's **Results** no longer shows it
    until it is published again.
 8. As **Mohammed Al-Farsi** (completed), **Results** lists **Final year
    project** with 68, **Merit**: completed students keep their results.
@@ -546,9 +562,10 @@ As staff:
 
 1. Open **Kwame Mensah**, then the **History** tab. It lists everything done
    to the record, newest first: the demo data's own trail
-   (Jane Okafor enrolled Kwame, Tom Reid charged the fees and recorded the
-   payments, Elena Petrova entered and published the Management essay mark),
-   each with when it happened.
+   (Jane Okafor enrolled Kwame and registered Kwame on modules, Tom Reid
+   charged the fees and recorded the payments, Elena Petrova entered and
+   published the Organisational behaviour essay mark), each with when it
+   happened.
 2. On the **Fees** tab, record a payment of `100` with the reference `CARD
 KM 0003`. **History** gains "Recorded a payment of £100.00 (CARD KM 0003)", by Jane Okafor (or
    whoever you are signed in as).

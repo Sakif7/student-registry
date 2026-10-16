@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Form } from "@/components/forms/form";
@@ -36,6 +36,7 @@ export interface StudentDetailsValues {
   dateOfBirth: string;
   programmeCode: string;
   academicYear: string;
+  yearOfStudy: number;
 }
 
 type StudentFormProps = {
@@ -70,9 +71,18 @@ export function StudentForm(props: StudentFormProps) {
             dateOfBirth: "",
             programmeCode: "",
             academicYear: props.defaultAcademicYear,
+            yearOfStudy: 1,
           },
   });
   const { errors, isSubmitting } = form.formState;
+  // The chosen programme's years; before one is chosen, the longest.
+  const programmeCode = useWatch({
+    control: form.control,
+    name: "programmeCode",
+  });
+  const years =
+    programmes.find((programme) => programme.code === programmeCode)?.years ??
+    Math.max(1, ...programmes.map((programme) => programme.years));
 
   async function save(details: StudentDetailsValues) {
     try {
@@ -202,6 +212,23 @@ export function StudentForm(props: StudentFormProps) {
               {academicYears.map((year) => (
                 <NativeSelectOption key={year} value={year}>
                   {year}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          )}
+        </FormField>
+
+        <FormField
+          id="yearOfStudy"
+          label="Year of study"
+          description="Which year of the programme the student is in. The year's core modules are registered for them."
+          error={errors.yearOfStudy?.message}
+        >
+          {(control) => (
+            <NativeSelect {...control} {...form.register("yearOfStudy")}>
+              {Array.from({ length: years }, (_, index) => (
+                <NativeSelectOption key={index} value={index + 1}>
+                  Year {index + 1}
                 </NativeSelectOption>
               ))}
             </NativeSelect>

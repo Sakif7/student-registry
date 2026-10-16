@@ -11,13 +11,16 @@ import { hashPassword } from "better-auth/crypto";
 
 import {
   academicYearOn,
+  academicYearSpan,
   formatAcademicYear,
   startYearOf,
 } from "@/domain/academic-year";
 import type { AuditEventInput } from "@/domain/audit";
+import type { Semester } from "@/domain/curriculum";
 import {
   addDays,
   type CalendarDate,
+  daysBetween,
   fromDbDate,
   todayIn,
   toDbDate,
@@ -35,37 +38,242 @@ import { sampleDocx, samplePdf } from "./sample-documents";
 
 const MS_PER_DAY = 86_400_000;
 
-/** Programmes with their modules. Fees are the standard annual tuition fee. */
+/**
+ * The module catalogue. Codes give the level: 4 for a first year, 5 for a
+ * second, 6 for a final year and 7 for a master's. Credits follow UK
+ * practice, with 120 a year for an undergraduate and 180 for an MSc.
+ */
+const MODULES = [
+  {
+    code: "CS4001",
+    title: "Programming Fundamentals",
+    credits: 30,
+    semester: "FIRST",
+  },
+  { code: "CS4002", title: "Databases", credits: 30, semester: "FIRST" },
+  {
+    code: "CS4003",
+    title: "Computer Systems",
+    credits: 30,
+    semester: "ALL_YEAR",
+  },
+  {
+    code: "CS4004",
+    title: "Mathematics for Computing",
+    credits: 15,
+    semester: "FIRST",
+  },
+  {
+    code: "CS4005",
+    title: "Professional Practice",
+    credits: 15,
+    semester: "SECOND",
+  },
+  {
+    code: "AI4001",
+    title: "Introduction to Artificial Intelligence",
+    credits: 15,
+    semester: "SECOND",
+  },
+  {
+    code: "CS5001",
+    title: "Software Engineering",
+    credits: 30,
+    semester: "FIRST",
+  },
+  {
+    code: "CS5002",
+    title: "Algorithms and Data Structures",
+    credits: 30,
+    semester: "SECOND",
+  },
+  { code: "CS5003", title: "Web Development", credits: 30, semester: "FIRST" },
+  {
+    code: "CS5004",
+    title: "Mobile Development",
+    credits: 30,
+    semester: "SECOND",
+  },
+  {
+    code: "DS5001",
+    title: "Data Visualisation",
+    credits: 30,
+    semester: "SECOND",
+  },
+  {
+    code: "CS6001",
+    title: "Final Year Project",
+    credits: 60,
+    semester: "ALL_YEAR",
+  },
+  { code: "CS6002", title: "Cyber Security", credits: 30, semester: "FIRST" },
+  { code: "CS6003", title: "Cloud Computing", credits: 30, semester: "SECOND" },
+  {
+    code: "CS6004",
+    title: "Human-Computer Interaction",
+    credits: 30,
+    semester: "FIRST",
+  },
+  {
+    code: "BM4001",
+    title: "Principles of Management",
+    credits: 30,
+    semester: "FIRST",
+  },
+  {
+    code: "BM4002",
+    title: "Financial Accounting",
+    credits: 30,
+    semester: "FIRST",
+  },
+  {
+    code: "BM4003",
+    title: "Marketing Fundamentals",
+    credits: 30,
+    semester: "ALL_YEAR",
+  },
+  { code: "BM4004", title: "Business Law", credits: 15, semester: "FIRST" },
+  {
+    code: "BM4005",
+    title: "Economics for Business",
+    credits: 15,
+    semester: "SECOND",
+  },
+  {
+    code: "BM5001",
+    title: "Organisational Behaviour",
+    credits: 30,
+    semester: "FIRST",
+  },
+  {
+    code: "BM5002",
+    title: "Operations Management",
+    credits: 30,
+    semester: "SECOND",
+  },
+  {
+    code: "BM5003",
+    title: "Human Resource Management",
+    credits: 30,
+    semester: "FIRST",
+  },
+  {
+    code: "BM5004",
+    title: "Entrepreneurship",
+    credits: 30,
+    semester: "SECOND",
+  },
+  { code: "BM6001", title: "Dissertation", credits: 60, semester: "ALL_YEAR" },
+  {
+    code: "BM6002",
+    title: "Strategic Management",
+    credits: 30,
+    semester: "FIRST",
+  },
+  {
+    code: "BM6003",
+    title: "Digital Business",
+    credits: 30,
+    semester: "SECOND",
+  },
+  { code: "BM6004", title: "Leadership", credits: 30, semester: "FIRST" },
+  { code: "DS7001", title: "Machine Learning", credits: 30, semester: "FIRST" },
+  { code: "DS7002", title: "Data Engineering", credits: 30, semester: "FIRST" },
+  {
+    code: "DS7003",
+    title: "Statistics for Data Science",
+    credits: 30,
+    semester: "SECOND",
+  },
+  {
+    code: "DS7004",
+    title: "Data Science Dissertation",
+    credits: 60,
+    semester: "ALL_YEAR",
+  },
+  { code: "DS7005", title: "Deep Learning", credits: 15, semester: "SECOND" },
+  {
+    code: "DS7006",
+    title: "Big Data Systems",
+    credits: 15,
+    semester: "SECOND",
+  },
+  { code: "DS7007", title: "Data Ethics", credits: 15, semester: "FIRST" },
+] as const satisfies readonly {
+  code: string;
+  title: string;
+  credits: number;
+  semester: Semester;
+}[];
+
+type ModuleCode = (typeof MODULES)[number]["code"];
+
+/** One year of a programme: its core modules, and the options on offer. */
+interface SeedYear {
+  core: readonly ModuleCode[];
+  optional: readonly ModuleCode[];
+}
+
+/**
+ * Programmes with their structure, year by year. Fees are the standard
+ * annual tuition fee. Two modules are shared: Introduction to Artificial
+ * Intelligence is an option in the first year of both undergraduate
+ * programmes, and Data Visualisation in their second.
+ */
 const PROGRAMMES = [
   {
     code: "BSC-CS",
     title: "BSc (Hons) Computer Science",
     annualFeePence: 953_500,
-    modules: [
-      { code: "CS4001", title: "Programming Fundamentals" },
-      { code: "CS4002", title: "Databases" },
-      { code: "CS5003", title: "Web Development" },
+    creditsPerYear: 120,
+    structure: [
+      {
+        core: ["CS4001", "CS4002", "CS4003"],
+        optional: ["CS4004", "CS4005", "AI4001"],
+      },
+      {
+        core: ["CS5001", "CS5002", "CS5003"],
+        optional: ["CS5004", "DS5001"],
+      },
+      { core: ["CS6001"], optional: ["CS6002", "CS6003", "CS6004"] },
     ],
   },
   {
     code: "BA-BM",
     title: "BA (Hons) Business Management",
     annualFeePence: 953_500,
-    modules: [
-      { code: "BM4001", title: "Principles of Management" },
-      { code: "BM4002", title: "Financial Accounting" },
+    creditsPerYear: 120,
+    structure: [
+      {
+        core: ["BM4001", "BM4002", "BM4003"],
+        optional: ["BM4004", "BM4005", "AI4001"],
+      },
+      {
+        core: ["BM5001", "BM5002", "BM5003"],
+        optional: ["BM5004", "DS5001"],
+      },
+      { core: ["BM6001"], optional: ["BM6002", "BM6003", "BM6004"] },
     ],
   },
   {
     code: "MSC-DS",
     title: "MSc Data Science",
     annualFeePence: 1_195_000,
-    modules: [
-      { code: "DS7001", title: "Machine Learning" },
-      { code: "DS7002", title: "Data Engineering" },
+    creditsPerYear: 180,
+    structure: [
+      {
+        core: ["DS7001", "DS7002", "DS7003", "DS7004"],
+        optional: ["DS7005", "DS7006", "DS7007"],
+      },
     ],
   },
-] as const;
+] as const satisfies readonly {
+  code: string;
+  title: string;
+  annualFeePence: number;
+  creditsPerYear: number;
+  structure: readonly SeedYear[];
+}[];
 
 type ProgrammeCode = (typeof PROGRAMMES)[number]["code"];
 
@@ -78,6 +286,15 @@ interface CastMember {
   intakeYearsAgo: number;
   /** Academic years before the current one of their current session. */
   sessionYearsAgo: number;
+  /** Their year of study in their current session. */
+  yearOfStudy: number;
+  /**
+   * The optional modules they take in their current session; they are
+   * registered on their year's core modules too.
+   */
+  options: readonly ModuleCode[];
+  /** Their registrations the academic year before, if they were here. */
+  previousYear?: { yearOfStudy: number; options: readonly ModuleCode[] };
   /** Status changes, oldest first; the first is the status at creation. */
   history: { status: EnrolmentStatus; daysAgo: number; reason?: string }[];
   /**
@@ -100,6 +317,9 @@ const CAST = {
     programme: "BSC-CS",
     intakeYearsAgo: 1,
     sessionYearsAgo: 0,
+    yearOfStudy: 2,
+    options: ["CS5004"],
+    previousYear: { yearOfStudy: 1, options: ["CS4004", "CS4005"] },
     history: [{ status: "ENROLLED", daysAgo: 400 }],
   },
   kwame: {
@@ -109,6 +329,9 @@ const CAST = {
     programme: "BA-BM",
     intakeYearsAgo: 1,
     sessionYearsAgo: 0,
+    yearOfStudy: 2,
+    options: ["BM5004"],
+    previousYear: { yearOfStudy: 1, options: ["BM4004", "BM4005"] },
     history: [{ status: "ENROLLED", daysAgo: 395 }],
   },
   mohammed: {
@@ -118,6 +341,8 @@ const CAST = {
     programme: "BSC-CS",
     intakeYearsAgo: 3,
     sessionYearsAgo: 1,
+    yearOfStudy: 3,
+    options: ["CS6002", "CS6004"],
     history: [
       { status: "ENROLLED", daysAgo: 1135 },
       { status: "COMPLETED", daysAgo: 110 },
@@ -130,6 +355,8 @@ const CAST = {
     programme: "BSC-CS",
     intakeYearsAgo: 0,
     sessionYearsAgo: 0,
+    yearOfStudy: 1,
+    options: ["CS4004", "AI4001"],
     history: [{ status: "ENROLLED", daysAgo: 40 }],
   },
   priya: {
@@ -139,6 +366,9 @@ const CAST = {
     programme: "BSC-CS",
     intakeYearsAgo: 0,
     sessionYearsAgo: 0,
+    yearOfStudy: 1,
+    // 15 credits short of the year's 120: an option still to choose.
+    options: ["AI4001"],
     history: [{ status: "ENROLLED", daysAgo: 40 }],
   },
   sofia: {
@@ -148,6 +378,8 @@ const CAST = {
     programme: "BA-BM",
     intakeYearsAgo: 0,
     sessionYearsAgo: 0,
+    yearOfStudy: 1,
+    options: [],
     history: [
       { status: "ENROLLED", daysAgo: 38 },
       {
@@ -164,6 +396,8 @@ const CAST = {
     programme: "MSC-DS",
     intakeYearsAgo: 0,
     sessionYearsAgo: 0,
+    yearOfStudy: 1,
+    options: ["DS7005", "DS7007"],
     history: [{ status: "ENROLLED", daysAgo: 36 }],
   },
   hannah: {
@@ -173,6 +407,8 @@ const CAST = {
     programme: "MSC-DS",
     intakeYearsAgo: 0,
     sessionYearsAgo: 0,
+    yearOfStudy: 1,
+    options: [],
     history: [
       { status: "ENROLLED", daysAgo: 36 },
       {
@@ -190,6 +426,8 @@ const CAST = {
     programme: "BA-BM",
     intakeYearsAgo: 0,
     sessionYearsAgo: 0,
+    yearOfStudy: 1,
+    options: ["BM4004", "AI4001"],
     history: [{ status: "ENROLLED", daysAgo: 37 }],
   },
   arjun: {
@@ -199,6 +437,9 @@ const CAST = {
     programme: "MSC-DS",
     intakeYearsAgo: 0,
     sessionYearsAgo: 0,
+    yearOfStudy: 1,
+    // 15 credits short of the year's 180.
+    options: ["DS7006"],
     history: [{ status: "ENROLLED", daysAgo: 35 }],
     login: "pending",
   },
@@ -235,8 +476,14 @@ async function main(): Promise<void> {
 
     await deleteStoredFiles(prisma, uploadDir);
     await deleteEverything(prisma);
-    const programmeIds = await seedProgrammes(prisma);
-    const students = await seedStudents(prisma, programmeIds, currentYear, now);
+    const curriculum = await seedCurriculum(prisma);
+    await seedAcademicYears(prisma, currentYear);
+    const { students, registrations } = await seedStudents(
+      prisma,
+      curriculum,
+      currentYear,
+      now,
+    );
     const accounts = await seedAccounts(
       prisma,
       students,
@@ -249,12 +496,13 @@ async function main(): Promise<void> {
       now,
       timeZone,
       uploadDir,
+      currentYear,
     });
     await seedHolds(prisma, students, now);
     const logins = await seedLogins(prisma, students, now);
     const events = await seedAuditTrail(prisma);
     console.log(
-      `Seeded ${PROGRAMMES.length} programmes, ${Object.keys(students).length} students, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions, ${work.marks} marks and ${events} audit events.`,
+      `Seeded ${PROGRAMMES.length} programmes, ${MODULES.length} modules, ${Object.keys(students).length} students, ${registrations} module registrations, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions, ${work.marks} marks and ${events} audit events.`,
     );
     console.log(
       `Sign-in: ${logins.staff} staff and ${logins.active} students use the password "${DEMO_PASSWORD}". Accounts awaiting activation: ${logins.pending}; turned off: ${logins.disabled}.`,
@@ -296,17 +544,65 @@ async function deleteEverything(prisma: PrismaClient): Promise<void> {
   );
 }
 
-async function seedProgrammes(
-  prisma: PrismaClient,
-): Promise<Record<ProgrammeCode, string>> {
-  const ids = {} as Record<ProgrammeCode, string>;
-  for (const { modules, ...programme } of PROGRAMMES) {
-    const created = await prisma.programme.create({
-      data: { ...programme, modules: { create: [...modules] } },
-    });
-    ids[programme.code] = created.id;
+/** What the seed knows of the curriculum it created. */
+interface SeededCurriculum {
+  programmeIds: Record<ProgrammeCode, string>;
+  moduleIds: Record<ModuleCode, string>;
+}
+
+/** Creates the modules, then the programmes with their structure. */
+async function seedCurriculum(prisma: PrismaClient): Promise<SeededCurriculum> {
+  const moduleIds = {} as Record<ModuleCode, string>;
+  for (const entry of MODULES) {
+    moduleIds[entry.code] = (await prisma.module.create({ data: entry })).id;
   }
-  return ids;
+  const programmeIds = {} as Record<ProgrammeCode, string>;
+  for (const { structure, ...programme } of PROGRAMMES) {
+    const created = await prisma.programme.create({
+      data: {
+        ...programme,
+        years: structure.length,
+        modules: {
+          create: structure.flatMap(({ core, optional }, index) => [
+            ...core.map((code) => ({
+              moduleId: moduleIds[code],
+              yearOfStudy: index + 1,
+              kind: "CORE" as const,
+            })),
+            ...optional.map((code) => ({
+              moduleId: moduleIds[code],
+              yearOfStudy: index + 1,
+              kind: "OPTIONAL" as const,
+            })),
+          ]),
+        },
+      },
+    });
+    programmeIds[programme.code] = created.id;
+  }
+  return { programmeIds, moduleIds };
+}
+
+/**
+ * Sets up last academic year's calendar and this one's: semester 1 from late
+ * September to late January, semester 2 from February to early June.
+ * Students don't choose their own modules until staff open that up.
+ */
+async function seedAcademicYears(
+  prisma: PrismaClient,
+  currentYear: number,
+): Promise<void> {
+  for (const startYear of [currentYear - 1, currentYear]) {
+    await prisma.academicYear.create({
+      data: {
+        year: formatAcademicYear(startYear),
+        semester1Start: toDbDate(`${startYear}-09-21`),
+        semester1End: toDbDate(`${startYear + 1}-01-22`),
+        semester2Start: toDbDate(`${startYear + 1}-02-01`),
+        semester2End: toDbDate(`${startYear + 1}-06-11`),
+      },
+    });
+  }
 }
 
 /**
@@ -316,13 +612,17 @@ async function seedProgrammes(
  */
 async function seedStudents(
   prisma: PrismaClient,
-  programmeIds: Record<ProgrammeCode, string>,
+  curriculum: SeededCurriculum,
   currentYear: number,
   now: Date,
-): Promise<Record<CastKey, SeededStudent>> {
+): Promise<{
+  students: Record<CastKey, SeededStudent>;
+  registrations: number;
+}> {
   const daysAgo = (days: number) => new Date(now.getTime() - days * MS_PER_DAY);
   const lastSequence = new Map<number, number>();
   const seeded = {} as Record<CastKey, SeededStudent>;
+  let registrations = 0;
 
   for (const [key, member] of Object.entries(CAST) as [CastKey, CastMember][]) {
     const intakeYear = currentYear - member.intakeYearsAgo;
@@ -340,8 +640,9 @@ async function seedStudents(
         fullName: member.fullName,
         email: member.email,
         dateOfBirth: toDbDate(member.dateOfBirth),
-        programmeId: programmeIds[member.programme],
+        programmeId: curriculum.programmeIds[member.programme],
         academicYear,
+        yearOfStudy: member.yearOfStudy,
         status: finalStatus,
         createdAt: daysAgo(createdDaysAgo),
         statusChanges: {
@@ -360,12 +661,63 @@ async function seedStudents(
       academicYear,
       programme: member.programme,
     };
+
+    // Core modules registered on enrolment, or at the start of the
+    // academic year for a returning student; options a few days later.
+    const years = [
+      {
+        academicYear,
+        yearOfStudy: member.yearOfStudy,
+        options: member.options,
+      },
+      ...(member.previousYear
+        ? [
+            {
+              academicYear: formatAcademicYear(
+                currentYear - member.sessionYearsAgo - 1,
+              ),
+              ...member.previousYear,
+            },
+          ]
+        : []),
+    ];
+    for (const year of years) {
+      const structure = PROGRAMMES.find(
+        (programme) => programme.code === member.programme,
+      )?.structure[year.yearOfStudy - 1];
+      if (!structure) {
+        throw new Error(`No year ${year.yearOfStudy} for ${member.fullName}.`);
+      }
+      const yearStart = toDbDate(academicYearSpan(year.academicYear).first);
+      const registeredAt = new Date(
+        Math.max(student.createdAt.getTime(), yearStart.getTime()),
+      );
+      const chosenAt = new Date(
+        Math.min(
+          registeredAt.getTime() + 3 * MS_PER_DAY,
+          now.getTime() - 60 * 60 * 1000,
+        ),
+      );
+      const modules = [
+        ...structure.core.map((code) => ({ code, at: registeredAt })),
+        ...year.options.map((code) => ({ code, at: chosenAt })),
+      ];
+      await prisma.moduleRegistration.createMany({
+        data: modules.map(({ code, at }) => ({
+          studentId: student.id,
+          moduleId: curriculum.moduleIds[code],
+          academicYear: year.academicYear,
+          registeredAt: at,
+        })),
+      });
+      registrations += modules.length;
+    }
   }
 
   for (const [year, lastValue] of lastSequence) {
     await prisma.studentNumberCounter.create({ data: { year, lastValue } });
   }
-  return seeded;
+  return { students: seeded, registrations };
 }
 
 interface SeedAccount {
@@ -527,8 +879,6 @@ async function seedAccounts(
   return { charges, payments };
 }
 
-type ModuleCode = (typeof PROGRAMMES)[number]["modules"][number]["code"];
-
 interface SeedAssessment {
   module: ModuleCode;
   title: string;
@@ -555,97 +905,136 @@ interface SeedAssessment {
 /**
  * Assessments in every state: closed, past the deadline but still accepting
  * late work, and open. Submissions are on time, late and replaced, and the
- * marks cover every classification, published and not.
+ * marks cover every classification, published and not. Each is for the
+ * students registered on its module in the academic year of its deadline.
+ *
+ * @param finalProjectInDays - Days from today to the final year project's
+ *   deadline, in the academic year Mohammed completed.
  */
-const ASSESSMENTS: SeedAssessment[] = [
-  {
-    module: "CS4001",
-    title: "Algorithms coursework",
-    deadlineInDays: -14,
-    closedDaysAgo: 3,
-    submissions: [
-      { student: "oliver", hoursAfterDeadline: -48, format: "pdf" },
-      { student: "priya", hoursAfterDeadline: 26, format: "docx" },
-      { student: "amelia", hoursAfterDeadline: -30, format: "pdf", attempt: 2 },
-    ],
-    marks: [
-      { student: "oliver", mark: 74, publishedDaysAgo: 2 },
-      { student: "priya", mark: 58, publishedDaysAgo: 2 },
-      { student: "amelia", mark: 66, publishedDaysAgo: 2 },
-    ],
-  },
-  {
-    module: "CS4002",
-    title: "Database design report",
-    deadlineInDays: -2,
-    submissions: [
-      { student: "oliver", hoursAfterDeadline: -5, format: "docx" },
-    ],
-    marks: [{ student: "oliver", mark: 81 }],
-  },
-  {
-    module: "CS5003",
-    title: "Web project proposal",
-    deadlineInDays: 10,
-    submissions: [
-      { student: "priya", hoursAfterDeadline: -264, format: "pdf" },
-    ],
-    marks: [],
-  },
-  {
-    module: "CS5003",
-    title: "Final year project",
-    deadlineInDays: -200,
-    closedDaysAgo: 190,
-    submissions: [
-      { student: "mohammed", hoursAfterDeadline: -24, format: "pdf" },
-    ],
-    marks: [{ student: "mohammed", mark: 68, publishedDaysAgo: 180 }],
-  },
-  {
-    module: "BM4001",
-    title: "Management essay",
-    deadlineInDays: -7,
-    submissions: [
-      { student: "kwame", hoursAfterDeadline: -20, format: "docx" },
-      { student: "chloe", hoursAfterDeadline: 50, format: "pdf" },
-    ],
-    marks: [
-      { student: "kwame", mark: 35, publishedDaysAgo: 1 },
-      { student: "chloe", mark: 62 },
-    ],
-  },
-  {
-    module: "BM4002",
-    title: "Accounting test",
-    deadlineInDays: 20,
-    submissions: [],
-    marks: [],
-  },
-  {
-    module: "DS7001",
-    title: "Machine learning report",
-    deadlineInDays: -5,
-    closedDaysAgo: 1,
-    submissions: [
-      // Submitted before withdrawing, so still on the marksheet.
-      { student: "hannah", hoursAfterDeadline: -100, format: "pdf" },
-      { student: "liam", hoursAfterDeadline: -3, format: "pdf" },
-      { student: "arjun", hoursAfterDeadline: 20, format: "docx" },
-    ],
-    marks: [
-      { student: "liam", mark: 71, publishedDaysAgo: 1 },
-      { student: "arjun", mark: 45 },
-    ],
-  },
-  {
-    module: "DS7002",
-    title: "Data pipeline design",
-    deadlineInDays: 14,
-    submissions: [],
-    marks: [],
-  },
-];
+function assessmentsToSeed(finalProjectInDays: number): SeedAssessment[] {
+  const sinceFinalProject = -finalProjectInDays;
+  return [
+    {
+      module: "CS4001",
+      title: "Algorithms coursework",
+      deadlineInDays: -14,
+      closedDaysAgo: 3,
+      submissions: [
+        { student: "oliver", hoursAfterDeadline: -48, format: "pdf" },
+        { student: "priya", hoursAfterDeadline: 26, format: "docx" },
+      ],
+      marks: [
+        { student: "oliver", mark: 74, publishedDaysAgo: 2 },
+        { student: "priya", mark: 58, publishedDaysAgo: 2 },
+      ],
+    },
+    {
+      module: "CS4002",
+      title: "Database design report",
+      deadlineInDays: -2,
+      submissions: [
+        { student: "oliver", hoursAfterDeadline: -5, format: "docx" },
+      ],
+      marks: [{ student: "oliver", mark: 81 }],
+    },
+    {
+      module: "CS4003",
+      title: "Systems lab report",
+      deadlineInDays: 10,
+      submissions: [
+        { student: "priya", hoursAfterDeadline: -264, format: "pdf" },
+      ],
+      marks: [],
+    },
+    {
+      module: "CS5001",
+      title: "Software design report",
+      deadlineInDays: -21,
+      closedDaysAgo: 10,
+      submissions: [
+        {
+          student: "amelia",
+          hoursAfterDeadline: -30,
+          format: "pdf",
+          attempt: 2,
+        },
+      ],
+      marks: [{ student: "amelia", mark: 66, publishedDaysAgo: 2 }],
+    },
+    {
+      module: "CS5003",
+      title: "Web project proposal",
+      deadlineInDays: 12,
+      submissions: [],
+      marks: [],
+    },
+    {
+      module: "CS6001",
+      title: "Final year project",
+      deadlineInDays: finalProjectInDays,
+      closedDaysAgo: sinceFinalProject - 10,
+      submissions: [
+        { student: "mohammed", hoursAfterDeadline: -24, format: "pdf" },
+      ],
+      marks: [
+        {
+          student: "mohammed",
+          mark: 68,
+          publishedDaysAgo: sinceFinalProject - 20,
+        },
+      ],
+    },
+    {
+      module: "BM4001",
+      title: "Management essay",
+      deadlineInDays: -7,
+      submissions: [
+        { student: "chloe", hoursAfterDeadline: 50, format: "pdf" },
+      ],
+      marks: [{ student: "chloe", mark: 62 }],
+    },
+    {
+      module: "BM4002",
+      title: "Accounting test",
+      deadlineInDays: 20,
+      submissions: [],
+      marks: [],
+    },
+    {
+      module: "BM5001",
+      title: "Organisational behaviour essay",
+      deadlineInDays: -9,
+      closedDaysAgo: 4,
+      submissions: [
+        { student: "kwame", hoursAfterDeadline: -20, format: "docx" },
+      ],
+      marks: [{ student: "kwame", mark: 35, publishedDaysAgo: 1 }],
+    },
+    {
+      module: "DS7001",
+      title: "Machine learning report",
+      deadlineInDays: -5,
+      closedDaysAgo: 1,
+      submissions: [
+        // Submitted before withdrawing, so still on the marksheet.
+        { student: "hannah", hoursAfterDeadline: -100, format: "pdf" },
+        { student: "liam", hoursAfterDeadline: -3, format: "pdf" },
+        { student: "arjun", hoursAfterDeadline: 20, format: "docx" },
+      ],
+      marks: [
+        { student: "liam", mark: 71, publishedDaysAgo: 1 },
+        { student: "arjun", mark: 45 },
+      ],
+    },
+    {
+      module: "DS7002",
+      title: "Data pipeline design",
+      deadlineInDays: 14,
+      submissions: [],
+      marks: [],
+    },
+  ];
+}
 
 /** Results withheld by staff, with the reason the student is shown. */
 // Held after the marks were published (two days ago): the app refuses to
@@ -662,9 +1051,13 @@ async function seedAssessments(
     now: Date;
     timeZone: string;
     uploadDir: string;
+    currentYear: number;
   },
 ): Promise<{ assessments: number; submissions: number; marks: number }> {
-  const { today, now, timeZone, uploadDir } = clock;
+  const { today, now, timeZone, uploadDir, currentYear } = clock;
+  // 24 April of last academic year: always in the past, and in the year
+  // Mohammed completed.
+  const seeds = assessmentsToSeed(daysBetween(today, `${currentYear}-04-24`));
   const daysAgo = (days: number) => new Date(now.getTime() - days * MS_PER_DAY);
   const modules = new Map(
     (await prisma.module.findMany({ select: { id: true, code: true } })).map(
@@ -675,7 +1068,7 @@ async function seedAssessments(
   let submissions = 0;
   let marks = 0;
 
-  for (const seed of ASSESSMENTS) {
+  for (const seed of seeds) {
     const deadline = wallTimeToInstant(
       `${addDays(today, seed.deadlineInDays)}T17:00`,
       timeZone,
@@ -756,7 +1149,7 @@ async function seedAssessments(
       marks += 1;
     }
   }
-  return { assessments: ASSESSMENTS.length, submissions, marks };
+  return { assessments: seeds.length, submissions, marks };
 }
 
 async function seedHolds(
@@ -890,6 +1283,7 @@ async function seedAuditTrail(prisma: PrismaClient): Promise<number> {
       payments: { include: { reversal: true } },
       submissions: { include: { assessment: true } },
       results: { include: { assessment: true } },
+      registrations: { include: { module: true } },
       user: true,
     },
   });
@@ -913,6 +1307,20 @@ async function seedAuditTrail(prisma: PrismaClient): Promise<number> {
           from: change.fromStatus,
           to: change.toStatus,
           reason: change.reason,
+        },
+      });
+    }
+
+    // Jane registers students on their modules: the core ones on enrolment,
+    // and the options they choose.
+    for (const registration of student.registrations) {
+      add(jane, registration.registeredAt, {
+        action: "registration.added",
+        studentId,
+        details: {
+          moduleCode: registration.module.code,
+          moduleTitle: registration.module.title,
+          academicYear: registration.academicYear,
         },
       });
     }

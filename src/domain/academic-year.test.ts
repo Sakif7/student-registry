@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  academicYearAt,
+  academicYearFromSlug,
   academicYearOn,
   academicYearSchema,
+  academicYearSlug,
   academicYearSpan,
   academicYearStart,
   academicYearsAround,
@@ -38,6 +41,15 @@ describe("academicYearOn", () => {
 
   it("keeps January to August in the year that started the previous autumn", () => {
     expect(academicYearOn("2027-01-15")).toBe("2026/27");
+  });
+});
+
+describe("academicYearAt", () => {
+  it("reads the instant's date in the time zone given", () => {
+    // 00:30 on 1 September in London (BST), still 31 August in UTC.
+    const instant = new Date("2026-08-31T23:30:00.000Z");
+    expect(academicYearAt(instant, "Europe/London")).toBe("2026/27");
+    expect(academicYearAt(instant, "UTC")).toBe("2025/26");
   });
 });
 
@@ -80,5 +92,12 @@ describe("academicYearSchema", () => {
     expect(result.error?.issues[0]?.message).toBe(
       "Use the format 2026/27, with consecutive years",
     );
+  });
+});
+
+describe("academicYearSlug", () => {
+  it("writes an academic year for a web address, and reads it back", () => {
+    expect(academicYearSlug("2026/27")).toBe("2026-27");
+    expect(academicYearFromSlug("2026-27")).toBe("2026/27");
   });
 });

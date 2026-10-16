@@ -13,6 +13,17 @@ Router), PostgreSQL and Prisma.
   - statuses Enrolled, Deferred, Withdrawn and Completed, with a reason and
     history for every change;
   - search, filters, sortable columns and paging.
+- **Curriculum and registration:**
+  - programmes with a length and the credits each year carries, built from
+    a shared catalogue of modules, each worth some credits and taught in a
+    semester;
+  - each programme's structure: the core modules and the options of each
+    year of study;
+  - academic years with their semester dates;
+  - students registered on modules each year: core modules automatically,
+    options by staff (or by students, while staff allow it), within the
+    year's credits;
+  - assessments go to the students registered on the module that year.
 - **Fees and payments:**
   - a fee per programme and academic year, with corrections;
   - payments with amount, date and reference, corrected by reversal;
@@ -207,6 +218,15 @@ means the student whose record it is.
 | GET, DELETE | `/api/account/sessions`                      | Signed in     | The devices one is signed in on; sign out all but this one          |
 | DELETE      | `/api/account/sessions/{id}`                 | Signed in     | Sign out on one other device                                        |
 | GET         | `/api/programmes`, `/api/modules`            | Signed in     | Reference data for forms                                            |
+| POST        | `/api/programmes`, `/api/modules`            | Staff         | Set up a programme or a module                                      |
+| GET, PATCH  | `/api/programmes/{code}`                     | Staff         | A programme with its structure; change its details                  |
+| POST        | `/api/programmes/{code}/modules`             | Staff         | Add a module to a year of the programme, as core or optional        |
+| DELETE      | `/api/programmes/{code}/modules/{module}`    | Staff         | Take a module out of the programme                                  |
+| PATCH       | `/api/modules/{code}`                        | Staff         | Change a module's title, credits or semester                        |
+| GET         | `/api/academic-years`                        | Staff         | Every academic year's calendar                                      |
+| PUT         | `/api/academic-years/{year}`                 | Staff         | Set an academic year's semesters, and whether students choose       |
+| GET, POST   | `/api/students/{number}/modules`             | Staff or self | A student's modules and options; register on one                    |
+| DELETE      | `/api/students/{number}/modules/{module}`    | Staff or self | Drop a module                                                       |
 | GET, POST   | `/api/students`                              | Staff         | Search and filter students; enrol one, emailing the activation link |
 | GET, PATCH  | `/api/students/{number}`                     | Staff or self | Read a record (staff edit it)                                       |
 | POST        | `/api/students/{number}/status`              | Staff         | Change the enrolment status                                         |

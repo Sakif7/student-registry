@@ -1,5 +1,6 @@
-// Registry data model: programmes and modules, student records, fees and
-// payments, assessments, submissions and results.
+// Registry data model: programmes, modules and the academic calendar,
+// student records and module registrations, fees and payments,
+// assessments, submissions and results.
 //
 // Conventions:
 // - Money is integer pence (GBP), never floating point.
@@ -30,6 +31,24 @@ enum EnrolmentStatus {
   @@map("enrolment_status")
 }
 
+/// When in the academic year a module is taught.
+enum Semester {
+  FIRST
+  SECOND
+  ALL_YEAR
+
+  @@map("semester")
+}
+
+/// A module's place in a programme: taken by every student in that year of
+/// study, or one of the options they choose from.
+enum ModuleKind {
+  CORE
+  OPTIONAL
+
+  @@map("module_kind")
+}
+
 /// A course of study, e.g. "BSc (Hons) Computer Science".
 model Programme {
   id             String   @id @default(uuid(7)) @db.Uuid
@@ -39,26 +58,84 @@ model Programme {
   /// Standard tuition fee per academic year. Copied into a FeeCharge when a
   /// student is charged, so changing it never rewrites existing charges.
   annualFeePence Int      @map("annual_fee_pence")
+  /// How many years of study it takes, e.g. 3 for a bachelor's degree.
+  years          Int
+  /// The credits a student takes in each year of study, e.g. 120.
+  creditsPerYear Int      @map("credits_per_year")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  modules  Module[]
+  modules  ProgrammeModule[]
   students Student[]
 
   @@map("programmes")
 }
 
-/// A unit of study within a programme; assessments belong to a module.
+/// A unit of study, e.g. "CS4002 Databases". It can be part of several
+/// programmes; assessments belong to a module.
 model Module {
-  id          String @id @default(uuid(7)) @db.Uuid
-  code        String @unique
-  title       String
-  programmeId String @map("programme_id") @db.Uuid
+  id       String   @id @default(uuid(7)) @db.Uuid
+  code     String   @unique
+  title    String
+  /// What passing it is worth, e.g. 15 or 30.
+  credits  Int
+  semester Semester
 
-  programme   Programme    @relation(fields: [programmeId], references: [id])
-  assessments Assessment[]
+  programmes    ProgrammeModule[]
+  registrations ModuleRegistration[]
+  assessments   Assessment[]
 
-  @@index([programmeId])
   @@map("modules")
+}
+
+/// A module in a programme's structure: the year of study it belongs to, and
+/// whether every student takes it (core) or may choose it (optional).
+model ProgrammeModule {
+  programmeId String     @map("programme_id") @db.Uuid
+  moduleId    String     @map("module_id") @db.Uuid
+  /// 1 for the programme's first year.
+  yearOfStudy Int        @map("year_of_study")
+  kind        ModuleKind
+
+  programme Programme @relation(fields: [programmeId], references: [id])
+  module    Module    @relation(fields: [moduleId], references: [id])
+
+  @@id([programmeId, moduleId])
+  @@index([moduleId])
+  @@map("programme_modules")
+}
+
+/// A student taking a module in an academic year. Core modules are
+/// registered automatically; optional ones by staff, or by the student
+/// while the academic year lets students choose.
+model ModuleRegistration {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  studentId    String   @map("student_id") @db.Uuid
+  moduleId     String   @map("module_id") @db.Uuid
+  /// E.g. "2026/27".
+  academicYear String   @map("academic_year")
+  registeredAt DateTime @default(now()) @map("registered_at") @db.Timestamptz(3)
+
+  student Student @relation(fields: [studentId], references: [id])
+  module  Module  @relation(fields: [moduleId], references: [id])
+
+  @@unique([studentId, moduleId, academicYear])
+  @@index([moduleId, academicYear])
+  @@map("module_registrations")
+}
+
+/// The college's calendar for one academic year: the dates of its two
+/// semesters, and whether students may choose their own optional modules.
+model AcademicYear {
+  /// E.g. "2026/27".
+  year                  String   @id
+  semester1Start        DateTime @map("semester_1_start") @db.Date
+  semester1End          DateTime @map("semester_1_end") @db.Date
+  semester2Start        DateTime @map("semester_2_start") @db.Date
+  semester2End          DateTime @map("semester_2_end") @db.Date
+  /// While true, students may add and drop their own optional modules.
+  studentsChooseModules Boolean  @default(false) @map("students_choose_modules")
+
+  @@map("academic_years")
 }
 
 /// A student record, as kept by the Registry.
@@ -73,6 +150,8 @@ model Student {
   programmeId           String          @map("programme_id") @db.Uuid
   /// The student's current academic session, e.g. "2026/27".
   academicYear          String          @map("academic_year")
+  /// Which year of their programme the student is in, from 1.
+  yearOfStudy           Int             @default(1) @map("year_of_study")
   status                EnrolmentStatus @default(ENROLLED)
   /// Set while staff withhold this student's results; both fields are set
   /// together or not at all.
@@ -87,6 +166,7 @@ model Student {
   payments      Payment[]
   submissions   Submission[]
   results       AssessmentResult[]
+  registrations ModuleRegistration[]
   /// The student's sign-in account, created when the student is enrolled.
   user          User?
   /// Everything done to the student's record, by whom.

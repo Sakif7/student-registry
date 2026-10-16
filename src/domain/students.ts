@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { academicYearSchema } from "./academic-year";
 import { type CalendarDate, isCalendarDate } from "./college-time";
+import { MAX_PROGRAMME_YEARS } from "./curriculum";
 import {
   ENROLMENT_STATUSES,
   EnrolmentStatus,
@@ -95,6 +96,16 @@ const programmeCodeSchema = z
   .min(1, "Choose a programme")
   .max(32);
 
+/**
+ * Which year of the programme the student is in. The programme's length is
+ * checked against it when the record is saved. A form's select sends text.
+ */
+const yearOfStudySchema = z.coerce
+  .number({ error: "Choose a year of study" })
+  .int("Choose a year of study")
+  .min(1, "Choose a year of study")
+  .max(MAX_PROGRAMME_YEARS, "Choose a year of study");
+
 function detailsShape(today: CalendarDate) {
   return {
     fullName: fullNameSchema,
@@ -102,6 +113,7 @@ function detailsShape(today: CalendarDate) {
     dateOfBirth: dateOfBirthSchema(today),
     programmeCode: programmeCodeSchema,
     academicYear: academicYearSchema,
+    yearOfStudy: yearOfStudySchema,
   };
 }
 
@@ -110,10 +122,14 @@ export function studentDetailsSchema(today: CalendarDate) {
   return z.object(detailsShape(today));
 }
 
-/** Input for enrolling a new student; `today` is the college's date. */
+/**
+ * Input for enrolling a new student; `today` is the college's date. A new
+ * student starts in year 1 unless the year of study says otherwise.
+ */
 export function createStudentSchema(today: CalendarDate) {
   return z.object({
     ...detailsShape(today),
+    yearOfStudy: yearOfStudySchema.default(1),
     status: z
       .enum(INITIAL_STATUSES, {
         error: "A new record starts as Enrolled or Deferred",

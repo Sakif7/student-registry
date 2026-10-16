@@ -34,8 +34,10 @@ import { submitWork } from "@/server/services/submissions";
 import { samplePdf } from "../../prisma/sample-documents";
 import {
   createAssessment as makeAssessment,
+  createModule,
   createProgramme,
   createStudent as makeStudent,
+  registerStudents,
 } from "../helpers/factories";
 import {
   apiRequest,
@@ -187,8 +189,10 @@ describe("the audit trail records", () => {
 
   it("assessments set, edited, closed and reopened, for no one student", async () => {
     const programme = await createProgramme({ code: "BSC-CS" });
-    await db().module.create({
-      data: { code: "CS4002", title: "Databases", programmeId: programme.id },
+    await createModule({
+      code: "CS4002",
+      title: "Databases",
+      programmeId: programme.id,
     });
     const staff = await sessionFor(STAFF);
     const deadline = new Date(Date.now() + 14 * 86_400_000)
@@ -223,12 +227,9 @@ describe("the audit trail records", () => {
   });
 
   it("each mark entered, changed or removed", async () => {
-    const { programme, student } = await enrolledStudent();
+    const { student } = await enrolledStudent();
     const assessment = await makeAssessment({ title: "Essay" });
-    await db().module.update({
-      where: { id: assessment.moduleId },
-      data: { programmeId: programme.id },
-    });
+    await registerStudents(assessment.moduleId, [student.id]);
     const staff = await sessionFor(STAFF);
     const marks = (mark: number | null) => ({
       marks: { [student.studentNumber]: mark },
@@ -251,12 +252,9 @@ describe("the audit trail records", () => {
   });
 
   it("publications, holds and lifted holds, but not publishing nothing", async () => {
-    const { programme, student } = await enrolledStudent();
+    const { student } = await enrolledStudent();
     const assessment = await makeAssessment();
-    await db().module.update({
-      where: { id: assessment.moduleId },
-      data: { programmeId: programme.id },
-    });
+    await registerStudents(assessment.moduleId, [student.id]);
     const staff = await sessionFor(STAFF);
     await saveMarks(staff, assessment.id, {
       marks: { [student.studentNumber]: 72 },
@@ -279,12 +277,9 @@ describe("the audit trail records", () => {
   });
 
   it("work a student submitted, with the student as the one who did it", async () => {
-    const { programme, student } = await enrolledStudent();
+    const { student } = await enrolledStudent();
     const assessment = await makeAssessment({ title: "Essay" });
-    await db().module.update({
-      where: { id: assessment.moduleId },
-      data: { programmeId: programme.id },
-    });
+    await registerStudents(assessment.moduleId, [student.id]);
     const self = await sessionFor(asStudent(student.studentNumber));
     const pdf = new File(
       [new Uint8Array(samplePdf("Essay", ["Oliver Bennett"]))],

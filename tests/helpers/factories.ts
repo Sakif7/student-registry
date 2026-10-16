@@ -13,7 +13,7 @@ function next(): number {
   return sequence;
 }
 
-/** Creates a programme (with no modules). */
+/** Creates a programme (with no modules): three years of 120 credits. */
 export async function createProgramme(
   overrides: Partial<Prisma.ProgrammeUncheckedCreateInput> = {},
 ) {
@@ -23,8 +23,58 @@ export async function createProgramme(
       code: `PROG-${n}`,
       title: `Programme ${n}`,
       annualFeePence: 953_500,
+      years: 3,
+      creditsPerYear: 120,
       ...overrides,
     },
+  });
+}
+
+/**
+ * Creates a 15-credit, first-semester module: in no programme, unless one is
+ * given, when it joins the programme's first year as core unless the year
+ * and kind are given too.
+ */
+export async function createModule({
+  programmeId,
+  yearOfStudy = 1,
+  kind = "CORE",
+  ...overrides
+}: Partial<Prisma.ModuleCreateInput> & {
+  programmeId?: string;
+  yearOfStudy?: number;
+  kind?: "CORE" | "OPTIONAL";
+} = {}) {
+  const n = next();
+  return db().module.create({
+    data: {
+      code: `MOD-${n}`,
+      title: `Module ${n}`,
+      credits: 15,
+      semester: "FIRST",
+      ...overrides,
+      programmes: programmeId
+        ? { create: { programmeId, yearOfStudy, kind } }
+        : undefined,
+    },
+  });
+}
+
+/**
+ * Registers students on a module for an academic year: 2026/27 unless
+ * given, the year of the factories' default deadline.
+ */
+export async function registerStudents(
+  moduleId: string,
+  studentIds: readonly string[],
+  academicYear = "2026/27",
+) {
+  await db().moduleRegistration.createMany({
+    data: studentIds.map((studentId) => ({
+      studentId,
+      moduleId,
+      academicYear,
+    })),
   });
 }
 
@@ -52,17 +102,7 @@ export async function createAssessment(
   overrides: Partial<Prisma.AssessmentUncheckedCreateInput> = {},
 ) {
   const n = next();
-  const moduleId =
-    overrides.moduleId ??
-    (
-      await db().module.create({
-        data: {
-          code: `MOD-${n}`,
-          title: `Module ${n}`,
-          programmeId: (await createProgramme()).id,
-        },
-      })
-    ).id;
+  const moduleId = overrides.moduleId ?? (await createModule()).id;
   return db().assessment.create({
     data: {
       title: `Assessment ${n}`,

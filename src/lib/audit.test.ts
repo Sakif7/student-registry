@@ -100,6 +100,70 @@ describe("describeEvent", () => {
     ["sign_in.link_sent", { kind: "reset" }, "Emailed a password reset link"],
     ["sign_in.turned_off", {}, "Turned sign-in off"],
     ["sign_in.turned_on", {}, "Turned sign-in back on"],
+    ["student.edited", { fields: ["yearOfStudy"] }, "Edited the year of study"],
+    [
+      "programme.created",
+      { code: "BSC-CS", title: "BSc (Hons) Computer Science" },
+      "Set up the programme BSC-CS BSc (Hons) Computer Science",
+    ],
+    [
+      "programme.edited",
+      { code: "BSC-CS", fields: ["annualFeePence", "creditsPerYear"] },
+      "Edited BSC-CS’s annual fee and credits per year",
+    ],
+    [
+      "programme.module_added",
+      {
+        code: "BSC-CS",
+        moduleCode: "AI4001",
+        yearOfStudy: 1,
+        kind: "OPTIONAL",
+      },
+      "Added AI4001 to BSC-CS, year 1, as optional",
+    ],
+    [
+      "programme.module_removed",
+      { code: "BSC-CS", moduleCode: "AI4001" },
+      "Removed AI4001 from BSC-CS",
+    ],
+    [
+      "module.created",
+      { code: "CS4002", title: "Databases" },
+      "Set up the module CS4002 Databases",
+    ],
+    [
+      "module.edited",
+      { code: "CS4002", fields: ["semester"] },
+      "Edited CS4002’s semester",
+    ],
+    [
+      "academic_year.saved",
+      { year: "2027/28", created: true, studentsChooseModules: false },
+      "Set up 2027/28’s semesters; students may not choose their optional modules",
+    ],
+    [
+      "academic_year.saved",
+      { year: "2026/27", created: false, studentsChooseModules: true },
+      "Changed 2026/27’s semesters; students may choose their optional modules",
+    ],
+    [
+      "registration.added",
+      {
+        moduleCode: "CS4004",
+        moduleTitle: "Mathematics for Computing",
+        academicYear: "2026/27",
+      },
+      "Registered on CS4004 Mathematics for Computing for 2026/27",
+    ],
+    [
+      "registration.dropped",
+      {
+        moduleCode: "CS4004",
+        moduleTitle: "Mathematics for Computing",
+        academicYear: "2026/27",
+      },
+      "Dropped CS4004 Mathematics for Computing for 2026/27",
+    ],
   ])("describes %s", (action, details, sentence) => {
     expect(describeEvent(action, details)).toBe(sentence);
   });

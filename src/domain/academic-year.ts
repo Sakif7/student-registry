@@ -2,7 +2,7 @@
 // 31 August 2027.
 import { z } from "zod";
 
-import { addDays, type CalendarDate } from "./college-time";
+import { addDays, type CalendarDate, instantToWallTime } from "./college-time";
 
 const ACADEMIC_YEAR = /^(\d{4})\/(\d{2})$/;
 
@@ -60,6 +60,14 @@ export function academicYearSpan(academicYear: string): {
   return { first, last: addDays(`${start + 1}-${month}-01`, -1) };
 }
 
+/**
+ * The academic year an instant falls in, by the calendar of the given time
+ * zone: an assessment belongs to the year of its deadline.
+ */
+export function academicYearAt(instant: Date, timeZone: string): string {
+  return academicYearOn(instantToWallTime(instant, timeZone).slice(0, 10));
+}
+
 /** The academic year a calendar date falls in. */
 export function academicYearOn(date: CalendarDate): string {
   const [year, month] = date.split("-").map(Number);
@@ -95,3 +103,13 @@ export const academicYearSchema = z
   .refine(isAcademicYear, {
     error: "Use the format 2026/27, with consecutive years",
   });
+
+/** An academic year as a web address shows it: "2026/27" → "2026-27". */
+export function academicYearSlug(academicYear: string): string {
+  return academicYear.replace("/", "-");
+}
+
+/** The academic year a web address names: "2026-27" → "2026/27". */
+export function academicYearFromSlug(slug: string): string {
+  return slug.replace("-", "/");
+}

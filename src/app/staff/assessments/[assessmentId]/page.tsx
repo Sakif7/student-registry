@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { instantToWallTime } from "@/domain/college-time";
+import { SEMESTER_LABELS } from "@/domain/curriculum";
 import { formatDateOf, formatDateTime, formatFileSize } from "@/lib/format";
 import { collegeTimeZone } from "@/server/college";
 import { orNotFound } from "@/server/pages";
@@ -53,7 +54,7 @@ async function AssessmentView({ params }: { params: Params }) {
     <>
       <PageHeader
         breadcrumbs={[{ label: "Assessments", href: "/staff/assessments" }]}
-        eyebrow={`${assessment.module.code} ${assessment.module.title} · ${assessment.programme.title}`}
+        eyebrow={`${assessment.module.code} ${assessment.module.title} · ${assessment.academicYear}, ${SEMESTER_LABELS[assessment.module.semester]}`}
         title={assessment.title}
         actions={
           <>
@@ -98,7 +99,8 @@ async function AssessmentView({ params }: { params: Params }) {
           <p className="mt-1 mb-4">{submissionSummary(assessment)}</p>
           {assessment.students.length === 0 ? (
             <p className="text-muted-foreground">
-              No students are enrolled on {assessment.programme.title} yet.
+              No enrolled student is registered on {assessment.module.code} for{" "}
+              {assessment.academicYear} yet.
             </p>
           ) : (
             <Marksheet
@@ -117,12 +119,12 @@ async function AssessmentView({ params }: { params: Params }) {
   );
 }
 
-/** E.g. "2 of 7 enrolled students have submitted, 1 late." */
+/** E.g. "2 of 7 registered students have submitted, 1 late." */
 function submissionSummary(assessment: AssessmentDetail): string {
   const { submittedCount, expectedCount, lateCount } = assessment;
   const students = expectedCount === 1 ? "student has" : "students have";
   const late = lateCount > 0 ? `, ${lateCount} late` : "";
-  return `${submittedCount} of ${expectedCount} enrolled ${students} submitted${late}.`;
+  return `${submittedCount} of ${expectedCount} registered ${students} submitted${late}.`;
 }
 
 /** The marksheet's rows, with dates and sizes formatted for display. */

@@ -17,10 +17,10 @@ import { FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   NativeSelect,
-  NativeSelectOptGroup,
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import { assessmentFormSchema } from "@/domain/assessments";
+import { SEMESTER_LABELS } from "@/domain/curriculum";
 import type { WallTime } from "@/domain/college-time";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { refreshAfterWrite } from "@/server/actions";
@@ -74,7 +74,7 @@ export function AssessmentForm({
         <FormField
           id="moduleCode"
           label="Module"
-          description="Students enrolled on the module's programme can submit."
+          description="Students registered on the module for the deadline's academic year can submit."
           error={errors.moduleCode?.message}
         >
           {(control) => (
@@ -86,14 +86,11 @@ export function AssessmentForm({
               <NativeSelectOption value="" disabled>
                 Choose a module
               </NativeSelectOption>
-              {groupByProgramme(modules).map(([programme, options]) => (
-                <NativeSelectOptGroup key={programme} label={programme}>
-                  {options.map((option) => (
-                    <NativeSelectOption key={option.code} value={option.code}>
-                      {option.code} {option.title}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelectOptGroup>
+              {modules.map((option) => (
+                <NativeSelectOption key={option.code} value={option.code}>
+                  {option.code} {option.title} (
+                  {SEMESTER_LABELS[option.semester]})
+                </NativeSelectOption>
               ))}
             </NativeSelect>
           )}
@@ -140,15 +137,4 @@ export function AssessmentForm({
       </FieldGroup>
     </Form>
   );
-}
-
-/** Modules grouped under their programme, keeping the order given. */
-function groupByProgramme(modules: ModuleOption[]): [string, ModuleOption[]][] {
-  const groups = new Map<string, ModuleOption[]>();
-  for (const option of modules) {
-    const group = groups.get(option.programme.title) ?? [];
-    group.push(option);
-    groups.set(option.programme.title, group);
-  }
-  return [...groups];
 }

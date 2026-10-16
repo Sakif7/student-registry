@@ -47,7 +47,8 @@ test("staff set an assessment, with the deadline in college time", async ({
   ).toBeVisible();
   await expect(page.getByText(/17:00 (GMT|BST)/)).toBeVisible();
   await expect(
-    page.getByText("0 of 3 enrolled students have submitted."),
+    // Oliver and Priya: the first-years registered on CS4002.
+    page.getByText("0 of 2 registered students have submitted."),
   ).toBeVisible();
   assessmentUrl = new URL(page.url()).pathname;
 });
@@ -117,7 +118,7 @@ test("staff see the submission and enter marks", async ({ page }) => {
   await viewAs(page, "staff");
   await page.goto(assessmentUrl);
   await expect(
-    page.getByText("1 of 3 enrolled students have submitted."),
+    page.getByText("1 of 2 registered students have submitted."),
   ).toBeVisible();
   await expect(page.getByText("Replaced 1 time")).toBeVisible();
 
@@ -143,16 +144,18 @@ test("staff sort the assessments by a column, either way", async ({ page }) => {
   await page.goto("/staff/assessments");
   const first = page.getByRole("row").nth(1).getByRole("link");
   // Open ones first, soonest deadline first.
-  await expect(first).toHaveText("Web project proposal");
+  await expect(first).toHaveText("Systems lab report");
 
-  await page.getByRole("link", { name: "Programme" }).click();
-  await expect(page).toHaveURL("/staff/assessments?sort=programme&dir=asc");
+  await page.getByRole("link", { name: "Module" }).click();
+  await expect(page).toHaveURL("/staff/assessments?sort=module&dir=asc");
   await expect(
-    page.getByRole("columnheader", { name: "Programme" }),
+    page.getByRole("columnheader", { name: "Module" }),
   ).toHaveAttribute("aria-sort", "ascending");
-  await expect(first).toHaveText("Accounting test");
+  // BM4001 comes first.
+  await expect(first).toHaveText("Management essay");
 
-  await page.getByRole("link", { name: "Programme" }).click();
-  await expect(page).toHaveURL("/staff/assessments?sort=programme&dir=desc");
+  await page.getByRole("link", { name: "Module" }).click();
+  await expect(page).toHaveURL("/staff/assessments?sort=module&dir=desc");
+  // DS7002 comes first.
   await expect(first).toHaveText("Data pipeline design");
 });

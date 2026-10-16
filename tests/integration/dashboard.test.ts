@@ -8,6 +8,7 @@ import { getDashboard } from "@/server/services/dashboard";
 
 import {
   createAssessment,
+  createModule,
   createProgramme,
   createStudent,
   createSubmission,
@@ -153,13 +154,8 @@ describe("getDashboard", () => {
     const days = (n: number) => new Date(NOW.getTime() + n * DAY_MS);
     const marked = await createStudent();
     const unmarked = await createStudent();
-    const programme = await createProgramme();
     const moduleCoded = async (code: string) =>
-      (
-        await db().module.create({
-          data: { code, title: `Module ${code}`, programmeId: programme.id },
-        })
-      ).id;
+      (await createModule({ code, title: `Module ${code}` })).id;
     const essay = await createAssessment({
       title: "Management essay",
       deadline: days(-7),

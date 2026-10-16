@@ -24,7 +24,7 @@ test("withheld results stay hidden until the hold is lifted", async ({
 
   await viewAs(page, demoStudent("amelia"));
   await page.goto("/student/results");
-  const row = page.getByRole("row", { name: /Algorithms coursework/ });
+  const row = page.getByRole("row", { name: /Software design report/ });
   await expect(row.getByRole("cell", { name: "66" })).toBeVisible();
   await expect(row.getByRole("cell", { name: "Merit" })).toBeVisible();
 });

@@ -14,7 +14,7 @@ test("a student sees where they stand, and goes on from there", async ({
 
   const next = page.getByRole("region", { name: "Next deadline" });
   await expect(
-    next.getByRole("link", { name: "Web project proposal" }),
+    next.getByRole("link", { name: "Systems lab report" }),
   ).toBeVisible();
   await expect(next.getByText("Submitted")).toBeVisible();
   await expect(
@@ -27,7 +27,7 @@ test("a student sees where they stand, and goes on from there", async ({
   const work = page.getByRole("region", { name: "Assessments taking work" });
   await expect(work.getByRole("row")).toHaveText([
     /^Assessment/,
-    /^Web project proposal.*Open\s*Submitted$/,
+    /^Systems lab report.*Open\s*Submitted$/,
     /^Database design report.*Past deadline\s*Not submitted$/,
   ]);
   await work.getByRole("link", { name: "Database design report" }).click();

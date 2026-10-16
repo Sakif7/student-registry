@@ -1289,3 +1289,51 @@ itself. The sort direction moved into a small module both lists share.
 
 **Checked by:** unit tests of each column and direction and of ties, and an
 end-to-end test that sorts by programme and back.
+
+## Curriculum and module registration
+
+**What the AI did:** answered the owner's questions about how programmes and
+modules are made, who takes which module, and semesters. The first version
+seeded modules that each belonged to one programme, and every student on a
+programme took every module. Asked to go the whole way, the AI modelled the
+curriculum:
+
+- programmes with a length and the credits each year carries, built from a
+  shared module catalogue (credits, semester), with a structure of core
+  modules and options for each year of study;
+- academic years with semester dates, and a switch that lets students
+  choose their own options;
+- students with a year of study, registered on modules for each academic
+  year: core modules automatically (on enrolment, on returning to
+  Enrolled, and on moving programme, year or academic year), options by
+  staff or the student, within the year's credits;
+- assessments for the students registered on the module in the academic
+  year of the deadline, instead of everyone on the programme.
+
+The rules are pure functions in `src/domain`, with the services, the API
+and an audit event for every change. A migration moves existing data
+without changing what it meant. The demo data was rebuilt around years of
+study, so some assessments moved to modules of the right year, and the
+manual scenarios follow.
+
+Found along the way:
+
+- `prisma migrate diff` wrote a migration that dropped modules' programme
+  before anything could copy it. The AI reordered it by hand so the data
+  moves first, and ran it on a copy of the demo data to check.
+- The first test of two registrations at once passed even without the row
+  lock it was meant to prove, because each request signed in first and so
+  ran after the other. It now signs in first and then fires the
+  registrations together, and fails without the lock.
+
+**Checked by:**
+
+- unit tests of the curriculum rules (credits, years, semester dates) and
+  the registration rules (what moving year changes, what can be added and
+  dropped);
+- integration tests of every curriculum and registration endpoint, of
+  enrolment and moving year re-registering students, of students choosing
+  only while allowed, and of the race;
+- the migration run on the demo data, and Prisma's diff confirming the
+  database then matches the schema;
+- the end-to-end suite against the rebuilt demo data.

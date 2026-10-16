@@ -25,8 +25,10 @@ import { db } from "@/server/db";
 import { sampleDocx, samplePdf } from "../../prisma/sample-documents";
 import {
   createAssessment,
+  createModule,
   createProgramme,
   createStudent,
+  registerStudents,
 } from "../helpers/factories";
 import {
   apiRequest,
@@ -55,8 +57,9 @@ interface SubmissionBody {
   };
 }
 
+let moduleId: string;
 let assessmentId: string;
-let otherProgrammeAssessmentId: string;
+let otherModuleAssessmentId: string;
 
 beforeEach(async () => {
   // Only ever empty the dedicated test folder.
@@ -67,9 +70,11 @@ beforeEach(async () => {
 
   const computing = await createProgramme({ code: "BSC-CS" });
   const data = await createProgramme({ code: "MSC-DS" });
-  const moduleId = (
-    await db().module.create({
-      data: { code: "CS4001", title: "Programming", programmeId: computing.id },
+  moduleId = (
+    await createModule({
+      code: "CS4001",
+      title: "Programming",
+      programmeId: computing.id,
     })
   ).id;
   assessmentId = (
@@ -79,28 +84,37 @@ beforeEach(async () => {
       deadline: DEADLINE,
     })
   ).id;
-  otherProgrammeAssessmentId = (
+  otherModuleAssessmentId = (
     await createAssessment({
       moduleId: (
-        await db().module.create({
-          data: { code: "DS7001", title: "ML", programmeId: data.id },
+        await createModule({
+          code: "DS7001",
+          title: "ML",
+          programmeId: data.id,
         })
       ).id,
     })
   ).id;
-  await createStudent({
-    studentNumber: "SMS-2025-0001",
-    programmeId: computing.id,
-  });
-  await createStudent({
-    studentNumber: "SMS-2026-0001",
-    programmeId: computing.id,
-  });
-  await createStudent({
-    studentNumber: "SMS-2026-0003",
-    programmeId: computing.id,
-    status: "DEFERRED",
-  });
+  const students = [
+    await createStudent({
+      studentNumber: "SMS-2025-0001",
+      programmeId: computing.id,
+    }),
+    await createStudent({
+      studentNumber: "SMS-2026-0001",
+      programmeId: computing.id,
+    }),
+    // Registered, then deferred.
+    await createStudent({
+      studentNumber: "SMS-2026-0003",
+      programmeId: computing.id,
+      status: "DEFERRED",
+    }),
+  ];
+  await registerStudents(
+    moduleId,
+    students.map(({ id }) => id),
+  );
 });
 
 afterEach(() => {
@@ -242,16 +256,16 @@ describe("PUT /api/assessments/[assessmentId]/submission", () => {
     expect(await storedKeys()).toEqual({ onDisk: [], inDatabase: [] });
   });
 
-  it("refuses a student who isn't enrolled, and hides other programmes' assessments", async () => {
+  it("refuses a student who isn't enrolled, and hides assessments on modules they don't take", async () => {
     expect(
       await upload(pdf(), { session: asStudent("SMS-2026-0003") }),
     ).toMatchObject({
       status: 403,
       body: { detail: "Only enrolled students can submit work." },
     });
-    expect(
-      (await upload(pdf(), { id: otherProgrammeAssessmentId })).status,
-    ).toBe(404);
+    expect((await upload(pdf(), { id: otherModuleAssessmentId })).status).toBe(
+      404,
+    );
     expect((await upload(pdf(), { id: UNKNOWN_ID })).status).toBe(404);
     expect((await upload(pdf(), { id: "not-an-id" })).status).toBe(404);
     expect(await storedKeys()).toEqual({ onDisk: [], inDatabase: [] });
@@ -448,7 +462,7 @@ describe("GET /api/students/[studentNumber]/assessments", () => {
     return { status: response.status, body: await bodyOf(response) };
   }
 
-  it("lists the programme's assessments with the student's own work", async () => {
+  it("lists the assessments of the student's modules, with their own work", async () => {
     await upload(pdf());
 
     expect(await list("SMS-2025-0001", AMELIA)).toMatchObject({
@@ -471,6 +485,21 @@ describe("GET /api/students/[studentNumber]/assessments", () => {
         ],
       },
     });
+  });
+
+  it("leaves out a module's assessments from years the student wasn't on it", async () => {
+    // Amelia is registered on CS4001 for 2026/27, not for 2025/26.
+    await createAssessment({
+      title: "Last year's coursework",
+      moduleId,
+      deadline: new Date("2026-03-20T17:00:00.000Z"),
+    });
+
+    const { body } = await list("SMS-2025-0001", AMELIA);
+
+    expect(
+      (body.assessments as { title: string }[]).map(({ title }) => title),
+    ).toEqual(["Coursework 1"]);
   });
 
   it("says why a student can't submit", async () => {

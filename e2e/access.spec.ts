@@ -57,11 +57,11 @@ test("students can download their own work, and nobody else's", async ({
   const { assessments } = (await (
     await page.request.get("/api/assessments")
   ).json()) as { assessments: { id: string; title: string }[] };
-  const proposal = assessments.find(
-    ({ title }) => title === "Web project proposal",
+  const report = assessments.find(
+    ({ title }) => title === "Systems lab report",
   );
   const { assessment } = (await (
-    await page.request.get(`/api/assessments/${proposal?.id ?? ""}`)
+    await page.request.get(`/api/assessments/${report?.id ?? ""}`)
   ).json()) as {
     assessment: {
       students: { studentNumber: string; submission: { id: string } | null }[];

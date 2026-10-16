@@ -15,9 +15,11 @@ import { db } from "@/server/db";
 
 import {
   createAssessment as insertAssessment,
+  createModule,
   createProgramme,
   createStudent,
   createSubmission,
+  registerStudents,
 } from "../helpers/factories";
 import {
   apiRequest,
@@ -66,16 +68,16 @@ beforeEach(async () => {
   });
   const data = await createProgramme({ code: "MSC-DS" });
   computingModuleId = (
-    await db().module.create({
-      data: {
-        code: "CS4001",
-        title: "Programming Fundamentals",
-        programmeId: computing.id,
-      },
+    await createModule({
+      code: "CS4001",
+      title: "Programming Fundamentals",
+      programmeId: computing.id,
     })
   ).id;
-  await db().module.create({
-    data: { code: "DS7001", title: "Machine Learning", programmeId: data.id },
+  await createModule({
+    code: "DS7001",
+    title: "Machine Learning",
+    programmeId: data.id,
   });
   amelia = await createStudent({
     studentNumber: "SMS-2025-0001",
@@ -98,6 +100,8 @@ beforeEach(async () => {
     fullName: "Liam O'Connor",
     programmeId: data.id,
   });
+  // Hannah was registered before she withdrew.
+  await registerStudents(computingModuleId, [amelia.id, oliver.id, hannah.id]);
 });
 
 afterEach(() => {
@@ -150,11 +154,12 @@ describe("POST /api/assessments", () => {
     expect(body).toMatchObject({
       assessment: {
         title: "Coursework 1: Algorithms",
-        module: { code: "CS4001" },
-        programme: { code: "BSC-CS" },
+        module: { code: "CS4001", semester: "FIRST" },
+        academicYear: "2026/27",
         deadline: "2026-11-20T17:00:00.000Z",
         closedAt: null,
         state: "OPEN",
+        // Amelia and Oliver: Hannah, also registered, has withdrawn.
         expectedCount: 2,
         submittedCount: 0,
       },
@@ -410,7 +415,7 @@ describe("PATCH /api/assessments/[assessmentId]", () => {
 });
 
 describe("GET /api/modules", () => {
-  it("lists each module with its programme, for any viewer", async () => {
+  it("lists each module with when it is taught, for any viewer", async () => {
     const response = await listModules(
       await apiRequest("GET", "/api/modules", {
         session: asStudent("SMS-2025-0001"),
@@ -419,8 +424,12 @@ describe("GET /api/modules", () => {
     );
     expect(await bodyOf(response)).toMatchObject({
       modules: [
-        { code: "CS4001", programme: { code: "BSC-CS" } },
-        { code: "DS7001", programme: { code: "MSC-DS" } },
+        {
+          code: "CS4001",
+          title: "Programming Fundamentals",
+          semester: "FIRST",
+        },
+        { code: "DS7001", title: "Machine Learning", semester: "FIRST" },
       ],
     });
   });

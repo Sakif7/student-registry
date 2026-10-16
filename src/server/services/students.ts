@@ -48,12 +48,15 @@ import {
 } from "../session";
 
 import { summariseAccounts } from "./fees";
+import { syncRegistrations } from "./registrations";
 
 /** A programme as offered in forms and filters. */
 export interface ProgrammeOption {
   code: string;
   title: string;
   annualFeePence: number;
+  /** How many years of study it takes. */
+  years: number;
 }
 
 export interface StatusChange {
@@ -70,6 +73,7 @@ export interface StudentRecord {
   email: string;
   dateOfBirth: CalendarDate;
   academicYear: string;
+  yearOfStudy: number;
   status: EnrolmentStatus;
   programme: ProgrammeOption;
   enrolledAt: Date;
@@ -120,7 +124,7 @@ export async function listProgrammes(
 ): Promise<ProgrammeOption[]> {
   requireSession(session);
   return db().programme.findMany({
-    select: { code: true, title: true, annualFeePence: true },
+    select: { code: true, title: true, annualFeePence: true, years: true },
     orderBy: { title: "asc" },
   });
 }
@@ -269,6 +273,7 @@ export async function createStudent(
   const today = collegeToday();
   const details = parseInput(createStudentSchema(today), input);
   const programme = await findProgramme(details.programmeCode);
+  checkYearOfStudy(details.yearOfStudy, programme);
   const intakeYear = startYearOf(details.academicYear);
 
   try {
@@ -281,6 +286,7 @@ export async function createStudent(
           email: details.email,
           dateOfBirth: toDbDate(details.dateOfBirth),
           academicYear: details.academicYear,
+          yearOfStudy: details.yearOfStudy,
           status: details.status,
           programmeId: programme.id,
           statusChanges: { create: { toStatus: details.status } },
@@ -317,6 +323,7 @@ export async function createStudent(
           status: created.status,
         },
       });
+      await syncRegistrations(tx, staff, created.id);
       return created;
     });
     return toRecord(student);
@@ -362,13 +369,20 @@ export async function updateStudent(
   const staff = requireStaff(session);
   const changes = parseInput(updateStudentSchema(collegeToday()), input);
   const { id } = await findStudentId(studentNumber);
-  const programmeId = changes.programmeCode
-    ? (await findProgramme(changes.programmeCode)).id
+  const newProgramme = changes.programmeCode
+    ? await findProgramme(changes.programmeCode)
     : undefined;
 
   try {
     const student = await db().$transaction(async (tx) => {
-      const before = await tx.student.findUniqueOrThrow({ where: { id } });
+      const before = await tx.student.findUniqueOrThrow({
+        where: { id },
+        include: { programme: true },
+      });
+      checkYearOfStudy(
+        changes.yearOfStudy ?? before.yearOfStudy,
+        newProgramme ?? before.programme,
+      );
       const updated = await tx.student.update({
         where: { id },
         data: {
@@ -379,7 +393,8 @@ export async function updateStudent(
               ? undefined
               : toDbDate(changes.dateOfBirth),
           academicYear: changes.academicYear,
-          programmeId,
+          yearOfStudy: changes.yearOfStudy,
+          programmeId: newProgramme?.id,
         },
         include: recordInclude,
       });
@@ -391,6 +406,14 @@ export async function updateStudent(
           studentId: id,
           details: { fields },
         });
+      }
+      // A new programme, year of study or academic year needs other modules.
+      if (
+        fields.some((field) =>
+          ["programmeCode", "yearOfStudy", "academicYear"].includes(field),
+        )
+      ) {
+        await syncRegistrations(tx, staff, id);
       }
       return updated;
     });
@@ -413,6 +436,7 @@ function changedFields(
   }
   if (before.programmeId !== after.programmeId) fields.push("programmeCode");
   if (before.academicYear !== after.academicYear) fields.push("academicYear");
+  if (before.yearOfStudy !== after.yearOfStudy) fields.push("yearOfStudy");
   return fields;
 }
 
@@ -422,7 +446,22 @@ type StudentDetailsRow = {
   dateOfBirth: Date;
   programmeId: string;
   academicYear: string;
+  yearOfStudy: number;
 };
+
+/** Refuses a year of study the programme doesn't have. */
+function checkYearOfStudy(
+  yearOfStudy: number,
+  programme: { title: string; years: number },
+): void {
+  if (yearOfStudy > programme.years) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      yearOfStudy: [
+        `${programme.title} has ${programme.years} ${programme.years === 1 ? "year" : "years"} of study`,
+      ],
+    });
+  }
+}
 
 /** Copies a student's name and email address to their sign-in account. */
 async function syncAccount(
@@ -489,6 +528,7 @@ export async function changeStatus(
       studentId: id,
       details: { from, to, reason: reason ?? null },
     });
+    await syncRegistrations(tx, staff, id);
     return tx.student.findUniqueOrThrow({
       where: { id },
       include: recordInclude,
@@ -555,11 +595,13 @@ function toRecord(student: StudentWithRelations): StudentRecord {
     email: student.email,
     dateOfBirth: fromDbDate(student.dateOfBirth),
     academicYear: student.academicYear,
+    yearOfStudy: student.yearOfStudy,
     status: student.status,
     programme: {
       code: student.programme.code,
       title: student.programme.title,
       annualFeePence: student.programme.annualFeePence,
+      years: student.programme.years,
     },
     enrolledAt: student.createdAt,
     resultsWithheld:

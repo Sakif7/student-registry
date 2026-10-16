@@ -103,6 +103,7 @@ async function StudentRecordView({ params, searchParams }: Props) {
                 dateOfBirth: student.dateOfBirth,
                 programmeCode: student.programme.code,
                 academicYear: student.academicYear,
+                yearOfStudy: student.yearOfStudy,
               }}
               programmes={programmes}
               academicYears={yearsAround(3)}
