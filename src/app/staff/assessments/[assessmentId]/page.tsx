@@ -73,7 +73,7 @@ async function AssessmentView({ params }: { params: Params }) {
           </>
         }
       />
-      <div className="grid gap-8">
+      <div className="grid grid-cols-1 gap-8">
         <Card>
           <CardHeader>
             <CardTitle>
@@ -91,11 +91,8 @@ async function AssessmentView({ params }: { params: Params }) {
           </CardContent>
         </Card>
 
-        <section aria-labelledby="marksheet-heading">
-          <h2
-            id="marksheet-heading"
-            className="text-xl font-semibold tracking-tight"
-          >
+        <section aria-label="Submissions and marks">
+          <h2 className="text-xl font-semibold tracking-tight">
             Submissions and marks
           </h2>
           <p className="mt-1 mb-4">{submissionSummary(assessment)}</p>

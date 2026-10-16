@@ -620,6 +620,11 @@ shell, as in most business applications:
   students only for the words they were found for: stale results let Enter
   open a student who didn't match. Like a form, the button is
   `aria-disabled` until React has hydrated it and can hear the shortcut.
+- **On a phone,** every page fits the screen's width: a wide table scrolls
+  inside its own box, and the rest wraps or stacks. A grid that holds a
+  table has `minmax(0, 1fr)` columns (`grid-cols-1`), because a grid's
+  default column grows to fit its widest content and would widen the page.
+  An end-to-end test checks every page at 390 pixels wide.
 - The sidebar remembers whether it was collapsed for as long as the page is
   open. Reading its cookie on the server would make every page wait on a
   request-time read before the shell could render, so a full reload opens

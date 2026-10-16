@@ -71,6 +71,9 @@ Read it before changing behaviour, and add to it when you make a new decision.
   the `--chart-*` colours in `globals.css`. Hide the drawing from screen
   readers (`aria-hidden`, with nothing inside in the tab order) and give its
   figures in text.
+- **Phone width:** give a grid that can hold a wide table `grid-cols-1`
+  (`minmax(0, 1fr)` columns), so the table scrolls inside its box instead of
+  widening the page. `e2e/responsive.spec.ts` checks every page.
 - **Raw SQL:** only where Prisma can't express the query. Pass an instant
   as `${date.toISOString()}::timestamptz`: the adapter sends a `Date`
   without its offset.

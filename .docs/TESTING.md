@@ -47,9 +47,11 @@ the browser once with `npx playwright install chromium`. Each run then:
    the report, with a screenshot and a trace of the failure.
 
 The specs cover signing in and out, resetting a forgotten password by email,
-access control, enrolment and the student list, fees and the dashboard, the student's home page, the assessment journey (setting, submitting,
-replacing, late work, marking), publishing and withholding results, the audit trail, and an axe
-accessibility scan of every kind of page.
+access control, enrolment and the student list, fees and the dashboard, the
+student's home page, the assessment journey (setting, submitting,
+replacing, late work, marking), publishing and withholding results, Undo,
+the audit trail, every page at a phone's width, and an axe accessibility
+scan of every kind of page.
 
 ### Coverage
 

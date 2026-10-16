@@ -1261,3 +1261,19 @@ at the top, on the Overview tab.
 
 **Checked by:** an end-to-end test that follows the link and finds the
 Results tab selected.
+
+## Every page within a phone's width
+
+**What the AI did:** added an end-to-end test that opens every page at 390
+pixels wide and checks that none scrolls sideways. It found the assessment
+page wider than the screen: the marksheet's table had widened the page's
+grid, as the overdue table had on the dashboard, pushing the deadline card
+off the edge too. The grid now has `minmax(0, 1fr)` columns, so the table
+scrolls inside its box. AGENTS.md now says so for any grid that holds a
+table.
+
+The same page labelled its marksheet section with a fixed id, against the
+project's rule for ids; it is now named directly.
+
+**Checked by:** the new test, which passes on every staff, student and
+signed-out page.
