@@ -29,6 +29,7 @@ import {
   type Semester,
   SEMESTER_LABELS,
 } from "@/domain/curriculum";
+import { creditStanding } from "@/domain/registration";
 import { formatCount, formatDate } from "@/lib/format";
 import type { StudentModules } from "@/server/services/registrations";
 
@@ -68,20 +69,29 @@ function creditsLeft(modules: StudentModules): number {
  * modules are taught in it, counting all-year ones in both.
  */
 function yearFacts(modules: StudentModules): SummaryFact[] {
-  const left = creditsLeft(modules);
+  const standing = creditStanding(
+    modules.registeredCredits,
+    modules.creditsPerYear,
+  );
   const enrolled = modules.status === "ENROLLED";
   const credits: SummaryFact = {
     label: "Credits",
     icon: Layers,
     value: `${modules.registeredCredits} of ${modules.creditsPerYear}`,
-    tone: !enrolled ? "neutral" : left > 0 ? "attention" : "positive",
+    tone: !enrolled
+      ? "neutral"
+      : standing.kind === "full"
+        ? "positive"
+        : "attention",
     progress: { value: modules.registeredCredits, max: modules.creditsPerYear },
     detail:
-      left === 0
+      standing.kind === "full"
         ? "The year's credits are made up"
-        : enrolled
-          ? `${left} credits to choose`
-          : `${left} credits short`,
+        : standing.kind === "over"
+          ? `${standing.credits} credits over the year's ${modules.creditsPerYear}`
+          : enrolled
+            ? `${standing.credits} credits to choose`
+            : `${standing.credits} credits short`,
   };
   const { calendar } = modules;
   if (!calendar) {

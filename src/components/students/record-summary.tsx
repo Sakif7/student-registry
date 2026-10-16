@@ -16,6 +16,7 @@ import {
   type EnrolmentStatus,
 } from "@/domain/enrolment";
 import { nextChargeDue } from "@/domain/fees";
+import { creditStanding } from "@/domain/registration";
 import {
   formatCount,
   formatDate,
@@ -88,18 +89,27 @@ function modulesFact(
   status: EnrolmentStatus,
   modules: StudentModules,
 ): SummaryFact {
-  const left = modules.creditsPerYear - modules.registeredCredits;
-  const choosing = status === "ENROLLED" && left > 0;
+  const standing = creditStanding(
+    modules.registeredCredits,
+    modules.creditsPerYear,
+  );
+  const enrolled = status === "ENROLLED";
   return {
     label: "Modules",
     icon: BookOpen,
     value: `${modules.registeredCredits} of ${modules.creditsPerYear} credits`,
-    tone:
-      status !== "ENROLLED" ? "neutral" : choosing ? "attention" : "positive",
+    tone: !enrolled
+      ? "neutral"
+      : standing.kind === "full"
+        ? "positive"
+        : "attention",
     progress: { value: modules.registeredCredits, max: modules.creditsPerYear },
-    detail: choosing
-      ? `${left} credits to choose`
-      : `Year ${modules.yearOfStudy}, ${modules.academicYear}`,
+    detail:
+      standing.kind === "over"
+        ? `${standing.credits} credits over the year's ${modules.creditsPerYear}`
+        : enrolled && standing.kind === "short"
+          ? `${standing.credits} credits to choose`
+          : `Year ${modules.yearOfStudy}, ${modules.academicYear}`,
     link: { tab: "modules" },
   };
 }

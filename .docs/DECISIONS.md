@@ -131,6 +131,10 @@ That isn't how a registry works, so the curriculum is now modelled.
   year. Rewriting registrations behind staff's backs would surprise them;
   an action to apply a structure to everyone is listed under "With more
   time".
+- **A core module is registered even past the year's credits,** because
+  every student in the year takes it. That can happen when one is added
+  after students chose their options. The record and My modules then say
+  how many credits over the year is, so staff can drop an option.
 
 ### The academic calendar
 

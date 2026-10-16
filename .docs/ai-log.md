@@ -1525,3 +1525,18 @@ checks the account shows no fees; its name now says what it checks.
 **Checked by:** a new case in the curriculum integration tests, which failed
 with the 500 before the fix and passes after it; the rest of the curriculum
 and fees tests.
+
+## A year over its credits
+
+**What the AI did:** the same reading of every file found that registering
+a student for their year adds every missing core module without a credit
+check. That is right, since every student in the year takes them, but a core
+module added to a year after students chose their options could take a
+student past the year's credits, and the record would then show the credits
+in the "fine" tone with no word about it. A small rule in the domain,
+`creditStanding`, now says whether a year is short, full or over, and the
+record's summary and the Modules tab (and My modules) say "30 credits over
+the year's 120" in the "needs attention" tone, so staff can drop an option.
+
+**Checked by:** unit tests of the rule for a short, a full and an over year;
+the registration and enrolment end-to-end tests, which read those summaries.

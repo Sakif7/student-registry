@@ -105,6 +105,26 @@ export function registeredCredits(
   return registered.reduce((total, entry) => total + entry.credits, 0);
 }
 
+/**
+ * Where a student's registered credits stand against what their year
+ * carries: short (with the credits still to choose), full, or over. Over can
+ * happen: a core module added to a year after students chose their options
+ * is still registered when they are next registered, as every student in the
+ * year takes it, and staff then drop an option.
+ */
+export function creditStanding(
+  registered: number,
+  perYear: number,
+): { kind: "short" | "full" | "over"; credits: number } {
+  if (registered < perYear) {
+    return { kind: "short", credits: perYear - registered };
+  }
+  if (registered > perYear) {
+    return { kind: "over", credits: registered - perYear };
+  }
+  return { kind: "full", credits: 0 };
+}
+
 /** What a refused registration says, with the credits involved. */
 export function registrationRefusalMessage(
   reason: RegistrationRefusal,

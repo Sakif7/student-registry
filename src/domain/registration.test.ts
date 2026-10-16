@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   checkDrop,
   checkRegistration,
+  creditStanding,
   registeredCredits,
   registrationChanges,
   registrationRefusalMessage,
@@ -118,5 +119,20 @@ describe("registeredCredits", () => {
   it("adds up the credits", () => {
     expect(registeredCredits([{ credits: 30 }, { credits: 15 }])).toBe(45);
     expect(registeredCredits([])).toBe(0);
+  });
+});
+
+describe("creditStanding", () => {
+  it("says how many credits are still to choose", () => {
+    expect(creditStanding(105, 120)).toEqual({ kind: "short", credits: 15 });
+    expect(creditStanding(0, 180)).toEqual({ kind: "short", credits: 180 });
+  });
+
+  it("knows a year that is exactly full", () => {
+    expect(creditStanding(120, 120)).toEqual({ kind: "full", credits: 0 });
+  });
+
+  it("says how far a year has gone over, as a late core module can take it", () => {
+    expect(creditStanding(150, 120)).toEqual({ kind: "over", credits: 30 });
   });
 });
