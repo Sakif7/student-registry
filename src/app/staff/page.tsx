@@ -1,8 +1,9 @@
 // Registry dashboard: the staff home page. Headline figures; students by
 // programme and status; the academic year's fees; what needs attention
-// (marks to publish, work to mark, assessments past their deadline and
-// accounts waiting for activation); the overdue worklist; the assessments
-// open for submissions; and the year's marks.
+// (marks to publish, work to mark, assessments past their deadline,
+// accounts waiting for activation and options still to choose); the
+// overdue worklist; the assessments open for submissions; and the year's
+// marks.
 import {
   Banknote,
   ClipboardCheck,
@@ -66,6 +67,7 @@ async function Dashboard() {
     workToMark,
     pastDeadline,
     awaitingActivation,
+    creditsToChoose,
   } = dashboard;
   const marksToPublish = results.toPublish.reduce(
     (total, student) => total + student.count,
@@ -162,7 +164,7 @@ async function Dashboard() {
       </div>
 
       <DashboardGroup title="Needs attention">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <DashboardCard
             level={3}
             title="Marks to publish"
@@ -229,6 +231,22 @@ async function Dashboard() {
                 detail: student.link
                   ? `Link works until ${formatDateOf(student.link.expiresAt, timeZone)}`
                   : "Needs a new link",
+              }))}
+            />
+          </DashboardCard>
+          <DashboardCard
+            level={3}
+            title="Options to choose"
+            count={creditsToChoose.length}
+            description="Enrolled students whose modules don't yet make up their year's credits."
+          >
+            <Worklist
+              empty="Every enrolled student's modules make up their year."
+              items={creditsToChoose.map((student) => ({
+                key: student.studentNumber,
+                href: `/staff/students/${student.studentNumber}?tab=modules`,
+                label: student.fullName,
+                detail: `${student.creditsLeft} credits to choose · ${student.programmeCode} year ${student.yearOfStudy}`,
               }))}
             />
           </DashboardCard>

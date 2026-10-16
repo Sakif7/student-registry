@@ -58,8 +58,8 @@ Router), PostgreSQL and Prisma.
 - **Dashboard:** the day's figures; charts of students by programme and
   status, the academic year's fees and its marks; worklists of what needs
   attention (marks to publish, work to mark, assessments past their
-  deadline, accounts waiting for activation); the overdue fees; and the
-  assessments open for submissions.
+  deadline, accounts waiting for activation, options still to choose); the
+  overdue fees; and the assessments open for submissions.
 - **Student view:** a home page with the next deadline, fees and latest
   results, and every assessment still taking work; pages for their modules
   (where they choose options while staff allow it), assessments and

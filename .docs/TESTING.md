@@ -409,6 +409,9 @@ below are as of the day the seed runs. As staff:
      design report**: both still take late work.
    - **Waiting for activation** lists Arjun Mehta, who "Needs a new link".
      Select the name: Arjun's record opens on the **Sign-in** tab.
+   - **Options to choose** lists Priya Natarajan, then Arjun Mehta, each
+     with 15 credits to choose. Select Priya: the record opens on the
+     **Modules** tab.
 4. **Open assessments** shows, soonest deadline first, Systems lab report
    (1 of 2 submitted), Web project proposal (0 of 1), Data pipeline design
    (0 of 2) and Accounting test (0 of 1): each counts the students

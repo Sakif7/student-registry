@@ -1409,3 +1409,18 @@ guessing anyone's pronouns.
 
 **Checked by:** a search of the documents, code and tests for gendered
 pronouns, which now finds none.
+
+## Options to choose on the dashboard
+
+**What the AI did:** added a fifth worklist under Needs attention: enrolled
+students whose modules come to fewer credits than their year carries, most
+credits left first, each opening on the student's Modules tab. The credits
+are added up in the student's own academic year, which Prisma's relation
+filters can't match, so it is one SQL query. The worklists now sit three
+to a row on wide screens.
+
+**Checked by:** an integration test with a student whose modules make up
+the year, one short, one with none, one whose session is last year, and
+one who has withdrawn; running it without the academic-year match made it
+fail, as it should. An end-to-end test follows the worklist to Priya's
+Modules tab, and a screenshot showed the dashboard's layout.

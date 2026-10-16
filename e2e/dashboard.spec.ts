@@ -62,6 +62,20 @@ test("the worklists and charts lead to the students and assessments", async ({
   ).toBeVisible();
 
   await page.goto("/staff");
+  const toChoose = page.getByRole("region", { name: "Options to choose" });
+  await expect(toChoose.getByRole("listitem")).toHaveText([
+    /^Priya Natarajan\s*15 credits to choose · BSC-CS year 1$/,
+    /^Arjun Mehta\s*15 credits to choose · MSC-DS year 1$/,
+  ]);
+  await toChoose.getByRole("link", { name: "Priya Natarajan" }).click();
+  await expect(page).toHaveURL(
+    `/staff/students/${demoStudent("priya")}?tab=modules`,
+  );
+  await expect(
+    page.getByRole("tab", { name: "Modules", selected: true }),
+  ).toBeVisible();
+
+  await page.goto("/staff");
   const pastDeadline = page.getByRole("region", { name: "Past the deadline" });
   await pastDeadline.getByRole("link", { name: "Management essay" }).click();
   await expect(

@@ -827,7 +827,7 @@ things stand, and what needs doing.
   - the year's marks by classification;
   - the assessments open for submissions, with how many of the students
     expected have submitted.
-- **Needs attention:** four worklists, each showing the first five items,
+- **Needs attention:** five worklists, each showing the first five items,
   linking to the work, and linking to the full page where there is one.
   - Marks to publish: students with marks not yet published and no hold,
     longest waiting first. A changed mark becomes unpublished again, so it
@@ -839,6 +839,9 @@ things stand, and what needs doing.
   - Waiting for activation: enrolled students who haven't set a password,
     those without a link that still works first. Their Sign-in tab sends a
     new one. Students who have left aren't chased to activate.
+  - Options to choose: enrolled students whose modules come to fewer
+    credits than their year carries, in their own academic year, most
+    credits left first. Each opens on the student's Modules tab.
 - **Overdue fees,** the worklist from before, unchanged.
 
 How the figures are worked out:
@@ -850,9 +853,10 @@ How the figures are worked out:
   academic year by the college's calendar: the query converts each deadline
   to the college's time zone before comparing dates, so a deadline at 00:30
   on 1 September (23:30 the day before in UTC) counts in the new year.
-- Raw SQL is used twice, where Prisma can't express the query: matching
-  submissions to marks on both student and assessment, and the time zone
-  conversion. Instants go in as ISO text with a cast: the PostgreSQL adapter
+- Raw SQL is used where Prisma can't express the query: matching
+  submissions to marks on both student and assessment, the time zone
+  conversion, and adding up registrations in each student's own academic
+  year. Instants go in as ISO text with a cast: the PostgreSQL adapter
   sends a `Date` without its offset, to be read in the session's time zone.
 
 How the charts are drawn:

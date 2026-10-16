@@ -1,7 +1,8 @@
 // The Registry dashboard: students by programme and enrolment status, this
 // academic year's fees and marks, the assessments taking work, what needs
-// attention (marks to publish, work to mark, assessments past their deadline
-// and accounts waiting for activation) and the overdue worklist.
+// attention (marks to publish, work to mark, assessments past their
+// deadline, accounts waiting for activation and options still to choose)
+// and the overdue worklist.
 import "server-only";
 
 import { academicYearOn, academicYearSpan } from "@/domain/academic-year";
@@ -66,6 +67,16 @@ export interface AwaitingActivation {
   link: { sentAt: Date; expiresAt: Date } | null;
 }
 
+/** An enrolled student whose modules don't yet make up their year. */
+export interface CreditsToChoose {
+  studentNumber: string;
+  fullName: string;
+  programmeCode: string;
+  yearOfStudy: number;
+  /** The credits still to choose in the student's academic year. */
+  creditsLeft: number;
+}
+
 export interface Dashboard {
   /** The academic year the fees and marks are for, e.g. "2026/27". */
   academicYear: string;
@@ -97,6 +108,8 @@ export interface Dashboard {
   };
   /** Students without a link that works first, then longest waiting. */
   awaitingActivation: AwaitingActivation[];
+  /** Most credits left first. */
+  creditsToChoose: CreditsToChoose[];
 }
 
 /** The dashboard's figures, charts and worklists (staff only). */
@@ -116,6 +129,7 @@ export async function getDashboard(
     marks,
     results,
     awaitingActivation,
+    creditsToChoose,
   ] = await Promise.all([
     studentCounts(),
     overdueAccounts(today),
@@ -125,6 +139,7 @@ export async function getDashboard(
     yearMarks(academicYear),
     resultsToPublish(),
     activationsAwaited(now),
+    creditsStillToChoose(),
   ]);
 
   return {
@@ -140,6 +155,7 @@ export async function getDashboard(
     marks,
     results,
     awaitingActivation,
+    creditsToChoose,
   };
 }
 
@@ -409,4 +425,41 @@ async function activationsAwaited(now: Date): Promise<AwaitingActivation[]> {
   return awaiting.sort(
     (a, b) => Number(a.link !== null) - Number(b.link !== null),
   );
+}
+
+/**
+ * Enrolled students whose modules come to fewer credits than their
+ * programme's year carries, in the student's own academic year.
+ */
+async function creditsStillToChoose(): Promise<CreditsToChoose[]> {
+  // Registrations are matched on the student's own academic year, which
+  // Prisma's relation filters can't express.
+  const rows = await db().$queryRaw<
+    {
+      student_number: string;
+      full_name: string;
+      programme_code: string;
+      year_of_study: number;
+      credits_left: number;
+    }[]
+  >`
+    SELECT s.student_number, s.full_name, p.code AS programme_code,
+      s.year_of_study,
+      (p.credits_per_year - COALESCE(sum(m.credits), 0))::int AS credits_left
+    FROM students s
+    JOIN programmes p ON p.id = s.programme_id
+    LEFT JOIN module_registrations r
+      ON r.student_id = s.id AND r.academic_year = s.academic_year
+    LEFT JOIN modules m ON m.id = r.module_id
+    WHERE s.status = 'ENROLLED'
+    GROUP BY s.id, p.id
+    HAVING COALESCE(sum(m.credits), 0) < p.credits_per_year
+    ORDER BY credits_left DESC, s.student_number`;
+  return rows.map((row) => ({
+    studentNumber: row.student_number,
+    fullName: row.full_name,
+    programmeCode: row.programme_code,
+    yearOfStudy: row.year_of_study,
+    creditsLeft: row.credits_left,
+  }));
 }

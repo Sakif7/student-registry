@@ -12,6 +12,7 @@ import {
   createProgramme,
   createStudent,
   createSubmission,
+  registerStudents,
 } from "../helpers/factories";
 import { asStudent, sessionFor, STAFF } from "../helpers/requests";
 
@@ -458,6 +459,53 @@ describe("getDashboard", () => {
           expiresAt: new Date(NOW.getTime() + 48 * 60 * 60 * 1000),
         },
       },
+    ]);
+  });
+
+  it("lists enrolled students with credits to choose in their own academic year, most first", async () => {
+    const programme = await createProgramme({ creditsPerYear: 120 });
+    const core = await createModule({ programmeId: programme.id, credits: 90 });
+    const option = await createModule({
+      programmeId: programme.id,
+      credits: 30,
+      kind: "OPTIONAL",
+    });
+    const student = (
+      fullName: string,
+      overrides: { academicYear?: string; status?: "WITHDRAWN" } = {},
+    ) => createStudent({ fullName, programmeId: programme.id, ...overrides });
+    const full = await student("Oliver Bennett");
+    const short = await student("Priya Nair");
+    const none = await student("Kwame Mensah");
+    const lastYear = await student("Liam O'Connor", {
+      academicYear: "2025/26",
+    });
+    const withdrawn = await student("Hannah Kowalski", {
+      status: "WITHDRAWN",
+    });
+    await registerStudents(core.id, [full.id, short.id, withdrawn.id]);
+    await registerStudents(option.id, [full.id]);
+    // Liam's session is 2025/26: a registration for 2026/27 doesn't count.
+    await registerStudents(core.id, [lastYear.id], "2025/26");
+    await registerStudents(option.id, [lastYear.id]);
+
+    const { creditsToChoose } = await getDashboard(await sessionFor(STAFF));
+
+    const listed = (
+      { studentNumber }: { studentNumber: string },
+      fullName: string,
+      creditsLeft: number,
+    ) => ({
+      studentNumber,
+      fullName,
+      programmeCode: programme.code,
+      yearOfStudy: 1,
+      creditsLeft,
+    });
+    expect(creditsToChoose).toEqual([
+      listed(none, "Kwame Mensah", 120),
+      listed(short, "Priya Nair", 30),
+      listed(lastYear, "Liam O'Connor", 30),
     ]);
   });
 
