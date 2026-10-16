@@ -1222,3 +1222,14 @@ button names.
   results withheld is told both, and **Your fees** leads to their account;
 - the axe scan of every student page, and screenshots of three students'
   home pages.
+
+## A contrast check that caught a dialog fading in
+
+**What the AI did:** made the axe scans wait for opening animations to
+finish. Dialogs fade in over 100 ms; one full run scanned the "Charge a
+fee" dialog before it had finished, while its text was still partly
+transparent, and reported its descriptions as too faint. The scan now waits
+for every animation that ends (an endless one, such as a pulse, would never
+finish) and then checks what users see.
+
+**Checked by:** the accessibility spec, every scan of which still passes.
