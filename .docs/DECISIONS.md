@@ -909,8 +909,8 @@ How the charts are drawn:
 
 ### The student's pages
 
-Students have the same shell, with their own pages: Home, Assessments,
-Results, Fees and My record.
+Students have the same shell, with their own pages: Home, Modules,
+Assessments, Results, Fees and My record.
 
 - **Home** answers "what do I need to do?":
   - the next deadline: the soonest assessment still open, and whether the
