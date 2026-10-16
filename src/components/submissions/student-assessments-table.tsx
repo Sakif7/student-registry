@@ -34,7 +34,7 @@ export function StudentAssessmentsTable({
       <div className="rounded-xl border border-dashed p-10 text-center">
         <p className="font-medium">No assessments yet.</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Assessments set for {own ? "your" : "the student's"} programme will
+          Assessments set for {own ? "your" : "the student's"} modules will
           appear here.
         </p>
       </div>

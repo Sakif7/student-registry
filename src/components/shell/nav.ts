@@ -65,6 +65,7 @@ export const NAV: Record<ShellRole, readonly NavGroup[]> = {
       label: "Your studies",
       items: [
         { href: "/student", label: "Home", icon: House },
+        { href: "/student/modules", label: "Modules", icon: BookOpen },
         {
           href: "/student/assessments",
           label: "Assessments",

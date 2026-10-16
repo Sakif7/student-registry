@@ -1368,3 +1368,34 @@ and let students choose, then undo; axe scans of the four pages and their
 dialogs; and the check that every page fits a phone. The sorting test
 needed the exact name of its Module link, now that the sidebar has a
 Modules link too.
+
+## Modules on the record and for students
+
+**What the AI did:** brought module registration into the interface:
+
+- a **Modules** tab on each student's record, with this year's modules by
+  semester, the semester dates, the credits against the year's, the options
+  of the student's year and earlier years' modules; staff add and drop
+  options there, with Undo;
+- the credits in the record's header, flagged while some are left to
+  choose;
+- a **My modules** page for students with the same view, where they add and
+  drop options while staff let them choose, and a note on their home page
+  asking them to choose while credits are left.
+
+The service now says whether the viewer may change the modules, and if not,
+why, so the pages can explain instead of only hiding buttons. Building the
+tab showed a gap in the rules: staff could drop a withdrawn student's
+options, though nothing could be added. Dropping now needs an enrolled
+student too, so a student who isn't enrolled keeps their modules as they
+were.
+
+**Checked by:** unit tests of the drop rule for each status; integration
+tests that a withdrawn student's modules can't be dropped, and of what each
+viewer is told; end-to-end tests of staff adding an option and undoing it,
+and of a student choosing once staff open choosing, from the note on their
+home page; axe scans and the phone-width check of the new tab and page; and
+screenshots of the tab and page. The axe scan of every staff page had
+grown past the 30 seconds a test may take, so it is now three tests (the
+Registry pages, the record's tabs and the curriculum pages), scanning the
+same pages.

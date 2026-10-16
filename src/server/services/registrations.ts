@@ -1,7 +1,8 @@
 // Module registration: which modules each student takes in an academic year.
 // Core modules are registered automatically (see syncRegistrations); staff
 // add and drop optional ones, and so may the student while their academic
-// year lets students choose. A registration with work stays on the record.
+// year lets students choose. Only an enrolled student's modules change, and
+// a registration with work stays on the record.
 import "server-only";
 
 import { academicYearAt } from "@/domain/academic-year";
@@ -27,6 +28,10 @@ import { requireStaffOrSelf, type Session } from "../session";
 
 import { type AcademicYearCalendar, getAcademicYear } from "./curriculum";
 
+/** Whether something may be done, and if not, why. */
+export type Permission =
+  { allowed: true } | { allowed: false; message: string };
+
 /** A module a student is registered on this academic year. */
 export interface StudentModule {
   code: string;
@@ -38,7 +43,7 @@ export interface StudentModule {
   /** The student has submitted work, or has a mark, for it this year. */
   hasWork: boolean;
   /** Whether the viewer may drop it, and if not, why. */
-  drop: { allowed: true } | { allowed: false; message: string };
+  drop: Permission;
 }
 
 /** An optional module of the student's year they aren't registered on. */
@@ -65,14 +70,17 @@ export interface StudentModules {
   options: ModuleOption[];
   /** The academic year's semesters, if staff have set them up. */
   calendar: AcademicYearCalendar | null;
-  /** Whether the viewer may add and drop optional modules now. */
-  canChoose: boolean;
+  /** Whether the viewer may add and drop optional modules now, and if not, why. */
+  changes: Permission;
   /** Earlier years' registrations, newest first. */
   history: {
     academicYear: string;
     modules: { code: string; title: string; credits: number }[];
   }[];
 }
+
+const CHOOSING_CLOSED =
+  "Choosing modules isn't open just now. Contact the Registry to change your modules.";
 
 const SEMESTER_ORDER: Record<Semester, number> = {
   FIRST: 0,
@@ -110,9 +118,7 @@ export async function getStudentModules(
     modulesWithWork(db(), student.id, student.academicYear),
   ]);
   const kinds = new Map(structure.map((entry) => [entry.moduleId, entry.kind]));
-  const canChoose =
-    viewer.role === "staff" ||
-    (calendar?.studentsChooseModules === true && student.status === "ENROLLED");
+  const changes = changesFor(viewer.role, student.status, calendar);
 
   const current = registrations.filter(
     (registration) => registration.academicYear === student.academicYear,
@@ -124,7 +130,7 @@ export async function getStudentModules(
     .map(({ module }): StudentModule => {
       const kind = kinds.get(module.id) ?? null;
       const hasWork = withWork.has(module.id);
-      const verdict = checkDrop({ kind, hasWork });
+      const verdict = checkDrop({ status: student.status, kind, hasWork });
       return {
         code: module.code,
         title: module.title,
@@ -132,8 +138,8 @@ export async function getStudentModules(
         semester: module.semester,
         kind,
         hasWork,
-        drop: !canChoose
-          ? { allowed: false, message: "Only the Registry can change these." }
+        drop: !changes.allowed
+          ? changes
           : verdict.allowed
             ? verdict
             : {
@@ -184,7 +190,7 @@ export async function getStudentModules(
     registered,
     options,
     calendar,
-    canChoose,
+    changes,
     history: [...earlier]
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([academicYear, modules]) => ({
@@ -280,11 +286,12 @@ export async function registerOnModule(
 /**
  * Drops a module from a student's current academic year: staff, or the
  * student themselves while their academic year lets students choose. Core
- * modules, and modules with work, stay.
+ * modules, modules with work, and the modules of a student who isn't
+ * enrolled stay.
  *
  * @throws AppError: NOT_FOUND for a module the student isn't registered on;
- *   FORBIDDEN for a student while choosing is closed; CONFLICT for a core
- *   module or one with work.
+ *   FORBIDDEN for a student while choosing is closed; CONFLICT for a student
+ *   who isn't enrolled, a core module or one with work.
  */
 export async function dropModule(
   session: Session | null,
@@ -321,6 +328,7 @@ export async function dropModule(
       student.academicYear,
     );
     const verdict = checkDrop({
+      status: student.status,
       kind:
         structure.find((entry) => entry.moduleId === registration.moduleId)
           ?.kind ?? null,
@@ -489,6 +497,31 @@ async function modulesWithWork(
   );
 }
 
+/**
+ * Whether a viewer may change a student's modules: only an enrolled
+ * student's change, and the student's own only while their academic year
+ * lets students choose.
+ */
+function changesFor(
+  role: Session["role"],
+  status: EnrolmentStatus,
+  calendar: AcademicYearCalendar | null,
+): Permission {
+  if (status !== "ENROLLED") {
+    return {
+      allowed: false,
+      message:
+        role === "student"
+          ? "Your modules can only change while you are enrolled."
+          : DROP_REFUSAL_MESSAGES.NOT_ENROLLED,
+    };
+  }
+  if (role === "student" && calendar?.studentsChooseModules !== true) {
+    return { allowed: false, message: CHOOSING_CLOSED };
+  }
+  return { allowed: true };
+}
+
 /** Refuses a student's own change while their academic year's choice is closed. */
 async function requireChoosing(
   client: Client,
@@ -499,10 +532,7 @@ async function requireChoosing(
     select: { studentsChooseModules: true },
   });
   if (!year?.studentsChooseModules) {
-    throw new AppError(
-      "FORBIDDEN",
-      "Choosing modules isn't open just now. Contact the Registry to change your modules.",
-    );
+    throw new AppError("FORBIDDEN", CHOOSING_CLOSED);
   }
 }
 

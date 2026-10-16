@@ -1,7 +1,9 @@
 // The student's home page: where they stand at a glance (their next
 // deadline, fees and latest results), then every assessment still taking
-// work. Their details are on My record, and their account on Fees.
+// work. While they have options to choose, it says so first. Their details
+// are on My record, and their account on Fees.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import {
@@ -14,12 +16,13 @@ import { NextDeadline } from "@/components/home/next-deadline";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { StudentAssessmentsTable } from "@/components/submissions/student-assessments-table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import { collegeTimeZone, collegeToday } from "@/server/college";
 import { orNotFound } from "@/server/pages";
 import { getAccount } from "@/server/services/fees";
+import { getStudentModules } from "@/server/services/registrations";
 import { getResults } from "@/server/services/results";
 import { getStudent } from "@/server/services/students";
 import { listStudentAssessments } from "@/server/services/submissions";
@@ -59,14 +62,16 @@ export default function StudentHomePage() {
 
 async function Home() {
   const session = await requirePageRole("student");
-  const [student, account, assessments, results] = await orNotFound(
+  const [student, modules, account, assessments, results] = await orNotFound(
     Promise.all([
       getStudent(session, session.studentNumber),
+      getStudentModules(session, session.studentNumber),
       getAccount(session, session.studentNumber),
       listStudentAssessments(session, session.studentNumber),
       getResults(session, session.studentNumber),
     ]),
   );
+  const creditsLeft = modules.creditsPerYear - modules.registeredCredits;
   const timeZone = collegeTimeZone();
   const note = STATUS_NOTES[student.status];
   // Open ones first, soonest deadline first (see compareAssessments).
@@ -88,6 +93,23 @@ async function Home() {
       {note && (
         <Alert className="mb-6">
           <AlertDescription>{note}</AlertDescription>
+        </Alert>
+      )}
+      {modules.changes.allowed && creditsLeft > 0 && (
+        <Alert className="mb-6">
+          <AlertTitle>Choose your options</AlertTitle>
+          <AlertDescription>
+            <p>
+              Choosing modules is open. You have {creditsLeft} credits to choose
+              for {modules.academicYear}.{" "}
+              <Link
+                href="/student/modules"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                Choose your modules
+              </Link>
+            </p>
+          </AlertDescription>
         </Alert>
       )}
       <div className="grid grid-cols-1 gap-6">

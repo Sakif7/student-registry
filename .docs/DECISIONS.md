@@ -161,11 +161,13 @@ That isn't how a registry works, so the curriculum is now modelled.
   serialises registrations, so two made at once can't both fit; a test
   runs them together to prove it.
 - **Students choose their own options** while their academic year's switch
-  is on, under the same rules; staff can change registrations at any time.
+  is on, under the same rules; staff can change an enrolled student's
+  registrations at any time.
 - **Dropping** is for options and for modules from outside the year. Core
   modules can't be dropped, and nor can a module the student has work for.
-- Only enrolled students can be registered. Deferred, withdrawn and
-  completed students keep the registrations they had.
+- Only an enrolled student's modules change. Deferred, withdrawn and
+  completed students keep the registrations they had, and none can be
+  added or dropped.
 - Every registration and drop goes into the audit trail, by whoever made
   it, including the student choosing an option.
 
@@ -200,6 +202,24 @@ The sidebar has a second group for staff, **Curriculum**, with three pages:
 Taking a module out of a programme, and the students' choice switch, say
 what they did with an Undo button, like the other actions that can be
 reversed at once.
+
+### Modules on the record and for students
+
+- **A student's record has a Modules tab:** this academic year's modules
+  by semester, with the semester dates and the credits they come to out of
+  the year's; then the options of the student's year, and earlier years'
+  modules. Staff add an option that fits the credits left, or drop one,
+  and can undo either from the message that confirms it. The record's
+  header shows the credits, flagged while some are left to choose.
+- **Students have a My modules page** with the same view. While their
+  academic year lets students choose, they add and drop their options
+  there, and their home page asks them to choose while credits are left;
+  otherwise the page tells them to contact the Registry.
+- **The pages say why a change can't be made,** such as a student who
+  isn't enrolled, or choosing being closed, rather than only hiding the
+  buttons: the service works out what the viewer may do, and why not.
+- Dropping a module from outside the student's year has no Undo, as it
+  couldn't be added back.
 
 ### Moving the existing data
 

@@ -37,9 +37,15 @@ test("staff pages fit a phone", async ({ page }) => {
     "/staff",
     "/staff/students",
     "/staff/students/new",
-    ...["overview", "fees", "assessments", "results", "history", "sign-in"].map(
-      (tab) => `${record}?tab=${tab}`,
-    ),
+    ...[
+      "overview",
+      "modules",
+      "fees",
+      "assessments",
+      "results",
+      "history",
+      "sign-in",
+    ].map((tab) => `${record}?tab=${tab}`),
     "/staff/assessments",
     "/staff/assessments/new",
     marksheet,
@@ -61,6 +67,7 @@ test("student pages fit a phone", async ({ page }) => {
   await viewAs(page, demoStudent("priya"));
   for (const path of [
     "/student",
+    "/student/modules",
     "/student/assessments",
     assessment.replace("/staff/", "/student/"),
     "/student/results",

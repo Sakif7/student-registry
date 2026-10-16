@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { AcademicYearDialog } from "@/components/curriculum/curriculum-dialogs";
+import { SemesterCalendar } from "@/components/curriculum/semester-calendar";
 import { StudentsChooseButton } from "@/components/curriculum/students-choose-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,6 @@ import {
   formatAcademicYear,
   startYearOf,
 } from "@/domain/academic-year";
-import { formatDate } from "@/lib/format";
 import { collegeToday } from "@/server/college";
 import {
   type AcademicYearCalendar,
@@ -93,22 +93,7 @@ function YearCard({
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <dl className="grid gap-2 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">Semester 1</dt>
-            <dd>
-              {formatDate(calendar.semester1Start)} to{" "}
-              {formatDate(calendar.semester1End)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Semester 2</dt>
-            <dd>
-              {formatDate(calendar.semester2Start)} to{" "}
-              {formatDate(calendar.semester2End)}
-            </dd>
-          </div>
-        </dl>
+        <SemesterCalendar academicYear={year} calendar={settings} />
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4 text-sm">
           <p>
             {calendar.studentsChooseModules

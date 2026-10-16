@@ -1,7 +1,7 @@
 // A student's record, as Registry staff see it: a header with where the
 // student stands and the main actions, then a tab for each part of the
-// record: details, fees, assessments, results, history and sign-in. The tab
-// in the address (?tab=) opens first.
+// record: details, modules, fees, assessments, results, history and
+// sign-in. The tab in the address (?tab=) opens first.
 import type { Metadata } from "next";
 import { type ReactNode, Suspense } from "react";
 
@@ -10,6 +10,7 @@ import { AccountSection } from "@/components/fees/account-section";
 import { StandingBadge } from "@/components/fees/standing-badge";
 import { PageHeader } from "@/components/page-header";
 import { RecordTabs } from "@/components/record-tabs";
+import { ModulesSection } from "@/components/registration/modules-section";
 import { ResultsSection } from "@/components/results/results-section";
 import { StatusBadge } from "@/components/status-badge";
 import {
@@ -31,6 +32,7 @@ import { collegeTimeZone, collegeToday } from "@/server/college";
 import { firstValues, orNotFound } from "@/server/pages";
 import { getStudentHistory } from "@/server/services/activity";
 import { getAccount } from "@/server/services/fees";
+import { getStudentModules } from "@/server/services/registrations";
 import { getResults } from "@/server/services/results";
 import { getStudentSignIn } from "@/server/services/sign-in";
 import { getStudent, listProgrammes } from "@/server/services/students";
@@ -61,18 +63,27 @@ async function StudentRecordView({ params, searchParams }: Props) {
   const session = await requirePageRole("staff");
   const { studentNumber } = await params;
   const { tab } = firstValues(await searchParams);
-  const [student, account, results, signIn, history, assessments, programmes] =
-    await orNotFound(
-      Promise.all([
-        getStudent(session, studentNumber),
-        getAccount(session, studentNumber),
-        getResults(session, studentNumber),
-        getStudentSignIn(session, studentNumber),
-        getStudentHistory(session, studentNumber),
-        listStudentAssessments(session, studentNumber),
-        listProgrammes(session),
-      ]),
-    );
+  const [
+    student,
+    modules,
+    account,
+    results,
+    signIn,
+    history,
+    assessments,
+    programmes,
+  ] = await orNotFound(
+    Promise.all([
+      getStudent(session, studentNumber),
+      getStudentModules(session, studentNumber),
+      getAccount(session, studentNumber),
+      getResults(session, studentNumber),
+      getStudentSignIn(session, studentNumber),
+      getStudentHistory(session, studentNumber),
+      listStudentAssessments(session, studentNumber),
+      listProgrammes(session),
+    ]),
+  );
   const timeZone = collegeTimeZone();
   const today = collegeToday();
   // The usual range of years, plus the student's own, which may be older.
@@ -85,6 +96,7 @@ async function StudentRecordView({ params, searchParams }: Props) {
     ].sort();
   const unpublished = results.results.filter((r) => !r.publishedAt).length;
   const overdue = account.summary.overduePence;
+  const creditsLeft = modules.creditsPerYear - modules.registeredCredits;
 
   return (
     <>
@@ -121,6 +133,16 @@ async function StudentRecordView({ params, searchParams }: Props) {
       <dl className="mb-6 flex flex-wrap gap-x-6 gap-y-3 text-sm">
         <Fact label="Status">
           <StatusBadge status={student.status} />
+        </Fact>
+        <Fact label="Modules">
+          <span className="tabular-nums">
+            {modules.registeredCredits} of {modules.creditsPerYear} credits
+          </span>
+          {student.status === "ENROLLED" && creditsLeft > 0 && (
+            <Badge className="border-transparent bg-amber-100 text-amber-900">
+              {creditsLeft} to choose
+            </Badge>
+          )}
         </Fact>
         <Fact label="Fees">
           <StandingBadge standing={account.standing} />
@@ -165,6 +187,11 @@ async function StudentRecordView({ params, searchParams }: Props) {
                 <StatusHistoryCard student={student} timeZone={timeZone} />
               </div>
             ),
+          },
+          {
+            value: "modules",
+            label: "Modules",
+            content: <ModulesSection modules={modules} viewer="staff" />,
           },
           {
             value: "fees",

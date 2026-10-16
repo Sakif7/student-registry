@@ -40,7 +40,7 @@ const YEAR = "2026/27";
 interface ModulesBody {
   modules: {
     registeredCredits: number;
-    canChoose: boolean;
+    changes: { allowed: boolean; message?: string };
     registered: {
       code: string;
       kind: string | null;
@@ -270,6 +270,37 @@ describe("staff registering a student on modules", () => {
     ).toBe(1);
   });
 
+  it("change nothing for a student who isn't enrolled, who keeps their modules", async () => {
+    const { studentNumber } = await enrol();
+    await register(studentNumber, "AI4001");
+    await changeStatus(await sessionFor(STAFF), studentNumber, {
+      status: "WITHDRAWN",
+      reason: "Moved abroad",
+    });
+
+    expect(await drop(studentNumber, "AI4001")).toMatchObject({
+      status: 409,
+      body: { detail: "Only an enrolled student's modules can change." },
+    });
+    const kept = await modules(studentNumber);
+    expect(codes(kept.registered)).toEqual(["AI4001", "CS4001", "CS4002"]);
+    expect(kept.changes).toEqual({
+      allowed: false,
+      message: "Only an enrolled student's modules can change.",
+    });
+    expect(kept.registered.map(({ drop }) => drop.allowed)).toEqual([
+      false,
+      false,
+      false,
+    ]);
+    expect(
+      (await modules(studentNumber, asStudent(studentNumber))).changes,
+    ).toEqual({
+      allowed: false,
+      message: "Your modules can only change while you are enrolled.",
+    });
+  });
+
   it("never let registrations made at once take the year past its credits", async () => {
     const { studentNumber } = await enrol();
     // 30 credits are left: CS4005 alone, or CS4004 and AI4001, fit. Signed
@@ -317,7 +348,11 @@ describe("students choosing their own modules", () => {
     const { studentNumber } = await enrol();
     const self = asStudent(studentNumber);
 
-    expect((await modules(studentNumber, self)).canChoose).toBe(false);
+    expect((await modules(studentNumber, self)).changes).toEqual({
+      allowed: false,
+      message:
+        "Choosing modules isn't open just now. Contact the Registry to change your modules.",
+    });
     expect(await register(studentNumber, "AI4001", self)).toMatchObject({
       status: 403,
       body: {
@@ -332,7 +367,9 @@ describe("students choosing their own modules", () => {
     const { studentNumber } = await enrol();
     const self = asStudent(studentNumber);
 
-    expect((await modules(studentNumber, self)).canChoose).toBe(true);
+    expect((await modules(studentNumber, self)).changes).toEqual({
+      allowed: true,
+    });
     expect((await register(studentNumber, "AI4001", self)).status).toBe(201);
     expect((await drop(studentNumber, "AI4001", self)).status).toBe(200);
     expect(await drop(studentNumber, "CS4001", self)).toMatchObject({

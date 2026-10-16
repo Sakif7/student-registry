@@ -312,8 +312,8 @@ in the address (`?tab=fees`), so a link or a reload opens it again.
 ### 5. A student's own pages
 
 1. Sign in as **Priya Natarajan** (`priya.natarajan@student.example`). You
-   land on **Home**: the sidebar lists Home, Assessments, Results, Fees and
-   My record.
+   land on **Home**: the sidebar lists Home, Modules, Assessments, Results,
+   Fees and My record.
    - **Next deadline** is the Systems lab report, due in 10 days, marked
      **Submitted**.
    - **Fees** reads **Paid in full** and "Nothing to pay".
@@ -612,6 +612,33 @@ As staff:
    the date and set it up: the year joins the list.
 6. On the current year, select **Let students choose**: it reads "Students
    choose their own optional modules." Select **Undo** to stop them again.
+
+### 16. Registering students on modules
+
+As staff:
+
+1. Open **Priya Natarajan**'s record. The header reads "105 of 120
+   credits" and "15 to choose". Open the **Modules** tab: the semester
+   dates, then CS4001, CS4002 and CS4003 as **Core** and AI4001 as
+   **Optional**, 105 credits in all. Core modules have no **Drop** button.
+2. Under **Options**, select **Add** beside CS4004: "Added CS4004." appears
+   with **Undo**. The total is 120, and CS4005 now reads "Too many
+   credits". Select **Undo**: CS4004 is an option again.
+3. Open the **Modules** tab of **Hannah Kowalski**, who has withdrawn:
+   "Only an enrolled student's modules can change.", and nothing can be
+   added or dropped.
+
+As Priya:
+
+4. Open **Modules**: "Choosing modules isn't open just now. Contact the
+   Registry to change your modules.", and there are no **Add** buttons.
+5. As staff, on **Academic years**, select **Let students choose** for the
+   current year.
+6. As Priya, open **Home**: "Choosing modules is open. You have 15 credits
+   to choose" appears. Select **Choose your modules**, then **Add** beside
+   CS4005: it joins Priya's modules. Select **Drop** beside AI4001: it
+   goes back to the options. Core modules have no **Drop** button.
+7. As staff, select **Stop students choosing** on the current year.
 
 ## Trying the API with curl
 

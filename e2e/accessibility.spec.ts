@@ -71,21 +71,38 @@ test("staff pages", async ({ page }) => {
     "/staff",
     "/staff/students",
     "/staff/students/new",
-    // Each tab of a student's record.
-    ...[
-      "",
-      "?tab=fees",
-      "?tab=assessments",
-      "?tab=results",
-      "?tab=history",
-      "?tab=sign-in",
-    ].map((tab) => `/staff/students/${demoStudent("amelia")}${tab}`),
     "/staff/assessments",
     "/staff/assessments/new",
     marksheet,
     "/staff/results",
     "/staff/account",
     "/staff/activity",
+  ]) {
+    await expectNoViolations(page, path);
+  }
+});
+
+test("each tab of a student's record", async ({ page }) => {
+  await viewAs(page, "staff");
+  for (const tab of [
+    "",
+    "?tab=modules",
+    "?tab=fees",
+    "?tab=assessments",
+    "?tab=results",
+    "?tab=history",
+    "?tab=sign-in",
+  ]) {
+    await expectNoViolations(
+      page,
+      `/staff/students/${demoStudent("amelia")}${tab}`,
+    );
+  }
+});
+
+test("curriculum pages", async ({ page }) => {
+  await viewAs(page, "staff");
+  for (const path of [
     "/staff/programmes",
     "/staff/programmes/BSC-CS",
     "/staff/modules",
@@ -103,6 +120,7 @@ test("student pages", async ({ page }) => {
   await viewAs(page, demoStudent("priya"));
   for (const path of [
     "/student",
+    "/student/modules",
     "/student/assessments",
     `/student/assessments/${id ?? ""}`,
     "/student/results",

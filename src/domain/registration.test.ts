@@ -77,20 +77,37 @@ describe("checkRegistration", () => {
 
 describe("checkDrop", () => {
   it("drops an optional module, or one from outside the year, without work", () => {
-    expect(checkDrop({ kind: "OPTIONAL", hasWork: false })).toEqual({
+    expect(
+      checkDrop({ status: "ENROLLED", kind: "OPTIONAL", hasWork: false }),
+    ).toEqual({
       allowed: true,
     });
-    expect(checkDrop({ kind: null, hasWork: false })).toEqual({
+    expect(
+      checkDrop({ status: "ENROLLED", kind: null, hasWork: false }),
+    ).toEqual({
       allowed: true,
     });
   });
 
+  it("changes nothing for a student who isn't enrolled", () => {
+    for (const status of ["DEFERRED", "WITHDRAWN", "COMPLETED"] as const) {
+      expect(checkDrop({ status, kind: "OPTIONAL", hasWork: false })).toEqual({
+        allowed: false,
+        reason: "NOT_ENROLLED",
+      });
+    }
+  });
+
   it("keeps core modules and modules with work", () => {
-    expect(checkDrop({ kind: "CORE", hasWork: false })).toEqual({
+    expect(
+      checkDrop({ status: "ENROLLED", kind: "CORE", hasWork: false }),
+    ).toEqual({
       allowed: false,
       reason: "CORE",
     });
-    expect(checkDrop({ kind: "OPTIONAL", hasWork: true })).toEqual({
+    expect(
+      checkDrop({ status: "ENROLLED", kind: "OPTIONAL", hasWork: true }),
+    ).toEqual({
       allowed: false,
       reason: "HAS_WORK",
     });

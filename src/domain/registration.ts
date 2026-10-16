@@ -76,18 +76,23 @@ export function checkRegistration(input: {
 }
 
 /** Why a registration can't be dropped. */
-export type DropRefusal = "CORE" | "HAS_WORK";
+export type DropRefusal = "NOT_ENROLLED" | "CORE" | "HAS_WORK";
 
 /**
- * Decides whether a registration can be dropped: not a core module of the
- * student's year, which every student takes, and not one the student has
- * submitted work or has a mark for, which stay on their record.
+ * Decides whether a registration can be dropped: the student must be
+ * enrolled, as only an enrolled student's modules change, and it must not
+ * be a core module of their year, which every student takes, nor one they
+ * have submitted work or have a mark for, which stays on their record.
  */
 export function checkDrop(input: {
+  status: EnrolmentStatus;
   /** The module's place in the student's year, or null if it has none. */
   kind: ModuleKind | null;
   hasWork: boolean;
 }): { allowed: true } | { allowed: false; reason: DropRefusal } {
+  if (input.status !== "ENROLLED") {
+    return { allowed: false, reason: "NOT_ENROLLED" };
+  }
   if (input.kind === "CORE") return { allowed: false, reason: "CORE" };
   if (input.hasWork) return { allowed: false, reason: "HAS_WORK" };
   return { allowed: true };
@@ -118,6 +123,7 @@ export function registrationRefusalMessage(
 }
 
 export const DROP_REFUSAL_MESSAGES: Record<DropRefusal, string> = {
+  NOT_ENROLLED: "Only an enrolled student's modules can change.",
   CORE: "Core modules can't be dropped: every student in the year takes them.",
   HAS_WORK:
     "Work has been submitted or marked for this module, so it stays on the record.",

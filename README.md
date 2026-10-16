@@ -61,13 +61,15 @@ Router), PostgreSQL and Prisma.
   deadline, accounts waiting for activation); the overdue fees; and the
   assessments open for submissions.
 - **Student view:** a home page with the next deadline, fees and latest
-  results, and every assessment still taking work; pages for assessments
-  and submissions, results, fees and the student's own record.
+  results, and every assessment still taking work; pages for their modules
+  (where they choose options while staff allow it), assessments and
+  submissions, results, fees and the student's own record.
 - **Interface:** an app shell with a sidebar of the section's pages, which
   collapses to icons or, on a phone, slides in; breadcrumbs on deeper pages;
   a menu for one's account and signing out; a search (Ctrl/⌘+K) for pages,
-  actions and students; each student's record in tabs (overview, fees,
-  assessments, results, history, sign-in), with its actions in dialogs; and
+  actions and students; each student's record in tabs (overview, modules,
+  fees, assessments, results, history, sign-in), with its actions in
+  dialogs; and
   Undo for actions that can be reversed straight away.
 - **Audit trail:** every change records who made it and when, in the same
   transaction, and the trail can't be edited. Staff see it on each
