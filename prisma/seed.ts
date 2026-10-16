@@ -648,8 +648,10 @@ const ASSESSMENTS: SeedAssessment[] = [
 ];
 
 /** Results withheld by staff, with the reason the student is shown. */
+// Held after the marks were published (two days ago): the app refuses to
+// publish while results are withheld.
 const HOLDS: Partial<Record<CastKey, { reason: string; daysAgo: number }>> = {
-  amelia: { reason: OUTSTANDING_FEES_REASON, daysAgo: 5 },
+  amelia: { reason: OUTSTANDING_FEES_REASON, daysAgo: 1 },
 };
 
 async function seedAssessments(
@@ -794,12 +796,17 @@ async function seedLogins(
     const user = await prisma.user.create({ data });
     if (data.emailVerified) {
       // Better Auth's credential accounts use the user's ID as the account ID.
+      // Created when the password was first set: the day after enrolment,
+      // or now for staff.
       await prisma.account.create({
         data: {
           userId: user.id,
           providerId: "credential",
           accountId: user.id,
           password,
+          createdAt: new Date(
+            Math.min(user.createdAt.getTime() + MS_PER_DAY, now.getTime()),
+          ),
         },
       });
     }

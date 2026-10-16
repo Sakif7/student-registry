@@ -1100,3 +1100,17 @@ user had singled out: everything was on one page.
 **Caught along the way:** the demo data showed Amelia Hart's mark published
 two days after her results were withheld, which the app itself refuses. The
 seed is fixed in the next commit.
+
+## Demo data in a believable order
+
+**What the AI did:** two fixes to the seed, found while checking the new
+History tab:
+
+- Amelia Hart's results were withheld five days ago, but her coursework mark
+  was published two days ago, which the app refuses while results are
+  withheld. The hold now comes the day after publication.
+- Every activated student showed today as their activation date. Their
+  password is now set the day after their enrolment.
+
+**Checked by:** running the seed, `npm run check`, and the end-to-end suite,
+which loads the demo data for every spec.
