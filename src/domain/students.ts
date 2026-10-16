@@ -152,6 +152,17 @@ export const changeStatusSchema = z
     }
   });
 
+/** The columns the student list can be sorted by. */
+export const STUDENT_SORTS = [
+  "name",
+  "id",
+  "programme",
+  "year",
+  "status",
+] as const;
+export type StudentSort = (typeof STUDENT_SORTS)[number];
+export type SortDirection = "asc" | "desc";
+
 /**
  * Filters for the staff list, read from the URL. Unknown or malformed values
  * are ignored rather than rejected, so a stale link still opens.
@@ -174,6 +185,9 @@ export const studentFiltersSchema = z.object({
   status: z.enum(ENROLMENT_STATUSES).optional().catch(undefined),
   year: academicYearSchema.optional().catch(undefined),
   page: z.coerce.number().int().min(1).max(10_000).default(1).catch(1),
+  /** By name unless given; an unknown column or direction is ignored. */
+  sort: z.enum(STUDENT_SORTS).optional().catch(undefined),
+  dir: z.enum(["asc", "desc"]).optional().catch(undefined),
 });
 
 export type CreateStudentInput = z.infer<

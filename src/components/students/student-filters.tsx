@@ -47,6 +47,9 @@ export function StudentFilterBar({
       aria-label="Find students"
       className="mb-6 flex flex-wrap items-end gap-3"
     >
+      {/* Searching and filtering keep the list's order. */}
+      {filters.sort && <input type="hidden" name="sort" value={filters.sort} />}
+      {filters.dir && <input type="hidden" name="dir" value={filters.dir} />}
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}q`}>Search</Label>
         <div className="flex gap-2">

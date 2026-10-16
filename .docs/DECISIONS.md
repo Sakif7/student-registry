@@ -642,6 +642,21 @@ one after another. It is now a header and tabs.
   as correcting a fee and reversing a payment already were. A dialog closes
   once its form has saved, and the record refreshes behind it.
 
+### The student list
+
+- Column headings sort the list: name, student ID, programme, academic year
+  or status, either way. They are links (`?sort=year&dir=desc`), so the
+  server sorts across every page, searching and filtering keep the order,
+  and the address can be bookmarked. Ties go by name, then student ID, so
+  paging never shuffles students between pages.
+- Status sorts in the order the statuses are listed everywhere else
+  (Enrolled, Deferred, Withdrawn, Completed), not alphabetically.
+- The fees column doesn't sort: standing and overdue amounts are worked out
+  per page (see "Balances at scale" under Known limitations), so sorting by
+  them would mean computing every student's account on every visit.
+- Each row has a menu that opens the record on a given tab (Fees, Results,
+  History or Sign-in), or emails the student.
+
 ### One write path: Route Handlers
 
 Every write goes through a Route Handler under `/api`, and the UI calls those

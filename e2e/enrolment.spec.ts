@@ -109,3 +109,25 @@ test("defers a student with a reason, kept in the status history", async ({
     page.getByRole("link", { name: "Oliver Bennett" }),
   ).toBeVisible();
 });
+
+test("sorts the list by a column, and goes from a row to part of a record", async ({
+  page,
+}) => {
+  await page.goto("/staff/students");
+  await page.getByRole("link", { name: "Name", exact: true }).click();
+
+  await expect(page).toHaveURL("/staff/students?sort=name&dir=desc");
+  await expect(
+    page.getByRole("columnheader", { name: "Name" }),
+  ).toHaveAttribute("aria-sort", "descending");
+  await expect(page.getByRole("row").nth(1)).toContainText("Sofia Rossi");
+
+  await page.getByRole("button", { name: "Actions for Kwame Mensah" }).click();
+  await page.getByRole("menuitem", { name: "Fees" }).click();
+  await expect(page).toHaveURL(
+    `/staff/students/${demoStudent("kwame")}?tab=fees`,
+  );
+  await expect(
+    page.getByRole("tab", { name: "Fees", selected: true }),
+  ).toBeVisible();
+});

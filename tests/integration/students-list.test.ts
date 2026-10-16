@@ -35,14 +35,22 @@ async function list(query = "", session: Viewer | null = STAFF) {
 }
 
 const names = (body: ListBody) => body.items.map((student) => student.fullName);
+const ids = (body: ListBody) =>
+  body.items.map((student) => student.studentNumber);
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
 beforeEach(async () => {
-  const computing = await createProgramme({ code: "BSC-CS" });
-  const data = await createProgramme({ code: "MSC-DS" });
+  const computing = await createProgramme({
+    code: "BSC-CS",
+    title: "BSc (Hons) Computer Science",
+  });
+  const data = await createProgramme({
+    code: "MSC-DS",
+    title: "MSc Data Science",
+  });
   await createStudent({
     studentNumber: "SMS-2025-0001",
     fullName: "Amelia Hart",
@@ -192,5 +200,53 @@ describe("GET /api/students", () => {
   it("is for staff only", async () => {
     expect((await list("", asStudent("SMS-2026-0001"))).status).toBe(403);
     expect((await list("", null)).status).toBe(401);
+  });
+});
+
+describe("sorting the list", () => {
+  it("sorts by any column, either way, with ties in name order", async () => {
+    expect(names((await list("?sort=name&dir=desc")).body)).toEqual([
+      "Oliver Bennett",
+      "Mohammed Al-Farsi",
+      "Hannah Kowalski",
+      "Amelia Hart",
+    ]);
+    expect(ids((await list("?sort=id")).body)).toEqual([
+      "SMS-2024-0001",
+      "SMS-2025-0001",
+      "SMS-2026-0001",
+      "SMS-2026-0002",
+    ]);
+    expect(names((await list("?sort=programme&dir=desc")).body)).toEqual([
+      "Hannah Kowalski",
+      "Amelia Hart",
+      "Mohammed Al-Farsi",
+      "Oliver Bennett",
+    ]);
+    expect(names((await list("?sort=year")).body)).toEqual([
+      "Mohammed Al-Farsi",
+      "Amelia Hart",
+      "Hannah Kowalski",
+      "Oliver Bennett",
+    ]);
+    // Statuses in their natural order: Enrolled, Deferred, Withdrawn,
+    // Completed.
+    expect(names((await list("?sort=status")).body)).toEqual([
+      "Amelia Hart",
+      "Oliver Bennett",
+      "Hannah Kowalski",
+      "Mohammed Al-Farsi",
+    ]);
+  });
+
+  it("sorts by name for a column or direction it doesn't know", async () => {
+    const { body } = await list("?sort=balance&dir=sideways");
+
+    expect(names(body)).toEqual([
+      "Amelia Hart",
+      "Hannah Kowalski",
+      "Mohammed Al-Farsi",
+      "Oliver Bennett",
+    ]);
   });
 });

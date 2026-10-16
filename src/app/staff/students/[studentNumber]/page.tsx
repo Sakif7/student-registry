@@ -145,7 +145,10 @@ async function StudentRecordView({ params, searchParams }: Props) {
         </Fact>
       </dl>
 
+      {/* Keyed by the tab asked for, so a link to another tab of this record
+          opens it even though the page stays mounted. */}
       <RecordTabs
+        key={tab ?? ""}
         initialTab={tab}
         tabs={[
           {

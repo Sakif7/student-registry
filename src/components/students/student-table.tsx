@@ -1,8 +1,10 @@
 // One page of the student list, with a count and links to the other pages.
-// Page links keep the current filters.
+// Column headings sort the list, and each row has a menu of actions. Sorting
+// and page links keep the current filters.
 import Link from "next/link";
 
 import { StandingBadge } from "@/components/fees/standing-badge";
+import { SortableHead } from "@/components/sortable-head";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -14,9 +16,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { StudentFilters } from "@/domain/students";
+import type { StudentFilters, StudentSort } from "@/domain/students";
 import { formatDays, formatMoney } from "@/lib/format";
 import type { StudentPage } from "@/server/services/students";
+
+import { StudentRowMenu } from "./student-row-menu";
 
 export function StudentTable({ page }: { page: StudentPage }) {
   if (page.total === 0) {
@@ -44,12 +48,23 @@ export function StudentTable({ page }: { page: StudentPage }) {
         </TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead>Student ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Programme</TableHead>
-            <TableHead>Academic year</TableHead>
-            <TableHead>Status</TableHead>
+            <Sortable filters={page.filters} column="id" label="Student ID" />
+            <Sortable filters={page.filters} column="name" label="Name" />
+            <Sortable
+              filters={page.filters}
+              column="programme"
+              label="Programme"
+            />
+            <Sortable
+              filters={page.filters}
+              column="year"
+              label="Academic year"
+            />
+            <Sortable filters={page.filters} column="status" label="Status" />
             <TableHead>Fees</TableHead>
+            <TableHead>
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -84,6 +99,13 @@ export function StudentTable({ page }: { page: StudentPage }) {
                     {formatDays(student.account.daysOverdue)}
                   </div>
                 )}
+              </TableCell>
+              <TableCell className="text-right">
+                <StudentRowMenu
+                  studentNumber={student.studentNumber}
+                  fullName={student.fullName}
+                  email={student.email}
+                />
               </TableCell>
             </TableRow>
           ))}
@@ -143,23 +165,58 @@ function PageLink({
       </span>
     );
   }
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries({ ...filters, page })) {
-    if (
-      value !== undefined &&
-      value !== "" &&
-      !(key === "page" && value === 1)
-    ) {
-      params.set(key, String(value));
-    }
-  }
   return (
     <Link
-      href={`/staff/students?${params.toString()}`}
+      href={studentListHref({ ...filters, page })}
       scroll={false}
       className={style}
     >
       {children}
     </Link>
   );
+}
+
+/** A heading that sorts by its column, reversing a sort already applied. */
+function Sortable({
+  filters,
+  column,
+  label,
+}: {
+  filters: StudentFilters;
+  column: StudentSort;
+  label: string;
+}) {
+  const sort = filters.sort ?? "name";
+  const dir = filters.dir ?? "asc";
+  const active = sort === column;
+  return (
+    <SortableHead
+      label={label}
+      direction={active ? dir : undefined}
+      href={studentListHref({
+        ...filters,
+        sort: column,
+        dir: active && dir === "asc" ? "desc" : "asc",
+        // A new order starts again at the first page.
+        page: 1,
+      })}
+    />
+  );
+}
+
+/**
+ * The student list's address for these filters, leaving out the defaults
+ * (first page, sorted by name A to Z) so addresses stay short.
+ */
+function studentListHref(filters: StudentFilters): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === undefined || value === "") continue;
+    if (key === "page" && value === 1) continue;
+    if (key === "sort" && value === "name" && filters.dir !== "desc") continue;
+    if (key === "dir" && value === "asc") continue;
+    params.set(key, String(value));
+  }
+  const query = params.toString();
+  return query ? `/staff/students?${query}` : "/staff/students";
 }

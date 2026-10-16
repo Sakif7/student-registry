@@ -26,8 +26,10 @@ import { formatStudentNumber } from "@/domain/student-number";
 import {
   changeStatusSchema,
   createStudentSchema,
+  type SortDirection,
   type StudentFilters,
   studentFiltersSchema,
+  type StudentSort,
   STUDENTS_PAGE_SIZE,
   updateStudentSchema,
 } from "@/domain/students";
@@ -145,7 +147,7 @@ export async function listStudents(
   const students = await db().student.findMany({
     where,
     include: { programme: { select: { code: true, title: true } } },
-    orderBy: [{ fullName: "asc" }, { studentNumber: "asc" }],
+    orderBy: studentsOrder(parsed.sort ?? "name", parsed.dir ?? "asc"),
     skip: (page - 1) * STUDENTS_PAGE_SIZE,
     take: STUDENTS_PAGE_SIZE,
   });
@@ -178,6 +180,32 @@ export async function listStudents(
     pageSize: STUDENTS_PAGE_SIZE,
     filters: { ...parsed, page },
   };
+}
+
+/**
+ * The order for a sorted column. Ties go by name, then student ID, so pages
+ * never shuffle students between them.
+ */
+function studentsOrder(
+  sort: StudentSort,
+  dir: SortDirection,
+): Prisma.StudentOrderByWithRelationInput[] {
+  const tieBreak: Prisma.StudentOrderByWithRelationInput[] = [
+    { fullName: "asc" },
+    { studentNumber: "asc" },
+  ];
+  switch (sort) {
+    case "name":
+      return [{ fullName: dir }, { studentNumber: "asc" }];
+    case "id":
+      return [{ studentNumber: dir }];
+    case "programme":
+      return [{ programme: { title: dir } }, ...tieBreak];
+    case "year":
+      return [{ academicYear: dir }, ...tieBreak];
+    case "status":
+      return [{ status: dir }, ...tieBreak];
+  }
 }
 
 function studentsWhere(filters: StudentFilters): Prisma.StudentWhereInput {

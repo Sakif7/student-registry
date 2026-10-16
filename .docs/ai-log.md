@@ -1114,3 +1114,23 @@ History tab:
 
 **Checked by:** running the seed, `npm run check`, and the end-to-end suite,
 which loads the demo data for every spec.
+
+## Sortable student list
+
+**What the AI did:** made the student list's column headings sort it (by
+name, ID, programme, academic year or status, either way), with `aria-sort`
+and an arrow on the sorted column, and gave each row a menu leading to a tab
+of the record, or an email to the student. Sorting happens on the server, in
+the address, so it works across pages and with the filters.
+
+A link to another tab of the record being viewed didn't change tab: the page
+stayed mounted and kept its state. The tabs are now keyed by the tab asked
+for.
+
+**Checked by:**
+
+- `npm run check`;
+- integration tests of each sort, either way, of ties staying in name order,
+  and of an unknown column or direction falling back to name order;
+- an end-to-end journey: sorting by name, then opening a record's Fees tab
+  from a row's menu; and the axe scan of the list.

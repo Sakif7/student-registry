@@ -12,7 +12,7 @@ Router), PostgreSQL and Prisma.
     SMS-2026-0001, without gaps even under concurrent enrolments;
   - statuses Enrolled, Deferred, Withdrawn and Completed, with a reason and
     history for every change;
-  - search, filters and paging.
+  - search, filters, sortable columns and paging.
 - **Fees and payments:**
   - a fee per programme and academic year, with corrections;
   - payments with amount, date and reference, corrected by reversal;

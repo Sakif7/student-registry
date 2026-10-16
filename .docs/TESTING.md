@@ -258,6 +258,12 @@ scenario 2, or 10 on fresh demo data.
    O'Connor and Arjun Mehta.
 5. Search for `zzz`. The list says "No students match these filters", with a
    link to clear them.
+6. Clear the filters and select the **Name** heading: the list sorts Z to A,
+   with an arrow beside the heading, and the address holds the order. Select
+   **Academic year**: the oldest year comes first, and students in the same
+   year stay in name order. Filtering or searching now keeps that order.
+7. Open the **⋯** menu at the end of Kwame Mensah's row and choose **Fees**:
+   the record opens on the **Fees** tab.
 
 ### 4. Editing a record and changing status
 
