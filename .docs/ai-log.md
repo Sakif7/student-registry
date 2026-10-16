@@ -869,3 +869,42 @@ the marksheet and the student filters, and AGENTS.md forbids hard-coded ids.
 - unit tests: two instances of a field get distinct ids, each label points at
   its own control, and the hint and error still describe it;
 - the full test suites and `npm run check`.
+
+## Password pages
+
+**What the AI did:** added the pages that use the emailed links:
+
+- "Forgot your password?" on the sign-in page, which asks for a link and
+  answers the same whether or not the address has an account;
+- a page for choosing a new password from a reset link, and one for
+  activating an account, which the next step's activation emails will use;
+- a "This link no longer works" notice for an expired or used link, with a
+  way to ask for a new one.
+
+The session and link lifetimes moved into `src/domain/accounts.ts`, so the
+pages can state them.
+
+**Checked by:**
+
+- `npm run check`;
+- an end-to-end journey that reads the email from Mailpit: asking for a
+  link, choosing a new password with it, signing in with the new password,
+  and finding the used link refused;
+- an end-to-end test that the two passwords must match;
+- the axe scan, now covering the new pages in both states.
+
+**Caught along the way:**
+
+- **Contrast:** the axe scan of the "no longer works" notice failed. The
+  shadcn/ui alert set its error text in red at 90% opacity, which falls
+  short of the AA contrast ratio on white. It now uses full-strength red,
+  wherever the alert appears.
+- **Duplicate ids:** following "Forgot your password?" exposed fields that
+  shared an id with the hidden sign-in page. That was fixed in its own
+  commit, just before this one.
+- **A test racing a link:** following a link renders the next page in place,
+  and Playwright doesn't wait for that. The journey typed the email into the
+  sign-in page's field just before the forgot-password page replaced it. It
+  now waits for each new page's heading, and types into the visible "Email"
+  field only, as the sign-in page's stays in the document, hidden. It then
+  passed three runs in a row.

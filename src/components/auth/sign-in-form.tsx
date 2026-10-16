@@ -4,6 +4,7 @@
 // and a wrong password get the same message, so the form never reveals which
 // addresses have accounts.
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -97,6 +98,12 @@ export function SignInForm({
         <Button type="submit" disabled={isSubmitting || signedIn}>
           {isSubmitting || signedIn ? "Signing in…" : "Sign in"}
         </Button>
+        <Link
+          href="/forgot-password"
+          className="justify-self-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Forgot your password?
+        </Link>
       </Form>
 
       {demo && demo.accounts.length > 0 && (

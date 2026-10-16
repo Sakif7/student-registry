@@ -12,9 +12,11 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
 
 import {
+  LINK_HOURS,
   MAX_PASSWORD_LENGTH,
   MAX_RESET_EMAILS_PER_HOUR,
   MIN_PASSWORD_LENGTH,
+  SESSION_HOURS,
   signInLockedMessage,
 } from "@/domain/accounts";
 
@@ -30,11 +32,6 @@ import {
 } from "./sign-in-failures";
 
 const HOUR_SECONDS = 60 * 60;
-
-/** A session lasts this many hours from sign-in, however active. */
-export const SESSION_HOURS = 8;
-/** Activation and password-reset links work for this many hours. */
-export const LINK_HOURS = 72;
 
 function createAuth() {
   const { BETTER_AUTH_SECRET, BETTER_AUTH_URL } = env();

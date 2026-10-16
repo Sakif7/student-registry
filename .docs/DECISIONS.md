@@ -387,9 +387,14 @@ site.
   response takes doesn't give the answer away either.
 - Someone who has never set a password gets an activation email instead of
   a reset email: the link is the same, the wording differs.
+- The link opens a page for choosing the password, typed twice. Better Auth
+  checks the token on the way there, so an expired or used link opens a
+  "This link no longer works" notice, with a way to ask for a new one,
+  before anyone has typed a password.
 - Choosing a password with the link marks the email address as verified,
   since its owner received the email, and signs the account out on every
-  device.
+  device. It doesn't sign the person in: they sign in with the new
+  password, which their password manager can then save.
 - Requests for a link count towards the limit per client address (see
   "Passwords and attempts"). An account also receives at most 3 reset emails
   an hour, however many are requested, so the form can't be used to flood

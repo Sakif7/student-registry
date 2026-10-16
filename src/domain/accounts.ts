@@ -10,14 +10,24 @@ import { z } from "zod";
 export const MIN_PASSWORD_LENGTH = 12;
 export const MAX_PASSWORD_LENGTH = 128;
 
+/** A session lasts this many hours from sign-in, however active. */
+export const SESSION_HOURS = 8;
+/** Activation and password-reset links work for this many hours. */
+export const LINK_HOURS = 72;
+
+const emailField = z
+  .string()
+  .trim()
+  .min(1, "Enter your email address")
+  .pipe(z.email("Enter a valid email address"));
+
 export const signInSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, "Enter your email address")
-    .pipe(z.email("Enter a valid email address")),
+  email: emailField,
   password: z.string().min(1, "Enter your password"),
 });
+
+/** Asking for a password-reset link. */
+export const forgotPasswordSchema = z.object({ email: emailField });
 
 /** A new password, typed twice. */
 export const newPasswordSchema = z
@@ -77,4 +87,5 @@ export function signInLockedMessage(until: Date, now: Date): string {
 }
 
 export type SignInInput = z.infer<typeof signInSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type NewPasswordInput = z.infer<typeof newPasswordSchema>;

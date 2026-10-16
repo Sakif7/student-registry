@@ -33,8 +33,15 @@ async function assessmentPath(page: Page, title: string): Promise<string> {
   return `/staff/assessments/${assessment?.id ?? ""}`;
 }
 
-test("the sign-in page", async ({ page }) => {
-  await expectNoViolations(page, "/login");
+test("signed-out pages", async ({ page }) => {
+  for (const path of [
+    "/login",
+    "/forgot-password",
+    "/reset-password?token=example",
+    "/activate?error=INVALID_TOKEN",
+  ]) {
+    await expectNoViolations(page, path);
+  }
 });
 
 test("staff pages", async ({ page }) => {

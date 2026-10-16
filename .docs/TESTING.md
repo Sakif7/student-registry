@@ -33,8 +33,9 @@ shift by a day east of UTC fail locally instead of passing on a UTC CI runner.
 
 ### Before running the end-to-end tests
 
-The end-to-end tests use the same test database. Install the browser once with
-`npx playwright install chromium`. Each run then:
+The end-to-end tests use the same test database, and read the app's emails
+from Mailpit, so both must be running (`npm run db:up` starts them). Install
+the browser once with `npx playwright install chromium`. Each run then:
 
 1. Builds the app and starts it on port 3100, pointed at the test database and
    a temporary upload folder, so nothing touches your own data.
@@ -45,8 +46,8 @@ The end-to-end tests use the same test database. Install the browser once with
 3. Runs one test at a time. If a test fails, `npx playwright show-report` opens
    the report, with a screenshot and a trace of the failure.
 
-The specs cover signing in and out, access control, enrolment and the student
-list, fees and the dashboard, the assessment journey (setting, submitting,
+The specs cover signing in and out, resetting a forgotten password by email,
+access control, enrolment and the student list, fees and the dashboard, the assessment journey (setting, submitting,
 replacing, late work, marking), publishing and withholding results, and an axe
 accessibility scan of every kind of page.
 
@@ -119,7 +120,7 @@ in one window and sign in as the student in a private window, which keeps a
 separate session; sign out there to change student. "As Amelia" means signed
 in as Amelia Hart.
 
-### 1. Signing in and out
+### 1. Signing in and out, and forgotten passwords
 
 1. Open <http://localhost:3000>. You are sent to **Sign in**, which lists the
    demo accounts.
@@ -143,6 +144,15 @@ in as Amelia Hart.
    this email address. Try again in 15 minutes." appears. Jane Okafor can
    still sign in: only Elena's address is locked. `npm run db:seed` lifts
    the lock at once, along with resetting the data.
+9. Sign out, then select **Forgot your password?** and enter
+   `priya.natarajan@student.example`. "Check your email" appears.
+10. Open Mailpit at <http://localhost:8025>. The email "Reset your Student
+    Registry password" holds a link. Open it, and choose a new password of
+    12 characters or more, typed twice. "Your password has changed" appears.
+    Sign in as Priya with the new password.
+11. Open the emailed link again. "This link no longer works" appears, with a
+    way to ask for a new one. `npm run db:seed` restores Priya's demo
+    password.
 
 Sign-in allows 30 attempts a minute from one address. The integration tests
 check the limit, as it is impractical to reach by hand.

@@ -32,6 +32,7 @@ Router), PostgreSQL and Prisma.
 - **Sign-in:**
   - staff and students sign in with their email address and a password;
   - sessions are stored in the database, so signing out ends them at once;
+  - a forgotten password is replaced through a link sent by email;
   - five wrong passwords lock the email address for 15 minutes, on top of
     rate limits per client address;
   - nobody signs up: every account is made for its owner;
