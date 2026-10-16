@@ -12,7 +12,6 @@ import {
 } from "@/app/api/assessments/route";
 import { GET as listModules } from "@/app/api/modules/route";
 import { db } from "@/server/db";
-import type { Session } from "@/server/session";
 
 import {
   createAssessment as insertAssessment,
@@ -26,6 +25,7 @@ import {
   bodyOf,
   routeContext,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 // 12:00 BST on 15 October 2026.
@@ -104,9 +104,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function create(body: unknown, session: Session | null = STAFF) {
+async function create(body: unknown, session: Viewer | null = STAFF) {
   const response = await createAssessment(
-    apiRequest("POST", "/api/assessments", { json: body, session }),
+    await apiRequest("POST", "/api/assessments", { json: body, session }),
     routeContext({}),
   );
   return { status: response.status, body: await bodyOf(response) };
@@ -115,18 +115,21 @@ async function create(body: unknown, session: Session | null = STAFF) {
 async function update(
   id: string,
   body: unknown,
-  session: Session | null = STAFF,
+  session: Viewer | null = STAFF,
 ) {
   const response = await updateAssessment(
-    apiRequest("PATCH", `/api/assessments/${id}`, { json: body, session }),
+    await apiRequest("PATCH", `/api/assessments/${id}`, {
+      json: body,
+      session,
+    }),
     routeContext({ assessmentId: id }),
   );
   return { status: response.status, body: await bodyOf(response) };
 }
 
-async function detail(id: string, session: Session | null = STAFF) {
+async function detail(id: string, session: Viewer | null = STAFF) {
   const response = await getAssessment(
-    apiRequest("GET", `/api/assessments/${id}`, { session }),
+    await apiRequest("GET", `/api/assessments/${id}`, { session }),
     routeContext({ assessmentId: id }),
   );
   return {
@@ -237,7 +240,7 @@ describe("GET /api/assessments", () => {
     }
 
     const response = await listAssessments(
-      apiRequest("GET", "/api/assessments", { session: STAFF }),
+      await apiRequest("GET", "/api/assessments", { session: STAFF }),
       routeContext({}),
     );
     const { assessments } = await bodyOf<{ assessments: Summary[] }>(response);
@@ -270,7 +273,7 @@ describe("GET /api/assessments", () => {
     await createSubmission({ studentId: hannah.id, assessmentId });
 
     const response = await listAssessments(
-      apiRequest("GET", "/api/assessments", { session: STAFF }),
+      await apiRequest("GET", "/api/assessments", { session: STAFF }),
       routeContext({}),
     );
     expect(await bodyOf<{ assessments: Summary[] }>(response)).toMatchObject({
@@ -280,7 +283,7 @@ describe("GET /api/assessments", () => {
 
   it("is for staff only", async () => {
     const response = await listAssessments(
-      apiRequest("GET", "/api/assessments", {
+      await apiRequest("GET", "/api/assessments", {
         session: asStudent("SMS-2025-0001"),
       }),
       routeContext({}),
@@ -409,7 +412,7 @@ describe("PATCH /api/assessments/[assessmentId]", () => {
 describe("GET /api/modules", () => {
   it("lists each module with its programme, for any viewer", async () => {
     const response = await listModules(
-      apiRequest("GET", "/api/modules", {
+      await apiRequest("GET", "/api/modules", {
         session: asStudent("SMS-2025-0001"),
       }),
       routeContext({}),

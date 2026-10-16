@@ -10,7 +10,7 @@ import {
   createProgramme,
   createStudent,
 } from "../helpers/factories";
-import { asStudent, STAFF } from "../helpers/requests";
+import { asStudent, sessionFor, STAFF } from "../helpers/requests";
 
 // 15 October 2026 in London.
 const NOW = new Date("2026-10-15T11:00:00.000Z");
@@ -65,7 +65,7 @@ describe("getDashboard", () => {
       await createStudent({ programmeId: programme.id, status });
     }
 
-    const dashboard = await getDashboard(STAFF);
+    const dashboard = await getDashboard(await sessionFor(STAFF));
 
     expect(dashboard.statusCounts).toEqual({
       ENROLLED: 2,
@@ -95,7 +95,7 @@ describe("getDashboard", () => {
     await charge(oldest.id, 953_500, "2026-11-30");
     await pay(oldest.id, 500_000, "BACS AH 1");
 
-    const dashboard = await getDashboard(STAFF);
+    const dashboard = await getDashboard(await sessionFor(STAFF));
 
     expect(dashboard.overdueAccounts).toEqual([
       {
@@ -135,7 +135,7 @@ describe("getDashboard", () => {
     const dueLater = await createStudent({ programmeId: programme.id });
     await charge(dueLater.id, 953_500, "2026-11-14");
 
-    const dashboard = await getDashboard(STAFF);
+    const dashboard = await getDashboard(await sessionFor(STAFF));
 
     expect(dashboard.overdueAccounts).toEqual([]);
     expect(dashboard.totalOverduePence).toBe(0);
@@ -146,7 +146,7 @@ describe("getDashboard", () => {
     await charge(student.id, 953_500, "2026-10-01");
     await pay(student.id, 953_500, "BACS 1", "Payment recalled by the bank");
 
-    const dashboard = await getDashboard(STAFF);
+    const dashboard = await getDashboard(await sessionFor(STAFF));
 
     expect(dashboard.overdueAccounts).toMatchObject([
       { studentNumber: "SMS-2026-0001", overduePence: 953_500 },
@@ -175,7 +175,7 @@ describe("getDashboard", () => {
       ],
     });
 
-    expect((await getDashboard(STAFF)).results).toEqual({
+    expect((await getDashboard(await sessionFor(STAFF))).results).toEqual({
       toPublish: 1,
       withheld: 1,
     });
@@ -185,8 +185,9 @@ describe("getDashboard", () => {
     await expect(getDashboard(null)).rejects.toMatchObject({
       kind: "UNAUTHENTICATED",
     });
+    await createStudent({ studentNumber: "SMS-2026-0001" });
     await expect(
-      getDashboard(asStudent("SMS-2026-0001")),
+      getDashboard(await sessionFor(asStudent("SMS-2026-0001"))),
     ).rejects.toMatchObject({ kind: "FORBIDDEN" });
   });
 });

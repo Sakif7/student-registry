@@ -1,48 +1,62 @@
-// Helpers for the end-to-end tests: loading the demo data, choosing a view,
-// and working out the IDs and dates the demo data uses today.
+// Helpers for the end-to-end tests: loading the demo data, signing in, and
+// working out the IDs and dates the demo data uses today.
 import { execSync } from "node:child_process";
 
-import { expect, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 import { academicYearOn, startYearOf } from "@/domain/academic-year";
 import { addDays, todayIn } from "@/domain/college-time";
 
+import { SESSION_COOKIE } from "../../tests/helpers/session-cookie";
 import { assertTestDatabaseUrl } from "../../tests/helpers/test-database";
 
-import { e2eEnv } from "./env";
+import { E2E_PORT, e2eEnv } from "./env";
+
+// Session cookies for the demo users, made each time the demo data loads.
+let demoSessions: Record<string, string> = {};
 
 /**
  * Resets the test database (and the test upload folder) to the demo data, as
- * `npm run db:seed` does for the app's own database.
+ * `npm run db:seed` does for the app's own database, then signs in every demo
+ * user who can sign in, for {@link viewAs}.
  */
 export function loadDemoData(): void {
   const env = e2eEnv();
   assertTestDatabaseUrl(env.DATABASE_URL);
-  execSync("npx tsx prisma/seed.ts", {
-    env: { ...process.env, ...env },
-    stdio: "pipe",
-  });
+  const options = { env: { ...process.env, ...env }, stdio: "pipe" } as const;
+  execSync("npx tsx prisma/seed.ts", options);
+  demoSessions = JSON.parse(
+    execSync("npx tsx e2e/support/demo-sessions.ts", options).toString(),
+  ) as Record<string, string>;
 }
 
 /** A student ID, e.g. "SMS-2026-0001". */
 export type StudentNumber = `SMS-${string}`;
 
 /**
- * Starts a session for staff or for one student, as the view picker does.
- * The page's requests share the browser's cookies, so pages opened afterwards
- * see the session.
+ * Signs the browser in as the first demo staff member or as one student,
+ * without the sign-in form (sign-in.spec.ts tests that). The page's requests
+ * share the browser's cookies, so pages opened afterwards see the session.
  */
 export async function viewAs(
   page: Page,
   viewer: "staff" | StudentNumber,
 ): Promise<void> {
-  const response = await page.request.post("/api/session", {
-    data:
-      viewer === "staff"
-        ? { role: "staff" }
-        : { role: "student", studentNumber: viewer },
-  });
-  expect(response.ok()).toBe(true);
+  const value = demoSessions[viewer];
+  if (!value) {
+    throw new Error(
+      `No session for ${viewer}: load the demo data first, and check they can sign in.`,
+    );
+  }
+  await page.context().addCookies([
+    {
+      name: SESSION_COOKIE,
+      value,
+      url: `http://localhost:${E2E_PORT}`,
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
 }
 
 const TIME_ZONE = "Europe/London";

@@ -87,6 +87,8 @@ model Student {
   payments      Payment[]
   submissions   Submission[]
   results       AssessmentResult[]
+  /// The student's sign-in account, created when the student is enrolled.
+  user          User?
 
   @@index([programmeId])
   @@index([status])
@@ -235,4 +237,105 @@ model AssessmentResult {
   @@unique([studentId, assessmentId])
   @@index([assessmentId])
   @@map("assessment_results")
+}
+
+// ---------------------------------------------------------------------------
+// Sign-in, managed by Better Auth (src/server/auth.ts). Model and field names
+// are the ones Better Auth expects; tables and columns follow this schema's
+// snake_case convention through @@map and @map.
+// ---------------------------------------------------------------------------
+
+/// Someone who can sign in: a member of Registry staff or a student. Staff
+/// accounts come only from the seed; a student's is created on enrolment.
+model User {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  name          String
+  /// Stored lower-case; people sign in with it.
+  email         String    @unique
+  /// True once the person has proved they own the address, by activating
+  /// their account or resetting their password through an emailed link.
+  emailVerified Boolean   @default(false) @map("email_verified")
+  image         String?
+  /// "staff" or "student".
+  role          String
+  /// The student's record, for a student account; null for staff.
+  studentNumber String?   @unique @map("student_number")
+  /// Set while staff have disabled sign-in for the account.
+  disabledAt    DateTime? @map("disabled_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  student  Student?  @relation(fields: [studentNumber], references: [studentNumber], onDelete: Restrict)
+  sessions Session[]
+  accounts Account[]
+
+  @@map("users")
+}
+
+/// A signed-in browser. The cookie holds the token, signed with the app's
+/// secret; signing out or disabling the account deletes the row.
+model Session {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// How a user signs in. Here always the "credential" provider, holding the
+/// password hash; the token fields serve providers this app doesn't use.
+model Account {
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id") @db.Uuid
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+  /// scrypt hash, for the "credential" provider.
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Single-use tokens, such as account activation and password-reset links.
+model Verification {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+/// Request counts for rate limiting sign-in and password resets, kept in the
+/// database so that limits hold across restarts and server instances.
+model RateLimit {
+  id          String @id @default(uuid(7)) @db.Uuid
+  key         String @unique
+  count       Int
+  /// Milliseconds since the epoch.
+  lastRequest BigInt @map("last_request")
+
+  @@map("rate_limits")
 }

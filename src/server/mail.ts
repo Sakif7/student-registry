@@ -3,6 +3,7 @@
 // delivering it; production would point SMTP_* at a real mail service.
 import "server-only";
 
+import { after } from "next/server";
 import nodemailer, { type Transporter } from "nodemailer";
 
 import { env } from "./env";
@@ -39,4 +40,20 @@ function transport(): Transporter {
  */
 export async function sendEmail(email: Email): Promise<void> {
   await transport().sendMail({ from: env().MAIL_FROM, ...email });
+}
+
+/**
+ * Sends an email once the response has gone, so the request doesn't wait for
+ * the mail server. Use it where how long a response takes mustn't reveal
+ * whether an email went out. A failure is logged, as nobody is waiting to hear
+ * about it. Call it while handling a request.
+ */
+export function sendEmailLater(email: Email): void {
+  after(async () => {
+    try {
+      await sendEmail(email);
+    } catch (error) {
+      console.error(`Couldn't send the email "${email.subject}":`, error);
+    }
+  });
 }

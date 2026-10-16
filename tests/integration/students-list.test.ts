@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as listStudents } from "@/app/api/students/route";
 import { toDbDate } from "@/domain/college-time";
 import { db } from "@/server/db";
-import type { Session } from "@/server/session";
 
 import { createProgramme, createStudent } from "../helpers/factories";
 import {
@@ -13,6 +12,7 @@ import {
   bodyOf,
   routeContext,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 interface ListBody {
@@ -26,9 +26,9 @@ interface ListBody {
   pageCount: number;
 }
 
-async function list(query = "", session: Session | null = STAFF) {
+async function list(query = "", session: Viewer | null = STAFF) {
   const response = await listStudents(
-    apiRequest("GET", `/api/students${query}`, { session }),
+    await apiRequest("GET", `/api/students${query}`, { session }),
     routeContext({}),
   );
   return { status: response.status, body: await bodyOf<ListBody>(response) };

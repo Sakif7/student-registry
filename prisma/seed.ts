@@ -7,6 +7,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "better-auth/crypto";
 
 import {
   academicYearOn,
@@ -25,7 +26,8 @@ import { feeDescription } from "@/domain/fees";
 import { OUTSTANDING_FEES_REASON } from "@/domain/results";
 import { formatStudentNumber } from "@/domain/student-number";
 import { ACCEPTED_DOCUMENTS } from "@/domain/submissions";
-import { PrismaClient } from "@/generated/prisma/client";
+import { type Prisma, PrismaClient } from "@/generated/prisma/client";
+import { DEMO_PASSWORD, DEMO_STAFF, DEMO_STUDENTS } from "@/lib/demo-accounts";
 
 import { sampleDocx, samplePdf } from "./sample-documents";
 
@@ -76,6 +78,12 @@ interface CastMember {
   sessionYearsAgo: number;
   /** Status changes, oldest first; the first is the status at creation. */
   history: { status: EnrolmentStatus; daysAgo: number; reason?: string }[];
+  /**
+   * Their sign-in account, made when they enrolled. Unless stated, they have
+   * activated it with the demo password. "pending": not activated yet.
+   * "disabled": staff turned sign-in off when they left.
+   */
+  login?: "pending" | "disabled";
 }
 
 /**
@@ -171,6 +179,7 @@ const CAST = {
         reason: "Accepted a full-time job offer",
       },
     ],
+    login: "disabled",
   },
   chloe: {
     fullName: "Chloé Dubois",
@@ -189,6 +198,7 @@ const CAST = {
     intakeYearsAgo: 0,
     sessionYearsAgo: 0,
     history: [{ status: "ENROLLED", daysAgo: 35 }],
+    login: "pending",
   },
 } satisfies Record<string, CastMember>;
 
@@ -239,8 +249,12 @@ async function main(): Promise<void> {
       uploadDir,
     });
     await seedHolds(prisma, students, now);
+    const logins = await seedLogins(prisma, students, now);
     console.log(
       `Seeded ${PROGRAMMES.length} programmes, ${Object.keys(students).length} students, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions and ${work.marks} marks.`,
+    );
+    console.log(
+      `Sign-in: ${logins.staff} staff and ${logins.active} students use the password "${DEMO_PASSWORD}". Accounts awaiting activation: ${logins.pending}; turned off: ${logins.disabled}.`,
     );
   } finally {
     await prisma.$disconnect();
@@ -743,6 +757,78 @@ async function seedHolds(
       },
     });
   }
+}
+
+/**
+ * Creates the sign-in accounts: the staff, and every student's account, made
+ * when they enrolled. Everyone who has activated their account uses the demo
+ * password.
+ */
+async function seedLogins(
+  prisma: PrismaClient,
+  students: Record<CastKey, SeededStudent>,
+  now: Date,
+): Promise<{
+  staff: number;
+  active: number;
+  pending: number;
+  disabled: number;
+}> {
+  const cast = Object.entries(CAST) as [CastKey, CastMember][];
+  // The sign-in page lists these, so they must be able to sign in.
+  for (const { email } of DEMO_STUDENTS) {
+    const member = cast.find(([, m]) => m.email === email)?.[1];
+    if (!member || member.login) {
+      throw new Error(`Demo student ${email} has no active account.`);
+    }
+  }
+
+  const daysAgo = (days: number) => new Date(now.getTime() - days * MS_PER_DAY);
+  // Better Auth's own hashing (scrypt), so the password works for sign-in.
+  const password = await hashPassword(DEMO_PASSWORD);
+
+  async function createLogin(data: Prisma.UserUncheckedCreateInput) {
+    const user = await prisma.user.create({ data });
+    if (data.emailVerified) {
+      // Better Auth's credential accounts use the user's ID as the account ID.
+      await prisma.account.create({
+        data: {
+          userId: user.id,
+          providerId: "credential",
+          accountId: user.id,
+          password,
+        },
+      });
+    }
+  }
+
+  for (const { name, email } of DEMO_STAFF) {
+    await createLogin({ name, email, role: "staff", emailVerified: true });
+  }
+  for (const [key, member] of cast) {
+    await createLogin({
+      name: member.fullName,
+      email: member.email,
+      role: "student",
+      studentNumber: students[key].studentNumber,
+      // Activating an account is what verifies its email address.
+      emailVerified: member.login !== "pending",
+      disabledAt:
+        member.login === "disabled"
+          ? daysAgo(member.history.at(-1)?.daysAgo ?? 0)
+          : null,
+      createdAt: daysAgo(member.history[0]?.daysAgo ?? 0),
+    });
+  }
+
+  const count = (login: CastMember["login"]) =>
+    cast.filter(([, member]) => member.login === login).length;
+  return {
+    staff: DEMO_STAFF.length,
+    active: count(undefined),
+    pending: count("pending"),
+    disabled: count("disabled"),
+  };
 }
 
 /** "Chloé Dubois" → "chloe-dubois", for file names. */

@@ -33,8 +33,8 @@ async function assessmentPath(page: Page, title: string): Promise<string> {
   return `/staff/assessments/${assessment?.id ?? ""}`;
 }
 
-test("the view picker", async ({ page }) => {
-  await expectNoViolations(page, "/");
+test("the sign-in page", async ({ page }) => {
+  await expectNoViolations(page, "/login");
 });
 
 test("staff pages", async ({ page }) => {

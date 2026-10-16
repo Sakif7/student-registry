@@ -1,5 +1,7 @@
 // Builders for test data, written straight to the database so each test can
 // set up exactly the state it needs. Values are valid unless overridden.
+import { hashPassword } from "better-auth/crypto";
+
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 
@@ -89,4 +91,33 @@ export async function createSubmission(
       ...overrides,
     },
   });
+}
+
+/**
+ * Creates a user (staff unless overridden) who can sign in with the password,
+ * as the seed does: Better Auth's credential account holds its hash.
+ */
+export async function createUser({
+  password,
+  ...overrides
+}: Partial<Prisma.UserUncheckedCreateInput> & { password: string }) {
+  const n = next();
+  const user = await db().user.create({
+    data: {
+      name: `Staff Member ${n}`,
+      email: `staff${n}@college.example`,
+      role: "staff",
+      emailVerified: true,
+      ...overrides,
+    },
+  });
+  await db().account.create({
+    data: {
+      userId: user.id,
+      providerId: "credential",
+      accountId: user.id,
+      password: await hashPassword(password),
+    },
+  });
+  return user;
 }

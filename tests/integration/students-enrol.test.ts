@@ -4,15 +4,15 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { GET as getProgrammes } from "@/app/api/programmes/route";
 import { GET as getStudent } from "@/app/api/students/[studentNumber]/route";
 import { POST as enrolStudent } from "@/app/api/students/route";
-import type { Session } from "@/server/session";
 
-import { createProgramme } from "../helpers/factories";
+import { createProgramme, createStudent } from "../helpers/factories";
 import {
   apiRequest,
   asStudent,
   bodyOf,
   routeContext,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 interface StudentBody {
@@ -36,9 +36,9 @@ function details(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function enrol(body: unknown, session: Session | null = STAFF) {
+async function enrol(body: unknown, session: Viewer | null = STAFF) {
   return enrolStudent(
-    apiRequest("POST", "/api/students", { json: body, session }),
+    await apiRequest("POST", "/api/students", { json: body, session }),
     routeContext({}),
   );
 }
@@ -177,7 +177,8 @@ describe("POST /api/students", () => {
   });
 
   it("only lets staff enrol students", async () => {
-    expect((await enrol(details(), asStudent("SMS-2026-0001"))).status).toBe(
+    await createStudent({ studentNumber: "SMS-2024-0099" });
+    expect((await enrol(details(), asStudent("SMS-2024-0099"))).status).toBe(
       403,
     );
     expect((await enrol(details(), null)).status).toBe(401);
@@ -185,9 +186,9 @@ describe("POST /api/students", () => {
 });
 
 describe("GET /api/students/[studentNumber]", () => {
-  function read(studentNumber: string, session: Session | null) {
+  async function read(studentNumber: string, session: Viewer | null) {
     return getStudent(
-      apiRequest("GET", `/api/students/${studentNumber}`, { session }),
+      await apiRequest("GET", `/api/students/${studentNumber}`, { session }),
       routeContext({ studentNumber }),
     );
   }
@@ -197,7 +198,8 @@ describe("GET /api/students/[studentNumber]", () => {
 
     expect((await read(number, STAFF)).status).toBe(200);
     expect((await read(number, asStudent(number))).status).toBe(200);
-    expect((await read(number, asStudent("SMS-2026-0002"))).status).toBe(403);
+    await createStudent({ studentNumber: "SMS-2024-0099" });
+    expect((await read(number, asStudent("SMS-2024-0099"))).status).toBe(403);
     expect((await read(number, null)).status).toBe(401);
   });
 
@@ -218,7 +220,7 @@ describe("GET /api/students/[studentNumber]", () => {
 describe("GET /api/programmes", () => {
   it("lists programmes for anyone with a session", async () => {
     const response = await getProgrammes(
-      apiRequest("GET", "/api/programmes", { session: STAFF }),
+      await apiRequest("GET", "/api/programmes", { session: STAFF }),
       routeContext({}),
     );
     expect(await bodyOf(response)).toEqual({
@@ -233,7 +235,7 @@ describe("GET /api/programmes", () => {
     expect(
       (
         await getProgrammes(
-          apiRequest("GET", "/api/programmes"),
+          await apiRequest("GET", "/api/programmes"),
           routeContext({}),
         )
       ).status,

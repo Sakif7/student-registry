@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { PATCH as updateStudent } from "@/app/api/students/[studentNumber]/route";
 import { POST as changeStatus } from "@/app/api/students/[studentNumber]/status/route";
-import type { Session } from "@/server/session";
 
 import { createProgramme, createStudent } from "../helpers/factories";
 import {
@@ -13,6 +12,7 @@ import {
   bodyOf,
   routeContext,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 const NUMBER = "SMS-2026-0001";
@@ -30,20 +30,23 @@ interface StudentBody {
   };
 }
 
-function patch(
+async function patch(
   body: unknown,
-  session: Session | null = STAFF,
+  session: Viewer | null = STAFF,
   number = NUMBER,
 ) {
   return updateStudent(
-    apiRequest("PATCH", `/api/students/${number}`, { json: body, session }),
+    await apiRequest("PATCH", `/api/students/${number}`, {
+      json: body,
+      session,
+    }),
     routeContext({ studentNumber: number }),
   );
 }
 
-function setStatus(body: unknown, session: Session | null = STAFF) {
+async function setStatus(body: unknown, session: Viewer | null = STAFF) {
   return changeStatus(
-    apiRequest("POST", `/api/students/${NUMBER}/status`, {
+    await apiRequest("POST", `/api/students/${NUMBER}/status`, {
       json: body,
       session,
     }),
@@ -170,10 +173,23 @@ describe("POST /api/students/[studentNumber]/status", () => {
   });
 
   it("lets only one of two simultaneous changes win", async () => {
-    const [first, second] = await Promise.all([
-      setStatus({ status: "DEFERRED", reason: "Medical grounds" }),
-      setStatus({ status: "WITHDRAWN", reason: "Moved abroad" }),
-    ]);
+    // Sign in for both first, so the two changes really run side by side.
+    const requests = await Promise.all(
+      [
+        { status: "DEFERRED", reason: "Medical grounds" },
+        { status: "WITHDRAWN", reason: "Moved abroad" },
+      ].map((json) =>
+        apiRequest("POST", `/api/students/${NUMBER}/status`, {
+          json,
+          session: STAFF,
+        }),
+      ),
+    );
+    const [first, second] = await Promise.all(
+      requests.map((request) =>
+        changeStatus(request, routeContext({ studentNumber: NUMBER })),
+      ),
+    );
 
     expect([first.status, second.status].sort()).toEqual([200, 409]);
     const loser = first.status === 409 ? first : second;

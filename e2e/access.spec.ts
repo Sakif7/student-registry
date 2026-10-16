@@ -1,45 +1,53 @@
-// Choosing a view, and who may open which pages and files.
+// Who may open which pages and files. Every page and API route checks the
+// session itself; the sign-in redirect in front of them is only a shortcut.
 import { expect, test } from "@playwright/test";
 
+import { SESSION_COOKIE } from "../tests/helpers/session-cookie";
+
+import { E2E_PORT } from "./support/env";
 import { demoStudent, loadDemoData, viewAs } from "./support/helpers";
 
 test.beforeAll(loadDemoData);
 
-test("staff choose their view and land on the Registry dashboard", async ({
+test("visitors who aren't signed in are sent to sign in first", async ({
   page,
 }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Continue as staff" }).click();
-
-  await expect(page).toHaveURL("/staff");
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Registry dashboard" }),
-  ).toBeVisible();
-  await expect(page.getByText("Viewing as Registry staff")).toBeVisible();
+  await page.goto("/staff/students?status=ENROLLED");
+  await expect(page).toHaveURL(
+    "/login?next=%2Fstaff%2Fstudents%3Fstatus%3DENROLLED",
+  );
 });
 
-test("a student chooses their name and sees their own record", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await page.getByLabel("Student").selectOption(demoStudent("priya"));
-  await page.getByRole("button", { name: "Continue as student" }).click();
+test("a forged session cookie gets nowhere", async ({ page }) => {
+  await page.context().addCookies([
+    {
+      name: SESSION_COOKIE,
+      value: "forged-token.forged-signature",
+      url: `http://localhost:${E2E_PORT}`,
+    },
+  ]);
 
-  await expect(page).toHaveURL("/student");
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Priya Natarajan" }),
-  ).toBeVisible();
+  await page.goto("/staff");
+  await expect(page).toHaveURL("/login");
+  expect((await page.request.get("/api/students")).status()).toBe(401);
 });
 
-test("staff pages send students and visitors back to choose a view", async ({
-  page,
-}) => {
-  await page.goto("/staff/students");
-  await expect(page).toHaveURL("/");
-
+test("staff and students each stay in their own pages", async ({ page }) => {
   await viewAs(page, demoStudent("priya"));
   await page.goto("/staff");
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/student");
+
+  await viewAs(page, "staff");
+  await page.goto("/student/results");
+  await expect(page).toHaveURL("/staff");
+});
+
+test("the sign-in page sends someone already signed in on their way", async ({
+  page,
+}) => {
+  await viewAs(page, demoStudent("priya"));
+  await page.goto("/login");
+  await expect(page).toHaveURL("/student");
 });
 
 test("students can download their own work, and nobody else's", async ({

@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { PUT as putMarks } from "@/app/api/assessments/[assessmentId]/marks/route";
 import { db } from "@/server/db";
-import type { Session } from "@/server/session";
 
 import {
   createAssessment,
@@ -17,6 +16,7 @@ import {
   bodyOf,
   routeContext,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 const PUBLISHED_AT = new Date("2026-10-01T09:00:00.000Z");
@@ -84,10 +84,10 @@ async function save(
   {
     session = STAFF,
     id = assessmentId,
-  }: { session?: Session; id?: string } = {},
+  }: { session?: Viewer; id?: string } = {},
 ) {
   const response = await putMarks(
-    apiRequest("PUT", `/api/assessments/${id}/marks`, {
+    await apiRequest("PUT", `/api/assessments/${id}/marks`, {
       session,
       json: { marks },
     }),

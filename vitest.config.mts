@@ -41,13 +41,19 @@ export default defineConfig({
           name: "integration",
           include: ["tests/integration/**/*.test.ts"],
           globalSetup: ["tests/helpers/global-setup.ts"],
-          setupFiles: ["tests/helpers/setup-database.ts"],
+          setupFiles: [
+            "tests/helpers/setup-database.ts",
+            "tests/helpers/setup-mail.ts",
+          ],
           // One database, so test files run one after another.
           fileParallelism: false,
           env: {
             DATABASE_URL: process.env.TEST_DATABASE_URL ?? "",
             APP_TIME_ZONE: "Europe/London",
             UPLOAD_DIR: join(tmpdir(), "student-registry-test-uploads"),
+            BETTER_AUTH_SECRET: "integration-tests-only-secret-0123456789",
+            BETTER_AUTH_URL: "http://localhost:3000",
+            SHOW_DEMO_ACCOUNTS: "false",
           },
         },
       },

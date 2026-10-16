@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import { AppHeader, type NavItem } from "@/components/app-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ViewerBadge } from "@/components/viewer-badge";
+import { UserBadge } from "@/components/user-badge";
 
 const STAFF_NAV: readonly NavItem[] = [
   { href: "/staff", label: "Dashboard" },
@@ -21,7 +21,7 @@ export default function StaffLayout({ children }: LayoutProps<"/staff">) {
         nav={STAFF_NAV}
         aside={
           <Suspense fallback={<Skeleton className="h-5 w-56" />}>
-            <ViewerBadge />
+            <UserBadge />
           </Suspense>
         }
       />

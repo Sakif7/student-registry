@@ -39,11 +39,13 @@ The end-to-end tests use the same test database. Install the browser once with
 1. Builds the app and starts it on port 3100, pointed at the test database and
    a temporary upload folder, so nothing touches your own data.
 2. Applies the migrations, and reloads the demo data before each spec file, so
-   every file starts from the same state.
+   every file starts from the same state. Journeys that aren't about signing
+   in start from a session created in the database rather than the sign-in
+   form, which keeps them quick and independent of the form.
 3. Runs one test at a time. If a test fails, `npx playwright show-report` opens
    the report, with a screenshot and a trace of the failure.
 
-The specs cover choosing a view and access control, enrolment and the student
+The specs cover signing in and out, access control, enrolment and the student
 list, fees and the dashboard, the assessment journey (setting, submitting,
 replacing, late work, marking), publishing and withholding results, and an axe
 accessibility scan of every kind of page.
@@ -99,15 +101,46 @@ time; "late" means submitted after the deadline.
 Amelia Hart's results are withheld for outstanding tuition fees, so Amelia
 sees none of them. Every submission is a real PDF or Word file that downloads.
 
-### 1. Choosing a view
+Everyone signs in with their email address and, in the demo data, the
+password `demo-password-2026`:
 
-1. Open <http://localhost:3000>. The page "Choose a view" offers **Registry
-   staff** and **Student**.
-2. Select **Continue as staff**. You land on **Registry dashboard**, and the
-   header reads "Viewing as Registry staff".
-3. Select **Switch view** in the header. You are back on "Choose a view".
-4. Open <http://localhost:3000/staff> in a private window, which has no session.
-   You are sent to "Choose a view".
+| Who             | Email                                                                                                                        | Can sign in                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Registry staff  | `jane.okafor@college.example`, `tom.reid@college.example`, `elena.petrova@college.example`                                   | Yes, all with the same permissions  |
+| Students        | Their name in lower case, e.g. `amelia.hart@student.example`, `liam.oconnor@student.example`, `chloe.dubois@student.example` | Yes, apart from the two below       |
+| Arjun Mehta     | `arjun.mehta@student.example`                                                                                                | No: the account isn't activated yet |
+| Hannah Kowalski | `hannah.kowalski@student.example`                                                                                            | No: sign-in is turned off           |
+
+The sign-in page lists five of these accounts with a **Use** button that fills
+in the form.
+
+Several scenarios move between staff and a student. Stay signed in as staff
+in one window and sign in as the student in a private window, which keeps a
+separate session; sign out there to change student. "As Amelia" means signed
+in as Amelia Hart.
+
+### 1. Signing in and out
+
+1. Open <http://localhost:3000>. You are sent to **Sign in**, which lists the
+   demo accounts.
+2. Select **Sign in** with the form empty. "Enter your email address" and
+   "Enter your password" appear.
+3. Enter `jane.okafor@college.example` with the password `wrong-password-1`.
+   "The email address or password is incorrect." appears. Enter
+   `nobody@college.example` with the demo password: the message is the same,
+   so the form never reveals who has an account.
+4. Select **Use** beside Jane Okafor, then **Sign in**. You land on **Registry
+   dashboard**, and the header reads "Jane Okafor · Registry staff".
+5. Select **Sign out**. You are back on **Sign in**.
+6. Open <http://localhost:3000/staff/students?q=har>. You are sent to sign in
+   first. Sign in as Jane Okafor: you land on the student list, already
+   searched for "har".
+7. In a private window, sign in as `hannah.kowalski@student.example` with the
+   demo password. "Sign-in is turned off for this account. Contact the
+   Registry." appears.
+
+Sign-in allows 30 attempts a minute from one address. The integration tests
+check the limit, as it is impractical to reach by hand.
 
 ### 2. Enrolling a student
 
@@ -182,13 +215,13 @@ As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**.
 
 ### 5. A student's own record
 
-1. Select **Switch view**, choose **Sofia Rossi · SMS-2026-0003 · Deferred**
-   and select **Continue as student**.
+1. Sign in as **Sofia Rossi** (`sofia.rossi@student.example`), who is
+   deferred.
 2. **My record** shows Sofia's details and status history. A note explains
    that the enrolment is deferred, so no work can be submitted. There are no
    edit or status controls.
-3. Open <http://localhost:3000/staff> as Sofia. You are sent to "Choose a
-   view", because the staff pages are for staff only.
+3. Open <http://localhost:3000/staff> as Sofia. You are sent back to **My
+   record**, because the staff pages are for staff only.
 
 ### 6. Fees and payments
 
@@ -215,8 +248,8 @@ account is **Overdue**:
    charge it again. The charge is listed with the note under it.
 6. Record a payment of £20,000.00 for **Liam O'Connor**. Liam's account
    shows **In credit**.
-7. Switch to **Liam O'Connor** as a student. **My record** shows the same
-   account, with no forms.
+7. As **Liam O'Connor**, **My record** shows the same account, with no
+   forms.
 
 ### 7. Correcting a fee and reversing a payment
 
@@ -301,8 +334,8 @@ As staff:
 Continue from scenario 9. You need a PDF and a Word document (.docx) of your
 own, plus any other file, such as a text file.
 
-1. Switch to **Amelia Hart** as a student and open **Assessments**. **SQL lab
-   test** shows **Not submitted**. Open it.
+1. As **Amelia Hart**, open **Assessments**. **SQL lab test** shows **Not
+   submitted**. Open it.
 2. Select **Submit my work** without choosing a file. "Choose a file to
    upload" appears under **Your work**.
 3. Choose the text file. "Upload a PDF or a Word document (.docx)" appears
@@ -322,10 +355,10 @@ own, plus any other file, such as a text file.
    replacement is offered.
 8. Open **Algorithms coursework**: "This assessment is closed to
    submissions", with Amelia's submission shown.
-9. Switch to **Sofia Rossi** (deferred), open **Assessments**, then
-   **Management essay**: "Only enrolled students can submit work."
-10. Switch to staff and open **SQL lab test**. Amelia's row shows when the
-    work was submitted, "Replaced 1 time", and the file, which downloads.
+9. As **Sofia Rossi** (deferred), open **Assessments**, then **Management
+   essay**: "Only enrolled students can submit work."
+10. As staff, open **SQL lab test**. Amelia's row shows when the work was
+    submitted, "Replaced 1 time", and the file, which downloads.
 
 ### 11. Entering marks
 
@@ -354,8 +387,8 @@ Continue from scenario 11, as staff.
    with the reason "Outstanding tuition fees". **Algorithms coursework** shows
    66, **Merit**, published; **SQL lab test** shows 72, **Distinction**, "Not
    published".
-2. Switch to **Amelia Hart** as a student and open **Results**. "Your results
-   are being withheld" gives the reason, and no marks are shown.
+2. As **Amelia Hart**, open **Results**. "Your results are being withheld"
+   gives the reason, and no marks are shown.
 3. As staff, select **Lift the hold** on Amelia's record. As Amelia,
    **Results** now lists **Algorithms coursework** only: the SQL lab test mark
    isn't published yet.
@@ -374,31 +407,35 @@ Continue from scenario 11, as staff.
 7. On **SQL lab test**'s marksheet, change Amelia's mark to `68` and save. It
    reads "Not published" again, and Amelia's **Results** no longer shows it
    until it is published again.
-8. Switch to **Mohammed Al-Farsi** (completed). **Results** lists **Final
-   year project** with 68, **Merit**: completed students keep their results.
+8. As **Mohammed Al-Farsi** (completed), **Results** lists **Final year
+   project** with 68, **Merit**: completed students keep their results.
 
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
-as the UI does. The session is a cookie, so keep it in a cookie jar. On
-Windows, use `curl.exe` in PowerShell, because `curl` there is an alias for
+as the UI does. Signing in sets a session cookie, so keep it in a cookie jar.
+On Windows, use `curl.exe` in PowerShell, because `curl` there is an alias for
 `Invoke-WebRequest`.
 
 ```bash
-# Start a staff session and keep the cookie in cookies.txt
+# Sign in as staff and keep the session cookie in cookies.txt
 curl -i -c cookies.txt -H "Content-Type: application/json" \
-  -d '{"role":"staff"}' http://localhost:3000/api/session
+  -d '{"email":"jane.okafor@college.example","password":"demo-password-2026"}' \
+  http://localhost:3000/api/auth/sign-in/email
 
 # Show the current session
-curl -b cookies.txt http://localhost:3000/api/session
+curl -b cookies.txt http://localhost:3000/api/auth/get-session
+
+# Without a session, the API answers 401
+curl -i http://localhost:3000/api/students
+# HTTP/1.1 401 Unauthorized
 
 # Errors come back as RFC 9457 problem details, e.g. an unknown student:
-curl -i -H "Content-Type: application/json" \
-  -d '{"role":"student","studentNumber":"SMS-2026-9999"}' \
-  http://localhost:3000/api/session
+curl -i -b cookies.txt http://localhost:3000/api/students/SMS-2026-9999
 # HTTP/1.1 404 Not Found
 # {"type":"about:blank","title":"Not Found","status":404,
-#  "detail":"There is no student with ID SMS-2026-9999.","instance":"/api/session"}
+#  "detail":"There is no student with ID SMS-2026-9999.",
+#  "instance":"/api/students/SMS-2026-9999"}
 
 # List the programme codes
 curl -b cookies.txt http://localhost:3000/api/programmes
@@ -480,10 +517,10 @@ curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
   -d '{"closed":true}' \
   http://localhost:3000/api/assessments/<assessment-id>
 
-# Start a student session in a second cookie jar
+# Sign in as a student, keeping that session in a second cookie jar
 curl -i -c student.txt -H "Content-Type: application/json" \
-  -d '{"role":"student","studentNumber":"SMS-2025-0001"}' \
-  http://localhost:3000/api/session
+  -d '{"email":"amelia.hart@student.example","password":"demo-password-2026"}' \
+  http://localhost:3000/api/auth/sign-in/email
 
 # The student's assessments, each with their own work and whether they can
 # upload now
@@ -519,4 +556,13 @@ curl -i -b cookies.txt -X PUT -H "Content-Type: application/json" \
   http://localhost:3000/api/students/SMS-2025-0001/results/hold
 curl -i -b cookies.txt -X DELETE \
   http://localhost:3000/api/students/SMS-2025-0001/results/hold
+
+# Sign out. Better Auth takes only JSON bodies, and checks the Origin of any
+# request that carries cookies (403 without it). The session is deleted on the
+# server, so the old cookie no longer works.
+curl -i -b cookies.txt -H "Content-Type: application/json" \
+  -H "Origin: http://localhost:3000" -d '{}' \
+  http://localhost:3000/api/auth/sign-out
+curl -i -b cookies.txt http://localhost:3000/api/students
+# HTTP/1.1 401 Unauthorized
 ```

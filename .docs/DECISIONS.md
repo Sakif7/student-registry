@@ -254,17 +254,155 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
   The dashboard counts students with marks to publish and with results
   withheld.
 
-## Roles
+## Sign-in and sessions
 
-The brief allows a simple role toggle instead of authentication. The toggle sets
-an HttpOnly, SameSite=Lax session cookie naming either "staff" or one specific
-student. Every service checks the role from that session, so a student session
-can't call staff actions or read another student's data, even with hand-made
-requests. Replacing the toggle with real authentication would only change how
-the session is read.
+The brief allowed a simple role toggle, and the first version had one. It was
+replaced with real sign-in, so the app behaves like a production system.
 
-The role picker lists students by name so that a reviewer can switch between
-them. In production this screen would be the login page.
+### Better Auth, with sessions in PostgreSQL
+
+Sign-in uses Better Auth 1.7 rather than hand-written session code. It brings
+maintained, reviewed implementations of the parts that are easy to get
+subtly wrong: password hashing (scrypt), signed cookies, single-use reset
+tokens, rate limiting and origin checks. Its tables (`users`, `sessions`,
+`accounts`, `verifications` and `rate_limits`) live in the app's database
+with the same conventions as every other table: UUIDv7 keys from Prisma and
+snake_case names. The migration adds CHECK constraints, as for the other
+tables:
+
+- a user is staff or a student;
+- a student user always has a student number, and staff never do;
+- email addresses are stored in lower case, as Better Auth looks them up.
+
+Sessions are rows in the database, not self-contained tokens such as JWTs.
+Signing out deletes the row, so a copied cookie stops working at once, and a
+future "sign out everywhere" is one delete.
+
+Better Auth's endpoints sit under one catch-all Route Handler,
+`/api/auth/[...all]`, so every write still goes through a Route Handler. The
+rest of the app reads the session only through `src/server/session.ts`, which
+turns Better Auth's user into the same `StaffSession` or `StudentSession` the
+services already used. No service changed.
+
+### Accounts
+
+- Everyone signs in with their email address. Staff and students use the
+  same sign-in page, and the account's role decides where they land.
+- Nobody signs up. There is no administrator: two or three Registry staff,
+  all with the same permissions, come from the seed. Each student's account
+  is made for them, linked to their record by student number.
+- Role, student number and the date sign-in was turned off are Better Auth
+  "additional fields" that requests can't set (`input: false`).
+- Endpoints the app has no use for are switched off (`disabledPaths`): signing
+  up, users changing their own name or email address, deleting an account,
+  social sign-in and email verification. Names and addresses come from the
+  Registry's records.
+- Better Auth's admin plugin isn't used. It would add endpoints for
+  impersonation, bans and role changes that this app doesn't need. Turning
+  an account's sign-in off is a date on the user instead, which two checks
+  enforce:
+  - Better Auth's `session.create.before` hook refuses new sessions. It runs
+    after the password check, so only someone who knows the password learns
+    that the account exists and is turned off;
+  - `session.ts` treats the account's existing sessions as signed out.
+
+### Sessions and cookies
+
+- The cookie, `registry.session_token`, is HttpOnly and SameSite=Lax, and
+  Secure whenever the app's address is HTTPS.
+- Its value is the session token signed with `BETTER_AUTH_SECRET`. Better
+  Auth stores the token itself, unhashed, in `sessions`. Someone who read the
+  database would still need the secret to forge a cookie, but the database
+  deserves the same protection as the secret.
+- A session lasts 8 hours from sign-in, a working day, or until the user
+  signs out. Activity doesn't extend it: pages read the session on the
+  server, where a renewed cookie can't be sent back, so the browser would
+  drop the cookie after 8 hours anyway. A fixed limit is also the easier rule
+  to explain.
+- Signing in and signing out both end with a full page load rather than a
+  client-side navigation, replacing the page in the browser's history.
+  Nothing the router cached for one session carries over into the next.
+
+### Pages and redirects
+
+`src/proxy.ts` (the Next.js 16 name for middleware) sends visitors without a
+session cookie to `/login?next=…` before any page renders. It only checks
+that the cookie is there, as the Next.js authentication guide recommends:
+every page (`requirePageRole`), service and API route checks the session
+itself, so a stale or forged cookie gets no further than the sign-in page.
+After sign-in, the app only follows `next` if it is a path on this site
+(`safeNextPath`), so the sign-in page can't be used to send people to another
+site.
+
+### Passwords and attempts
+
+- Passwords are 12 to 128 characters with no rules about character types,
+  as NIST SP 800-63B recommends.
+- A wrong password, an unknown address and an account that was never
+  activated all get the same answer, so the form doesn't reveal who has an
+  account.
+- Rate limits are stored in PostgreSQL, so they hold across server instances
+  and restarts. They count requests from one client address:
+  - 30 sign-in attempts a minute;
+  - 10 requests for a reset link a minute;
+  - 100 requests a minute to the other sign-in endpoints.
+
+  These limits are generous on purpose. A college network can put thousands
+  of students behind one address, and a tight limit would lock out the whole
+  campus at the start of a lecture. They only slow down a flood from one
+  source; protecting each account is a limit per account (see "With more
+  time").
+
+- **Deploying behind a proxy:** the limits are per client address, which
+  Better Auth reads from `X-Forwarded-For`. Next.js fills that header in
+  from the connection when it's missing. Better Auth only trusts a header
+  holding a single address:
+  - behind a proxy that sets the header to the client's address, as most
+    hosts do, this works as it is;
+  - a proxy that appends to the header needs Better Auth's `trustedProxies`
+    option, or every visitor shares one limit;
+  - when the app is reached directly, a client could send its own header to
+    get a fresh limit. A per-account limit would close that gap (see "With
+    more time").
+
+### Password-reset links
+
+- "Forgot password" uses Better Auth's reset link: a random token, stored in
+  `verifications`, that works once and for 72 hours.
+- Asking for a link gets the same answer whether or not the address has an
+  account, and an account with sign-in turned off gets no email. The email
+  goes out after the response, with Next.js `after()`, so the time the
+  response takes doesn't give the answer away either.
+- Someone who has never set a password gets an activation email instead of
+  a reset email: the link is the same, the wording differs.
+- Choosing a password with the link marks the email address as verified,
+  since its owner received the email, and signs the account out on every
+  device.
+- Requests for a link count towards the limit per client address (see
+  "Passwords and attempts").
+
+### Demo accounts
+
+- The seed creates three Registry staff and an account for every student.
+  Everyone who has set a password uses `demo-password-2026`.
+- Two students show the other states: Arjun Mehta's account isn't
+  activated yet, and sign-in is turned off for Hannah Kowalski, who has
+  withdrawn.
+- With `SHOW_DEMO_ACCOUNTS=true`, as in `.env.example`, the sign-in page
+  lists two staff and three students with the password. The variable is off
+  unless set, so a deployment that forgets it shows nothing.
+
+### Testing sign-in
+
+- Integration tests send real sessions. Each test request carries a cookie
+  for a session created in the test database, signed with the test secret,
+  and goes through the same checks as in production. The sign-in and reset
+  tests call Better Auth's own endpoints, rate limits included.
+- Integration tests replace the mailer with an in-memory outbox, so they read
+  each email and follow its link without a mail server.
+- End-to-end tests use the sign-in form for the sign-in journeys. Other
+  journeys start from a session created in the database (`viewAs`), so the
+  suite stays within the sign-in rate limit.
 
 ## Time zone
 
@@ -529,13 +667,16 @@ unused `mysql2` driver inside the Prisma CLI, so it isn't reachable either.
 
 In rough order of value to a real Registry:
 
-- **Real sign-in:** replace the view picker with the college's single
-  sign-on (OpenID Connect). Only `src/server/session.ts` reads the session,
-  so the services wouldn't change. Staff roles would follow, such as
-  Registry, Finance and academic staff, each with narrower permissions.
+- **Single sign-on and narrower roles:** sign-in through the college's
+  identity provider (OpenID Connect, with Better Auth's generic OAuth
+  plugin), and staff roles such as Registry, Finance and academic staff, each
+  with narrower permissions. Only `src/server/session.ts` reads the session,
+  so the services wouldn't change.
+- **Stronger sign-in:** a limit on failed attempts per account as well as per
+  address, two-factor authentication for staff, and an email when an account
+  signs in from a new device.
 - **An audit trail of who did what:** status history, reversals and holds
-  record what changed and why, but not which member of staff did it. That
-  needs real sign-in first.
+  record what changed and why, but not yet which member of staff did it.
 - **Bulk work:**
   - importing students from a spreadsheet, initialising the ID counters;
   - publishing a whole assessment's marks at once;

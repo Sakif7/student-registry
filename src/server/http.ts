@@ -35,11 +35,13 @@ type Handler<Context> = (
  */
 export function handle<Context>(handler: Handler<Context>) {
   return async (request: NextRequest, context: Context): Promise<Response> => {
-    // Read outside the try: when Next.js prerenders a GET handler, reading the
-    // request is where it stops, by throwing an error that must not be caught.
-    const session = sessionFromRequest(request);
+    // Touch the request outside the try: when Next.js prerenders a GET
+    // handler, reading the request is where it stops, by throwing an error
+    // that must not be caught.
+    request.headers.get("cookie");
     try {
       assertSameOrigin(request);
+      const session = await sessionFromRequest(request);
       return await handler(request, context, session);
     } catch (error) {
       // Let Next.js's own control-flow errors (redirects, prerender

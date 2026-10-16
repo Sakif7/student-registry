@@ -29,16 +29,19 @@ Router), PostgreSQL and Prisma.
   - staff publish a student's marks, or withhold all of them with a reason
     such as outstanding fees;
   - students only ever receive marks that are published and not withheld.
-- **Views:** there is no sign-in. As the brief allows, a view picker chooses
-  Registry staff or any one student, and every page and API call enforces
-  that role.
+- **Sign-in:**
+  - staff and students sign in with their email address and a password;
+  - sessions are stored in the database, so signing out ends them at once,
+    and sign-in attempts are rate limited;
+  - nobody signs up: every account is made for its owner;
+  - every page and API call checks the role.
 
 ## Tech stack
 
 Next.js 16 (App Router, Cache Components) with React 19 and strict TypeScript,
 PostgreSQL 18 with Prisma 7, and shadcn/ui on Base UI with Tailwind CSS 4.
-Forms use React Hook Form with Zod, sharing their validation schemas with the
-API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
+Sign-in uses Better Auth. Forms use React Hook Form with Zod, sharing their
+validation schemas with the API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
 
 ## Prerequisites
 
@@ -80,9 +83,10 @@ API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
    npm run dev
    ```
 
-5. Choose a view: **Registry staff**, or one of the ten fictitious students.
-   The [testing guide](.docs/TESTING.md#demo-data) describes the demo data and
-   walks through every workflow.
+5. Sign in with one of the demo accounts listed on the sign-in page: Registry
+   staff, or a fictitious student. Every demo password is
+   `demo-password-2026`. The [testing guide](.docs/TESTING.md#demo-data)
+   describes the demo data and walks through every workflow.
 
 ## Environment variables
 
@@ -95,9 +99,14 @@ API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
 | `SMTP_HOST`, `SMTP_PORT`     | The mail server for activation and password-reset emails                                    | `localhost`, `1025` (Mailpit)                                 |
 | `MAIL_FROM`                  | The sender of those emails                                                                  | `Student Registry <registry@college.example>`                 |
 | `SMTP_USER`, `SMTP_PASSWORD` | Credentials for a real mail service (optional)                                              | not set                                                       |
+| `BETTER_AUTH_SECRET`         | Signs session cookies. At least 32 characters; generate one with `openssl rand -base64 32`. | a value for local development only                            |
+| `BETTER_AUTH_URL`            | The app's public address: sign-in only accepts requests from it, and emailed links use it   | `http://localhost:3000`                                       |
+| `SHOW_DEMO_ACCOUNTS`         | Lists the demo accounts and their password on the sign-in page. Off unless set.             | `true`                                                        |
 
-`.env` is git-ignored and never committed. The example holds no secrets: the
-credentials are the local Docker database's own.
+`.env` is git-ignored and never committed. The example holds no real secrets:
+the database credentials are the local Docker database's own, and the sign-in
+secret is only for local development. A real deployment generates its own
+secret and leaves `SHOW_DEMO_ACCOUNTS` unset.
 
 Every email the app sends goes to Mailpit, which keeps it in a web inbox at
 <http://localhost:8025> instead of delivering it. Nothing reaches a real
@@ -145,11 +154,13 @@ the API.
 
 ```text
 src/
-  app/          pages (staff/ and student/) and API route handlers (api/)
+  app/          pages ((auth)/, staff/ and student/) and API route handlers (api/)
   components/   UI by feature; shadcn/ui primitives in ui/
   domain/       business rules: pure functions, unit-tested beside the code
-  lib/          display formatting and the browser's API client
-  server/       server-only code: database, session, services, file storage
+  lib/          display formatting and the browser's API and sign-in clients
+  server/       server-only code: database, sign-in and session, services,
+                email, file storage
+  proxy.ts      sends visitors without a session to the sign-in page
 prisma/         schema, migrations, demo data and sample documents
 tests/          integration tests and their helpers
 e2e/            end-to-end and accessibility tests
@@ -159,31 +170,32 @@ e2e/            end-to-end and accessibility tests
 ## API
 
 Every write goes through these Route Handlers, which the pages use too, so the
-API behaves exactly as the UI does. Errors come back as RFC 9457 problem
-details, with an error per field where it applies. "Self" means the student
-whose record it is.
+API behaves exactly as the UI does. Each request is authorised by the session
+cookie that signing in sets (`POST /api/auth/sign-in/email`). Errors come back
+as RFC 9457 problem details, with an error per field where it applies. "Self"
+means the student whose record it is.
 
-| Method            | Path                                         | Who           | Purpose                                             |
-| ----------------- | -------------------------------------------- | ------------- | --------------------------------------------------- |
-| GET, POST, DELETE | `/api/session`                               | Anyone        | Read, choose or end the view                        |
-| GET               | `/api/programmes`, `/api/modules`            | Any view      | Reference data for forms                            |
-| GET, POST         | `/api/students`                              | Staff         | Search and filter students; enrol one               |
-| GET, PATCH        | `/api/students/{number}`                     | Staff or self | Read a record (staff edit it)                       |
-| POST              | `/api/students/{number}/status`              | Staff         | Change the enrolment status                         |
-| GET               | `/api/students/{number}/account`             | Staff or self | Charges, payments, balance and overdue amount       |
-| POST              | `/api/students/{number}/fees`                | Staff         | Charge a fee for an academic year                   |
-| POST              | `/api/students/{number}/payments`            | Staff         | Record a payment                                    |
-| PATCH             | `/api/fees/{id}`                             | Staff         | Correct a fee charge                                |
-| POST              | `/api/payments/{id}/reversal`                | Staff         | Reverse a payment                                   |
-| GET, POST         | `/api/assessments`                           | Staff         | List assessments; set one                           |
-| GET, PATCH        | `/api/assessments/{id}`                      | Staff         | Read with its marksheet; edit, close or reopen      |
-| PUT               | `/api/assessments/{id}/submission`           | Student       | Submit or replace work (multipart, field `file`)    |
-| PUT               | `/api/assessments/{id}/marks`                | Staff         | Save marks, keyed by student number                 |
-| GET               | `/api/students/{number}/assessments`         | Staff or self | A student's assessments, with their own work        |
-| GET               | `/api/submissions/{id}/file`                 | Staff or self | Download a submitted file                           |
-| GET               | `/api/students/{number}/results`             | Staff or self | Results (students: published only, unless withheld) |
-| POST              | `/api/students/{number}/results/publication` | Staff         | Publish all unpublished marks                       |
-| PUT, DELETE       | `/api/students/{number}/results/hold`        | Staff         | Withhold results with a reason; lift the hold       |
+| Method      | Path                                         | Who           | Purpose                                             |
+| ----------- | -------------------------------------------- | ------------- | --------------------------------------------------- |
+| GET, POST   | `/api/auth/*`                                | Anyone        | Better Auth: sign in, sign out, read the session    |
+| GET         | `/api/programmes`, `/api/modules`            | Signed in     | Reference data for forms                            |
+| GET, POST   | `/api/students`                              | Staff         | Search and filter students; enrol one               |
+| GET, PATCH  | `/api/students/{number}`                     | Staff or self | Read a record (staff edit it)                       |
+| POST        | `/api/students/{number}/status`              | Staff         | Change the enrolment status                         |
+| GET         | `/api/students/{number}/account`             | Staff or self | Charges, payments, balance and overdue amount       |
+| POST        | `/api/students/{number}/fees`                | Staff         | Charge a fee for an academic year                   |
+| POST        | `/api/students/{number}/payments`            | Staff         | Record a payment                                    |
+| PATCH       | `/api/fees/{id}`                             | Staff         | Correct a fee charge                                |
+| POST        | `/api/payments/{id}/reversal`                | Staff         | Reverse a payment                                   |
+| GET, POST   | `/api/assessments`                           | Staff         | List assessments; set one                           |
+| GET, PATCH  | `/api/assessments/{id}`                      | Staff         | Read with its marksheet; edit, close or reopen      |
+| PUT         | `/api/assessments/{id}/submission`           | Student       | Submit or replace work (multipart, field `file`)    |
+| PUT         | `/api/assessments/{id}/marks`                | Staff         | Save marks, keyed by student number                 |
+| GET         | `/api/students/{number}/assessments`         | Staff or self | A student's assessments, with their own work        |
+| GET         | `/api/submissions/{id}/file`                 | Staff or self | Download a submitted file                           |
+| GET         | `/api/students/{number}/results`             | Staff or self | Results (students: published only, unless withheld) |
+| POST        | `/api/students/{number}/results/publication` | Staff         | Publish all unpublished marks                       |
+| PUT, DELETE | `/api/students/{number}/results/hold`        | Staff         | Withhold results with a reason; lift the hold       |
 
 ## Documentation
 
@@ -236,10 +248,11 @@ brief and from decisions agreed before any code was written.
 
 The project depends on open-source packages under these licences:
 
-- **MIT:** Next.js, React, Base UI, shadcn/ui (whose components are copied
-  into `src/components/ui`), Tailwind CSS, Zod, React Hook Form, sonner,
-  file-type, Vitest, ESLint, typescript-eslint, Prettier, Husky, lint-staged
-  and tsx
+- **MIT:** Next.js, React, Better Auth, Base UI, shadcn/ui (whose components
+  are copied into `src/components/ui`), Tailwind CSS, Zod, React Hook Form,
+  sonner, file-type, Vitest, ESLint, typescript-eslint, Prettier, Husky,
+  lint-staged and tsx; Mailpit (run in Docker for development only)
+- **MIT-0:** Nodemailer
 - **Apache 2.0:** Prisma, Playwright, TypeScript and class-variance-authority
 - **ISC:** Lucide icons
 - **MPL 2.0:** axe-core (development only, for the accessibility tests)

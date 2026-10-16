@@ -6,7 +6,6 @@ import { PATCH as correctFee } from "@/app/api/fees/[feeId]/route";
 import { POST as reversePayment } from "@/app/api/payments/[paymentId]/reversal/route";
 import { toDbDate } from "@/domain/college-time";
 import { db } from "@/server/db";
-import type { Session } from "@/server/session";
 
 import { createProgramme, createStudent } from "../helpers/factories";
 import {
@@ -15,6 +14,7 @@ import {
   bodyOf,
   routeContext,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 const NOW = new Date("2026-10-15T11:00:00.000Z");
@@ -68,20 +68,27 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function correct(body: unknown, id = feeId, session: Session | null = STAFF) {
+async function correct(
+  body: unknown,
+  id = feeId,
+  session: Viewer | null = STAFF,
+) {
   return correctFee(
-    apiRequest("PATCH", `/api/fees/${id}`, { json: body, session }),
+    await apiRequest("PATCH", `/api/fees/${id}`, { json: body, session }),
     routeContext({ feeId: id }),
   );
 }
 
-function reverse(
+async function reverse(
   body: unknown,
   id = paymentId,
-  session: Session | null = STAFF,
+  session: Viewer | null = STAFF,
 ) {
   return reversePayment(
-    apiRequest("POST", `/api/payments/${id}/reversal`, { json: body, session }),
+    await apiRequest("POST", `/api/payments/${id}/reversal`, {
+      json: body,
+      session,
+    }),
     routeContext({ paymentId: id }),
   );
 }
@@ -177,10 +184,20 @@ describe("POST /api/payments/[paymentId]/reversal", () => {
   });
 
   it("lets only one of two simultaneous reversals through", async () => {
-    const responses = await Promise.all([
-      reverse({ reason: "First" }),
-      reverse({ reason: "Second" }),
-    ]);
+    // Sign in for both first, so the two reversals really run side by side.
+    const requests = await Promise.all(
+      ["First", "Second"].map((reason) =>
+        apiRequest("POST", `/api/payments/${paymentId}/reversal`, {
+          json: { reason },
+          session: STAFF,
+        }),
+      ),
+    );
+    const responses = await Promise.all(
+      requests.map((request) =>
+        reversePayment(request, routeContext({ paymentId })),
+      ),
+    );
     expect(responses.map((response) => response.status).sort()).toEqual([
       201, 409,
     ]);

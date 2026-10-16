@@ -23,6 +23,14 @@ const envSchema = z.object({
     .string()
     .min(1)
     .default("Student Registry <registry@college.example>"),
+  // Sign-in (Better Auth). The secret signs session cookies and tokens.
+  BETTER_AUTH_SECRET: z
+    .string({ error: "is required" })
+    .min(32, "must be at least 32 characters (e.g. openssl rand -base64 32)"),
+  /** The app's public address, used in emailed links. */
+  BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
+  /** Show the demo logins on the sign-in page (never in a real deployment). */
+  SHOW_DEMO_ACCOUNTS: z.stringbool().default(false),
 });
 
 /** Validated server configuration. */

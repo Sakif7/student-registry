@@ -1,56 +1,65 @@
-// The demo session: a cookie naming either the Registry staff or one student.
-// It stands in for authentication, which the brief allows to be left out.
-// Every permission check goes through this module, so replacing the toggle
-// with real sign-in would only change how the session is read.
+// The signed-in user, as every permission check in the app sees them. Better
+// Auth (./auth.ts) checks the session cookie against the database; this module
+// turns its result into a small Session object: a member of Registry staff, or
+// one student. Services take that object and decide what it may do.
 import "server-only";
 
 import { io } from "next/cache";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 
-import { isStudentNumber } from "@/domain/student-number";
-
+import { auth } from "./auth";
 import { AppError } from "./errors";
 
-export const SESSION_COOKIE = "sms_session";
-
-export type StaffSession = { role: "staff" };
-export type StudentSession = { role: "student"; studentNumber: string };
+export type StaffSession = { role: "staff"; userId: string; name: string };
+export type StudentSession = {
+  role: "student";
+  userId: string;
+  name: string;
+  studentNumber: string;
+};
 export type Session = StaffSession | StudentSession;
 
-const STUDENT_PREFIX = "student:";
-
-/** Reads a session from the cookie value; null when absent or malformed. */
-export function parseSession(value: string | undefined): Session | null {
-  if (value === "staff") return { role: "staff" };
-  if (value?.startsWith(STUDENT_PREFIX)) {
-    const studentNumber = value.slice(STUDENT_PREFIX.length);
-    if (isStudentNumber(studentNumber))
-      return { role: "student", studentNumber };
+/**
+ * The session the request's cookie belongs to, or null when there is none, it
+ * has expired or been signed out, or the account is disabled.
+ */
+export async function sessionFromHeaders(
+  requestHeaders: Headers,
+): Promise<Session | null> {
+  const result = await auth().api.getSession({ headers: requestHeaders });
+  if (!result) return null;
+  const { user } = result;
+  if (user.disabledAt) return null;
+  if (user.role === "staff") {
+    return { role: "staff", userId: user.id, name: user.name };
+  }
+  if (user.role === "student" && user.studentNumber) {
+    return {
+      role: "student",
+      userId: user.id,
+      name: user.name,
+      studentNumber: user.studentNumber,
+    };
   }
   return null;
 }
 
-/** The cookie value for a session: "staff" or "student:SMS-2026-0001". */
-export function serialiseSession(session: Session): string {
-  return session.role === "staff"
-    ? "staff"
-    : `${STUDENT_PREFIX}${session.studentNumber}`;
-}
-
 /** The session of a Route Handler request. */
-export function sessionFromRequest(request: NextRequest): Session | null {
-  return parseSession(request.cookies.get(SESSION_COOKIE)?.value);
+export function sessionFromRequest(
+  request: NextRequest,
+): Promise<Session | null> {
+  return sessionFromHeaders(request.headers);
 }
 
 /** The session of the request being rendered (Server Components only). */
 export async function currentSession(): Promise<Session | null> {
-  return parseSession((await cookies()).get(SESSION_COOKIE)?.value);
+  return sessionFromHeaders(await headers());
 }
 
 /**
- * Allows anyone with a session, staff or student.
+ * Allows anyone signed in, staff or student.
  *
  * @throws AppError (UNAUTHENTICATED) without a session.
  */
@@ -103,15 +112,17 @@ export function requireStudent(session: Session | null): StudentSession {
 }
 
 /**
- * For pages: returns the viewer's session if it has the given role, and
- * otherwise sends them to the role picker. Everything a page renders after
- * this check is request-time data.
+ * For pages: returns the viewer's session if it has the given role. Anyone
+ * else goes to the sign-in page, or to their own home page if they are
+ * signed in with the other role. Everything a page renders after this check
+ * is request-time data.
  */
 export async function requirePageRole(role: "staff"): Promise<StaffSession>;
 export async function requirePageRole(role: "student"): Promise<StudentSession>;
 export async function requirePageRole(role: Session["role"]): Promise<Session> {
   const session = await currentSession();
-  if (session?.role !== role) redirect("/");
+  if (!session) redirect("/login");
+  if (session.role !== role) redirect(`/${session.role}`);
   // With partial prefetching, cookies resolve while Next.js prerenders a
   // route's shell, so the session read above doesn't stop the prerender.
   // io() stops it here, before any page reads the clock (new Date()), which
@@ -121,8 +132,5 @@ export async function requirePageRole(role: Session["role"]): Promise<Session> {
 }
 
 function notSignedIn(): AppError {
-  return new AppError(
-    "UNAUTHENTICATED",
-    "Choose a view first: Registry staff or a student.",
-  );
+  return new AppError("UNAUTHENTICATED", "Sign in first.");
 }

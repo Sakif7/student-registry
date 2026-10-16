@@ -21,7 +21,6 @@ import { GET as listStudentAssessments } from "@/app/api/students/[studentNumber
 import { GET as downloadFile } from "@/app/api/submissions/[submissionId]/file/route";
 import { MAX_UPLOAD_BYTES } from "@/domain/submissions";
 import { db } from "@/server/db";
-import type { Session } from "@/server/session";
 
 import { sampleDocx, samplePdf } from "../../prisma/sample-documents";
 import {
@@ -34,7 +33,9 @@ import {
   asStudent,
   bodyOf,
   routeContext,
+  signIn,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "";
@@ -131,7 +132,7 @@ async function upload(
     id = assessmentId,
     headers,
   }: {
-    session?: Session | null;
+    session?: Viewer | null;
     id?: string;
     headers?: Record<string, string>;
   } = {},
@@ -139,7 +140,7 @@ async function upload(
   const body = new FormData();
   if (file) body.append("file", file);
   const response = await putSubmission(
-    apiRequest("PUT", `/api/assessments/${id}/submission`, {
+    await apiRequest("PUT", `/api/assessments/${id}/submission`, {
       session,
       body,
       headers,
@@ -156,9 +157,9 @@ async function submitted(file = pdf()): Promise<string> {
   return (body as Partial<SubmissionBody>).submission?.id ?? "";
 }
 
-function download(id: string, session: Session | null = STAFF) {
+async function download(id: string, session: Viewer | null = STAFF) {
   return downloadFile(
-    apiRequest("GET", `/api/submissions/${id}/file`, { session }),
+    await apiRequest("GET", `/api/submissions/${id}/file`, { session }),
     routeContext({ submissionId: id }),
   );
 }
@@ -356,7 +357,7 @@ describe("PUT /api/assessments/[assessmentId]/submission", () => {
         body: endless,
         duplex: "half",
         headers: {
-          cookie: "sms_session=student:SMS-2025-0001",
+          cookie: (await signIn(AMELIA)).cookie,
           "content-type": "multipart/form-data; boundary=x",
         },
       },
@@ -377,7 +378,7 @@ describe("PUT /api/assessments/[assessmentId]/submission", () => {
       body: { errors: { file: ["Choose a file to upload"] } },
     });
     const response = await putSubmission(
-      apiRequest("PUT", `/api/assessments/${assessmentId}/submission`, {
+      await apiRequest("PUT", `/api/assessments/${assessmentId}/submission`, {
         session: AMELIA,
         json: { file: "essay.pdf" },
       }),
@@ -437,9 +438,9 @@ describe("GET /api/submissions/[submissionId]/file", () => {
 });
 
 describe("GET /api/students/[studentNumber]/assessments", () => {
-  async function list(studentNumber: string, session: Session | null) {
+  async function list(studentNumber: string, session: Viewer | null) {
     const response = await listStudentAssessments(
-      apiRequest("GET", `/api/students/${studentNumber}/assessments`, {
+      await apiRequest("GET", `/api/students/${studentNumber}/assessments`, {
         session,
       }),
       routeContext({ studentNumber }),

@@ -1,8 +1,12 @@
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppError } from "./errors";
 import { handle, readJson } from "./http";
+import { sessionFromRequest } from "./session";
+
+// The session lookup needs the database; the integration tests cover it.
+vi.mock("./session", () => ({ sessionFromRequest: vi.fn() }));
 
 function post(headers: Record<string, string> = {}, body?: string) {
   return new NextRequest("http://localhost:3000/api/things", {
@@ -12,22 +16,40 @@ function post(headers: Record<string, string> = {}, body?: string) {
   });
 }
 
+beforeEach(() => {
+  vi.mocked(sessionFromRequest).mockResolvedValue(null);
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("handle", () => {
-  it("passes the viewer's session to the handler", async () => {
+  it("passes the signed-in user's session to the handler", async () => {
+    const staff = { role: "staff", userId: "u1", name: "Jane Okafor" } as const;
+    vi.mocked(sessionFromRequest).mockResolvedValue(staff);
     const route = handle((_request, _context, session) =>
       Response.json({ session }),
     );
     const response = await route(
-      new NextRequest("http://localhost:3000/api/things", {
-        headers: { cookie: "sms_session=staff" },
-      }),
+      new NextRequest("http://localhost:3000/api/things"),
       {},
     );
-    expect(await response.json()).toEqual({ session: { role: "staff" } });
+    expect(await response.json()).toEqual({ session: staff });
+  });
+
+  it("reports a failed session lookup as a server error", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(sessionFromRequest).mockRejectedValue(
+      new Error("Can't reach database server"),
+    );
+    const route = handle(() => new Response(null, { status: 204 }));
+    const response = await route(
+      new NextRequest("http://localhost:3000/api/things"),
+      {},
+    );
+    expect(response.status).toBe(500);
+    expect(await response.text()).not.toContain("database");
   });
 
   it("turns an AppError into problem details with field errors", async () => {

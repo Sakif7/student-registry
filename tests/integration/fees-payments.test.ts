@@ -9,7 +9,6 @@ import { POST as assignFee } from "@/app/api/students/[studentNumber]/fees/route
 import { POST as recordPayment } from "@/app/api/students/[studentNumber]/payments/route";
 import { POST as enrolStudent } from "@/app/api/students/route";
 import { db } from "@/server/db";
-import type { Session } from "@/server/session";
 
 import { createProgramme, createStudent } from "../helpers/factories";
 import {
@@ -18,6 +17,7 @@ import {
   bodyOf,
   routeContext,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 // Not a 2026 number: the enrolment tests below allocate those from the counter.
@@ -53,15 +53,15 @@ type StudentRoute = (
   context: { params: Promise<{ studentNumber: string }> },
 ) => Promise<Response>;
 
-function post(
+async function post(
   handler: StudentRoute,
   path: "fees" | "payments",
   body: unknown,
-  session: Session | null = STAFF,
+  session: Viewer | null = STAFF,
   number = NUMBER,
 ) {
   return handler(
-    apiRequest("POST", `/api/students/${number}/${path}`, {
+    await apiRequest("POST", `/api/students/${number}/${path}`, {
       json: body,
       session,
     }),
@@ -69,9 +69,9 @@ function post(
   );
 }
 
-async function account(session: Session | null = STAFF, number = NUMBER) {
+async function account(session: Viewer | null = STAFF, number = NUMBER) {
   const response = await getAccount(
-    apiRequest("GET", `/api/students/${number}/account`, { session }),
+    await apiRequest("GET", `/api/students/${number}/account`, { session }),
     routeContext({ studentNumber: number }),
   );
   return { status: response.status, body: await bodyOf<AccountBody>(response) };
@@ -99,7 +99,7 @@ afterEach(() => {
 describe("fees charged at enrolment", () => {
   async function enrol(status: string, email: string) {
     const response = await enrolStudent(
-      apiRequest("POST", "/api/students", {
+      await apiRequest("POST", "/api/students", {
         session: STAFF,
         json: {
           fullName: "Grace Thompson",
@@ -283,7 +283,9 @@ describe("GET /api/students/[studentNumber]/account", () => {
   it("shows an account to staff and to the student, not to another student", async () => {
     expect((await account(STAFF)).status).toBe(200);
     expect((await account(asStudent(NUMBER))).status).toBe(200);
-    expect((await account(asStudent("SMS-2026-0002"))).status).toBe(403);
+    // Another real student, signed in, still can't see it.
+    await createStudent({ studentNumber: "SMS-2024-0099" });
+    expect((await account(asStudent("SMS-2024-0099"))).status).toBe(403);
   });
 
   it("treats a charge as overdue only from the day after it is due", async () => {

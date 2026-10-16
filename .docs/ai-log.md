@@ -690,6 +690,39 @@ reviewer would meet it.
 - **Dated example:** a curl example used a fixed deadline that would be
   refused once the date had passed. It now says to use a future date.
 
+## Planning the second version, 16 October 2026
+
+**Task:** after trying the first version, the user asked for two changes and
+for suggestions and questions about them:
+
+- real sign-in with production-style sessions instead of the view picker.
+  Staff accounts come from the seed, with their details on the sign-in page,
+  and staff create student accounts;
+- an interface that feels like a real application, with a sidebar and tabs.
+  A student's record, for example, should be split into tabs rather than one
+  long page.
+
+**What the AI did:** proposed options and asked its questions through Claude
+Code's question interface. The user chose:
+
+- **Sign-in:**
+  - Better Auth (the agent had recommended hand-written database sessions);
+  - email addresses as the login for everyone;
+  - activation and password-reset links by email, caught locally by Mailpit,
+    each working for 72 hours;
+  - two or three named staff with the same permissions, and demo staff and
+    students listed on the sign-in page;
+  - "forgot password", an account page listing signed-in devices, and an
+    audit trail of who did what, but no two-factor authentication.
+- **Interface:**
+  - the current look, restructured: a sidebar, and tabs kept in the URL
+    (`?tab=`);
+  - actions in dialogs, toasts with undo, sortable tables and a command
+    palette;
+  - a dashboard with figures, charts and to-do lists, and a home page for
+    students.
+- **Order:** sign-in first, then the interface.
+
 ## Email with Mailpit
 
 **What the AI did:** the first step of real sign-in:
@@ -724,3 +757,70 @@ explains why the fields aren't disabled outright.
 - the end-to-end suite, where every form journey now depends on the forms
   becoming available once hydrated;
 - `npm run check`.
+
+## Signing in with Better Auth
+
+**What the AI did:** replaced the view picker with real sign-in:
+
+- Better Auth, with email and password, sessions stored in PostgreSQL, and
+  rate limits;
+- a sign-in page that can list the demo accounts, a redirect to it for
+  visitors without a session cookie, and sign-out;
+- password-reset links by email (the pages that use them come next);
+- sign-in accounts in the demo data, in every state: active, waiting for
+  activation, and turned off;
+- tests that sign in for real. Integration requests carry a signed cookie
+  for a real session, and the end-to-end tests use the sign-in form for the
+  sign-in journeys.
+
+Before writing code, the agent read the parts of Better Auth's source it
+would depend on: how a reset link creates a password for an account that has
+none, which checks the origin and the rate limit make, and the format of the
+signed cookie.
+
+**Checked by:**
+
+- `npm run check`;
+- 406 unit and integration tests (92% of lines), 34 more than before: sign-in,
+  sessions and reset links, called through Better Auth's own endpoints, plus
+  the mailer, the email templates and the redirect for visitors without a
+  session;
+- 27 end-to-end tests, including five sign-in journeys through the form and
+  an axe scan of the sign-in page;
+- in a browser against the production build: the sign-in page, its errors,
+  signing in with a demo account, signing out and pressing Back, and every
+  sign-in curl example in the testing guide.
+
+**Caught along the way:**
+
+- **Timing:** Better Auth waits for the reset email to be sent before it
+  answers. A request for a real account would then take noticeably longer
+  than one for an unknown address, giving the account away. The email now
+  goes out after the response, with Next.js `after()`.
+- **Sessions that couldn't slide:** Better Auth extends a session in the
+  database as it's used, but pages read the session on the server, where the
+  renewed cookie can't reach the browser. The browser would have signed
+  people out 8 hours after sign-in anyway, while the database said
+  otherwise. Sessions now last a fixed 8 hours, and DECISIONS.md says why.
+- **Rate limits behind a proxy:** Better Auth only trusts an
+  `X-Forwarded-For` header holding a single address. Behind a proxy that
+  appends to the header, every visitor would share one limit. DECISIONS.md
+  now records what a deployment must do.
+- **Endpoints left open:** Better Auth's defaults let any signed-in user
+  rename themselves through `/api/auth/update-user`. That and the other
+  endpoints this app doesn't use are switched off, and a test checks it.
+- **Tests that raced:** two concurrency tests signed their users in as part
+  of the racing requests, so the race no longer tested the write it was
+  meant to. They now sign in first and race only the writes.
+- **A limit that would lock out a campus:** in the browser check, the sixth
+  sign-in in a minute from one machine was refused. That was the limit
+  working, but a college network can put thousands of students behind one
+  address. The limits per address are now generous (30 sign-ins a minute),
+  and a limit per account is the next step.
+- **A curl example that couldn't work:** signing out with curl got a 415.
+  Better Auth only accepts JSON bodies, even an empty one, and then wants an
+  `Origin` header. The integration test had passed because its request had
+  no body at all, unlike a browser's. Both now send what a browser sends.
+- **A test that failed once:** in one full run, a form lost a choice made
+  before React had hydrated it. That was an older problem, fixed in its own
+  commit just before this one.

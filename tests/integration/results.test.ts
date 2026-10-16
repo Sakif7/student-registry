@@ -11,7 +11,6 @@ import { GET as getResults } from "@/app/api/students/[studentNumber]/results/ro
 import { toDbDate } from "@/domain/college-time";
 import { db } from "@/server/db";
 import { listResultsWorklist } from "@/server/services/results";
-import type { Session } from "@/server/session";
 
 import {
   createAssessment,
@@ -23,7 +22,9 @@ import {
   asStudent,
   bodyOf,
   routeContext,
+  sessionFor,
   STAFF,
+  type Viewer,
 } from "../helpers/requests";
 
 const NOW = new Date("2026-10-15T11:00:00.000Z");
@@ -93,27 +94,31 @@ afterEach(() => {
 
 const context = routeContext({ studentNumber: "SMS-2025-0001" });
 
-async function read(session: Session | null = STAFF) {
+async function read(session: Viewer | null = STAFF) {
   const response = await getResults(
-    apiRequest("GET", "/api/students/SMS-2025-0001/results", { session }),
+    await apiRequest("GET", "/api/students/SMS-2025-0001/results", { session }),
     context,
   );
   return { status: response.status, body: await bodyOf<ResultsBody>(response) };
 }
 
-async function publishAll(session: Session | null = STAFF) {
+async function publishAll(session: Viewer | null = STAFF) {
   const response = await publish(
-    apiRequest("POST", "/api/students/SMS-2025-0001/results/publication", {
-      session,
-    }),
+    await apiRequest(
+      "POST",
+      "/api/students/SMS-2025-0001/results/publication",
+      {
+        session,
+      },
+    ),
     context,
   );
   return { status: response.status, body: await bodyOf(response) };
 }
 
-async function withhold(reason: string, session: Session | null = STAFF) {
+async function withhold(reason: string, session: Viewer | null = STAFF) {
   const response = await putHold(
-    apiRequest("PUT", "/api/students/SMS-2025-0001/results/hold", {
+    await apiRequest("PUT", "/api/students/SMS-2025-0001/results/hold", {
       session,
       json: { reason },
     }),
@@ -122,9 +127,9 @@ async function withhold(reason: string, session: Session | null = STAFF) {
   return { status: response.status, body: await bodyOf(response) };
 }
 
-async function lift(session: Session | null = STAFF) {
+async function lift(session: Viewer | null = STAFF) {
   const response = await liftHold(
-    apiRequest("DELETE", "/api/students/SMS-2025-0001/results/hold", {
+    await apiRequest("DELETE", "/api/students/SMS-2025-0001/results/hold", {
       session,
     }),
     context,
@@ -271,7 +276,7 @@ describe("listResultsWorklist", () => {
       },
     });
 
-    const items = await listResultsWorklist(STAFF);
+    const items = await listResultsWorklist(await sessionFor(STAFF));
 
     // Oliver has neither marks nor a hold, so isn't listed.
     expect(items).toMatchObject([
@@ -293,7 +298,9 @@ describe("listResultsWorklist", () => {
   });
 
   it("is for staff only", async () => {
-    await expect(listResultsWorklist(AMELIA)).rejects.toMatchObject({
+    await expect(
+      listResultsWorklist(await sessionFor(AMELIA)),
+    ).rejects.toMatchObject({
       kind: "FORBIDDEN",
     });
   });

@@ -20,7 +20,8 @@ Read it before changing behaviour, and add to it when you make a new decision.
 - `npm run check`: format check, type-check (runs `next typegen` first, because
   route types are generated) and lint with zero warnings.
 - `npm run format`: apply Prettier, including Tailwind class order.
-- `npm run db:up`, then `npm run setup`: start PostgreSQL, migrate and seed.
+- `npm run db:up`, then `npm run setup`: start PostgreSQL and Mailpit, migrate
+  and seed. Every demo account's password is `demo-password-2026`.
 - `npm test`: unit and integration tests with coverage, then the end-to-end
   tests. Use `npm run test:unit`, `npm run test:integration` or
   `npm run test:e2e` for one suite. Integration and end-to-end tests need
@@ -42,6 +43,13 @@ Read it before changing behaviour, and add to it when you make a new decision.
     verified.
 - **Writes go through Route Handlers in `src/app/api`,** never Server Actions.
   The single exception is the action that only calls `refresh()`.
+- **Sign-in is Better Auth,** configured in `src/server/auth.ts`.
+  - Read the session only through `src/server/session.ts`; services take the
+    `Session` it returns and check the role themselves.
+  - Pages call `requirePageRole`, API routes go through `handle()`. The
+    redirect in `src/proxy.ts` is only a shortcut, never the check.
+  - Tests sign in for real: `signIn()` in `tests/helpers/requests.ts`, and
+    `viewAs()` in the end-to-end helpers.
 - **Layers:**
   - Business rules live in `src/domain`: pure and unit-tested.
   - I/O lives in `src/server`: server-only.

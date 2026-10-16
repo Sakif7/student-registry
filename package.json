@@ -33,6 +33,7 @@
     "@hookform/resolvers": "^5.9.1",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "better-auth": "^1.7.10",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "file-type": "^22.2.0",
