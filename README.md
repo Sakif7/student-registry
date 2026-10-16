@@ -44,8 +44,9 @@ Router), PostgreSQL and Prisma.
   - every page and API call checks the role.
 - **Interface:** an app shell with a sidebar of the section's pages, which
   collapses to icons or, on a phone, slides in; breadcrumbs on deeper pages;
-  a menu for one's account and signing out; and a search (Ctrl/⌘+K) for
-  pages, actions and students.
+  a menu for one's account and signing out; a search (Ctrl/⌘+K) for pages,
+  actions and students; and each student's record in tabs (overview, fees,
+  assessments, results, history, sign-in), with its actions in dialogs.
 - **Audit trail:** every change records who made it and when, in the same
   transaction, and the trail can't be edited. Staff see it on each
   student's record and in an Activity log.

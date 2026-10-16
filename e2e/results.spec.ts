@@ -16,7 +16,7 @@ test("withheld results stay hidden until the hold is lifted", async ({
   await expect(page.getByRole("table")).toHaveCount(0);
 
   await viewAs(page, "staff");
-  await page.goto(`/staff/students/${demoStudent("amelia")}`);
+  await page.goto(`/staff/students/${demoStudent("amelia")}?tab=results`);
   await page.getByRole("button", { name: "Lift the hold" }).click();
   await expect(
     page.getByRole("button", { name: "Withhold results" }),
@@ -57,7 +57,7 @@ test("publishing releases a student's marks, after a confirmation", async ({
 
 test("staff withhold results for a reason of their own", async ({ page }) => {
   await viewAs(page, "staff");
-  await page.goto(`/staff/students/${demoStudent("kwame")}`);
+  await page.goto(`/staff/students/${demoStudent("kwame")}?tab=results`);
   await page.getByRole("button", { name: "Withhold results" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Reason", { exact: true }).selectOption("other");

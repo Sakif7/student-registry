@@ -19,11 +19,13 @@ export function ResultsSection({
   fullName,
   account,
   timeZone,
+  className,
 }: {
   results: StudentResults;
   fullName: string;
   account: Account;
   timeZone: string;
+  className?: string;
 }) {
   const { studentNumber, withheld } = results;
   const unpublished = results.results.filter((r) => !r.publishedAt).length;
@@ -34,14 +36,9 @@ export function ResultsSection({
       : `Fees: ${ACCOUNT_STANDING_LABELS[account.standing].toLowerCase()}.`;
 
   return (
-    <section aria-labelledby="results-heading" className="mt-10 grid gap-4">
+    <section aria-label="Results" className={`grid gap-4 ${className ?? ""}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2
-          id="results-heading"
-          className="text-xl font-semibold tracking-tight"
-        >
-          Results
-        </h2>
+        <h2 className="text-xl font-semibold tracking-tight">Results</h2>
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-2 flex items-center gap-2 text-sm">
             Fees <StandingBadge standing={account.standing} />

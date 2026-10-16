@@ -1,6 +1,6 @@
 // The "Fees and payments" section of a record page. Students see their
-// account read-only; staff also get the forms to charge fees and record
-// payments, and to correct charges and reverse payments.
+// account read-only; staff can also record payments and charge fees (each in
+// a dialog), and correct charges and reverse payments.
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -14,41 +14,62 @@ import { DEFAULT_FEE_DUE_DAYS } from "@/domain/fees";
 import type { Account } from "@/server/services/fees";
 
 import { AccountFigures, ChargesTable, PaymentsTable } from "./account-tables";
-import { AssignFeeForm } from "./assign-fee-form";
 import { CorrectFeeDialog } from "./correct-fee-dialog";
-import { RecordPaymentForm } from "./record-payment-form";
+import { ChargeFeeDialog, RecordPaymentDialog } from "./fee-dialogs";
 import { ReversePaymentDialog } from "./reverse-payment-dialog";
 
 export function AccountSection({
   account,
   timeZone,
   staff,
+  className,
 }: {
   account: Account;
   timeZone: string;
   /** Present for staff, who can change the account. */
   staff?: { today: CalendarDate; academicYears: string[] };
+  className?: string;
 }) {
   return (
-    <section aria-labelledby="fees-heading" className="mt-10 grid gap-6">
-      <h2 id="fees-heading" className="text-xl font-semibold tracking-tight">
-        Fees and payments
-      </h2>
+    <section
+      aria-label="Fees and payments"
+      className={`grid gap-6 ${className ?? ""}`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Fees and payments
+        </h2>
+        {staff && (
+          <div className="flex flex-wrap gap-2">
+            <RecordPaymentDialog
+              studentNumber={account.studentNumber}
+              today={staff.today}
+            />
+            <ChargeFeeDialog
+              studentNumber={account.studentNumber}
+              academicYears={staff.academicYears}
+              defaultAcademicYear={account.academicYear}
+              standardFeePence={account.standardFeePence}
+              defaultDueDate={addDays(staff.today, DEFAULT_FEE_DUE_DAYS)}
+            />
+          </div>
+        )}
+      </div>
 
       {staff && account.currentYearUncharged && (
         <Alert>
           <AlertTitle>No fee charged for {account.academicYear}</AlertTitle>
           <AlertDescription>
             This student has no tuition fee for their current academic year.
-            Charge it below.
+            Charge it with “Charge a fee”.
           </AlertDescription>
         </Alert>
       )}
 
       <AccountFigures account={account} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="grid content-start gap-6 lg:col-span-2">
+      <div className="grid gap-6">
+        <div className="grid content-start gap-6">
           <Card>
             <CardHeader>
               <CardTitle>
@@ -94,43 +115,6 @@ export function AccountSection({
             </CardContent>
           </Card>
         </div>
-
-        {staff && (
-          <div className="grid content-start gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  <h3>Record a payment</h3>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RecordPaymentForm
-                  studentNumber={account.studentNumber}
-                  today={staff.today}
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  <h3>Charge a fee</h3>
-                </CardTitle>
-                <CardDescription>
-                  One tuition fee per academic year.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AssignFeeForm
-                  studentNumber={account.studentNumber}
-                  academicYears={staff.academicYears}
-                  defaultAcademicYear={account.academicYear}
-                  standardFeePence={account.standardFeePence}
-                  defaultDueDate={addDays(staff.today, DEFAULT_FEE_DUE_DAYS)}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
     </section>
   );

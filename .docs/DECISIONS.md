@@ -621,6 +621,27 @@ shell, as in most business applications:
   request-time read before the shell could render, so a full reload opens
   it again.
 
+### A student's record
+
+The record was one long page, with details, status, fees, results and history
+one after another. It is now a header and tabs.
+
+- **The header** names the student with the facts staff check first: status,
+  fees (with any amount overdue), results (withheld, or how many marks wait
+  to be published) and sign-in. It holds the two actions on the record as a
+  whole: editing the details and changing the status.
+- **Tabs:** Overview (details and status history), Fees, Assessments (the
+  student's work for each), Results, History (the audit trail) and Sign-in.
+- **Every tab's content arrives with the page,** which reads it all in one go
+  anyway, so switching is instant. The chosen tab goes into the address as
+  `?tab=`, through `history.replaceState`, which Next.js keeps its router in
+  step with. A link or a reload opens that tab, and Back leaves the record
+  rather than stepping back through its tabs.
+- **Actions are dialogs:** editing the details (which replaced the separate
+  edit page), changing the status, recording a payment and charging a fee,
+  as correcting a fee and reversing a payment already were. A dialog closes
+  once its form has saved, and the record refreshes behind it.
+
 ### One write path: Route Handlers
 
 Every write goes through a Route Handler under `/api`, and the UI calls those

@@ -10,17 +10,19 @@ test("staff see who changed what, on the record and in Activity", async ({
   page,
 }) => {
   await viewAs(page, "staff");
-  await page.goto(`/staff/students/${demoStudent("kwame")}`);
+  await page.goto(`/staff/students/${demoStudent("kwame")}?tab=history`);
   const history = page.getByRole("region", { name: "History" });
   // The demo data's own history: Jane Okafor enrolled Kwame.
   await expect(history.getByText(/^Enrolled as SMS-/)).toBeVisible();
 
-  const payment = page
-    .locator("form")
-    .filter({ has: page.getByRole("button", { name: "Record payment" }) });
+  await page.getByRole("tab", { name: "Fees" }).click();
+  await page.getByRole("button", { name: "Record a payment" }).click();
+  const payment = page.getByRole("dialog", { name: "Record a payment" });
   await payment.getByLabel("Amount (£)").fill("100");
   await payment.getByLabel("Reference").fill("CARD KM 0003");
   await payment.getByRole("button", { name: "Record payment" }).click();
+  await expect(payment).toBeHidden();
+  await page.getByRole("tab", { name: "History" }).click();
 
   const entry = history
     .getByRole("listitem")

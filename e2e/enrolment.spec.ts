@@ -86,14 +86,17 @@ test("defers a student with a reason, kept in the status history", async ({
   page,
 }) => {
   await page.goto(`/staff/students/${demoStudent("oliver")}`);
-  await page.getByLabel("New status").selectOption("DEFERRED");
   await page.getByRole("button", { name: "Change status" }).click();
+  const dialog = page.getByRole("dialog", { name: "Change status" });
+  await dialog.getByLabel("New status").selectOption("DEFERRED");
+  await dialog.getByRole("button", { name: "Change status" }).click();
   await expect(
-    page.getByText("Give a reason for deferral or withdrawal"),
+    dialog.getByText("Give a reason for deferral or withdrawal"),
   ).toBeVisible();
 
-  await page.getByLabel("Reason (required)").fill("Family circumstances");
-  await page.getByRole("button", { name: "Change status" }).click();
+  await dialog.getByLabel("Reason (required)").fill("Family circumstances");
+  await dialog.getByRole("button", { name: "Change status" }).click();
+  await expect(dialog).toBeHidden();
 
   // In the status history (the History card, below, records it too).
   const statusHistory = page

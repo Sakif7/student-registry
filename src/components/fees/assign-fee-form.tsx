@@ -34,12 +34,15 @@ export function AssignFeeForm({
   defaultAcademicYear,
   standardFeePence,
   defaultDueDate,
+  onDone,
 }: {
   studentNumber: string;
   academicYears: string[];
   defaultAcademicYear: string;
   standardFeePence: number;
   defaultDueDate: string;
+  /** Called once the fee is charged, e.g. to close a dialog. */
+  onDone?: () => void;
 }) {
   const form = useForm({
     resolver: zodResolver(
@@ -79,6 +82,7 @@ export function AssignFeeForm({
         `Fee of ${formatMoney(fee.amountPence)} charged for ${fee.academicYear}.`,
       );
       await refreshAfterWrite();
+      onDone?.();
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
       applyServerErrors(form.setError, error);

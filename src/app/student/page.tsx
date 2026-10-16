@@ -83,7 +83,7 @@ async function MyRecord() {
         />
         <StatusHistoryCard student={student} timeZone={timeZone} />
       </div>
-      <AccountSection account={account} timeZone={timeZone} />
+      <AccountSection account={account} timeZone={timeZone} className="mt-10" />
     </>
   );
 }

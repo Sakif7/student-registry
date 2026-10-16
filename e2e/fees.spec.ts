@@ -6,11 +6,12 @@ import { demoStudent, loadDemoData, viewAs } from "./support/helpers";
 
 test.beforeAll(loadDemoData);
 
-/** The "Record a payment" form on a staff record page. */
-function paymentForm(page: Page) {
-  return page
-    .locator("form")
-    .filter({ has: page.getByRole("button", { name: "Record payment" }) });
+/** Opens the "Record a payment" dialog on a record's Fees tab. */
+async function paymentDialog(page: Page) {
+  await page.getByRole("button", { name: "Record a payment" }).click();
+  const dialog = page.getByRole("dialog", { name: "Record a payment" });
+  await expect(dialog).toBeVisible();
+  return dialog;
 }
 
 test("a payment clears an overdue balance from the dashboard", async ({
@@ -26,11 +27,15 @@ test("a payment clears an overdue balance from the dashboard", async ({
 
   await overdue.getByRole("link", { name: "Kwame Mensah" }).click();
   await expect(page).toHaveURL(`/staff/students/${demoStudent("kwame")}`);
-  await paymentForm(page).getByLabel("Amount (£)").fill("4535");
-  await paymentForm(page).getByLabel("Reference").fill("CARD KM 0002");
-  await paymentForm(page)
-    .getByRole("button", { name: "Record payment" })
-    .click();
+  await page.getByRole("tab", { name: "Fees" }).click();
+  await expect(page).toHaveURL(
+    `/staff/students/${demoStudent("kwame")}?tab=fees`,
+  );
+  const payment = await paymentDialog(page);
+  await payment.getByLabel("Amount (£)").fill("4535");
+  await payment.getByLabel("Reference").fill("CARD KM 0002");
+  await payment.getByRole("button", { name: "Record payment" }).click();
+  await expect(payment).toBeHidden();
   await expect(
     page.getByRole("cell", { name: "CARD KM 0002", exact: true }),
   ).toBeVisible();
@@ -44,16 +49,15 @@ test("a payment clears an overdue balance from the dashboard", async ({
 
 test("the same reference can't be recorded twice", async ({ page }) => {
   await viewAs(page, "staff");
-  await page.goto(`/staff/students/${demoStudent("amelia")}`);
-  await paymentForm(page).getByLabel("Amount (£)").fill("100");
+  await page.goto(`/staff/students/${demoStudent("amelia")}?tab=fees`);
+  const payment = await paymentDialog(page);
+  await payment.getByLabel("Amount (£)").fill("100");
   // Seeded already, typed here with different case and spacing.
-  await paymentForm(page).getByLabel("Reference").fill("bacs  ah 2025-1");
-  await paymentForm(page)
-    .getByRole("button", { name: "Record payment" })
-    .click();
+  await payment.getByLabel("Reference").fill("bacs  ah 2025-1");
+  await payment.getByRole("button", { name: "Record payment" }).click();
 
   await expect(
-    page.getByText(
+    payment.getByText(
       "A payment with reference BACS AH 2025-1 is already recorded",
     ),
   ).toBeVisible();

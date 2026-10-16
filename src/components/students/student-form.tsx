@@ -30,7 +30,7 @@ import type { ProgrammeOption } from "@/server/services/students";
 
 type InitialStatus = (typeof INITIAL_STATUSES)[number];
 
-interface StudentDetailsValues {
+export interface StudentDetailsValues {
   fullName: string;
   email: string;
   dateOfBirth: string;
@@ -45,7 +45,14 @@ type StudentFormProps = {
   today: CalendarDate;
 } & (
   | { mode: "create"; defaultAcademicYear: string }
-  | { mode: "edit"; studentNumber: string; defaultValues: StudentDetailsValues }
+  | {
+      mode: "edit";
+      studentNumber: string;
+      defaultValues: StudentDetailsValues;
+      /** Called once the changes are saved; the form sits in a dialog. */
+      onDone: () => void;
+      onCancel: () => void;
+    }
 );
 
 export function StudentForm(props: StudentFormProps) {
@@ -99,18 +106,14 @@ export function StudentForm(props: StudentFormProps) {
         toast.success("Changes saved.");
       }
       await refreshAfterWrite();
-      router.push(`/staff/students/${student.studentNumber}`);
+      if (props.mode === "edit") props.onDone();
+      else router.push(`/staff/students/${student.studentNumber}`);
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
       applyServerErrors(form.setError, error);
       toast.error(error.message);
     }
   }
-
-  const cancelHref =
-    props.mode === "edit"
-      ? `/staff/students/${props.studentNumber}`
-      : "/staff/students";
 
   return (
     <Form
@@ -237,12 +240,18 @@ export function StudentForm(props: StudentFormProps) {
                 ? "Enrol student"
                 : "Save changes"}
           </Button>
-          <Link
-            href={cancelHref}
-            className={buttonVariants({ variant: "outline" })}
-          >
-            Cancel
-          </Link>
+          {props.mode === "edit" ? (
+            <Button type="button" variant="outline" onClick={props.onCancel}>
+              Cancel
+            </Button>
+          ) : (
+            <Link
+              href="/staff/students"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Cancel
+            </Link>
+          )}
         </div>
       </FieldGroup>
     </Form>

@@ -23,10 +23,13 @@ import type { Account } from "@/server/services/fees";
 export function RecordPaymentForm({
   studentNumber,
   today,
+  onDone,
 }: {
   studentNumber: string;
   /** The college's date: the default and the latest allowed payment date. */
   today: CalendarDate;
+  /** Called once the payment is recorded, e.g. to close a dialog. */
+  onDone?: () => void;
 }) {
   const blank = { amountPence: "", paidOn: today, reference: "" };
   const form = useForm({
@@ -60,6 +63,7 @@ export function RecordPaymentForm({
       );
       form.reset(blank);
       await refreshAfterWrite();
+      onDone?.();
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
       applyServerErrors(form.setError, error);

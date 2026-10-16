@@ -1,4 +1,5 @@
 // A student's assessments: deadlines, and what they have submitted for each.
+// The student sees their own; staff see a student's on the student's record.
 import Link from "next/link";
 
 import {
@@ -20,16 +21,21 @@ import type { StudentAssessment } from "@/server/services/submissions";
 export function StudentAssessmentsTable({
   assessments,
   timeZone,
+  viewer = "student",
 }: {
   assessments: StudentAssessment[];
   timeZone: string;
+  /** Who is looking: links go to that view's assessment pages. */
+  viewer?: "student" | "staff";
 }) {
+  const own = viewer === "student";
   if (assessments.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-10 text-center">
         <p className="font-medium">No assessments yet.</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Assessments set for your programme will appear here.
+          Assessments set for {own ? "your" : "the student's"} programme will
+          appear here.
         </p>
       </div>
     );
@@ -38,14 +44,15 @@ export function StudentAssessmentsTable({
   return (
     <Table>
       <TableCaption className="sr-only">
-        Your assessments, open ones first by deadline
+        {own ? "Your" : "The student's"} assessments, open ones first by
+        deadline
       </TableCaption>
       <TableHeader>
         <TableRow>
           <TableHead>Assessment</TableHead>
           <TableHead>Deadline</TableHead>
           <TableHead>State</TableHead>
-          <TableHead>Your work</TableHead>
+          <TableHead>{own ? "Your work" : "Work"}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -53,7 +60,7 @@ export function StudentAssessmentsTable({
           <TableRow key={assessment.id}>
             <TableCell className="min-w-48 whitespace-normal">
               <Link
-                href={`/student/assessments/${assessment.id}`}
+                href={`/${viewer}/assessments/${assessment.id}`}
                 className="font-medium underline-offset-4 hover:underline"
               >
                 {assessment.title}

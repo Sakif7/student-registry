@@ -201,8 +201,8 @@ As staff:
    - The status history reads "Record created as Enrolled".
    - A message confirms "An activation email went to
      grace.thompson@student.example".
-   - **Sign-in** reads **Waiting for activation**, with when the email went
-     and until when its link works.
+   - Under the title, **Sign-in** reads **Waiting for activation**. The
+     **Sign-in** tab says when the email went and until when its link works.
 
 4. Select **Enrol a student** again. Enter another name, the email
    `GRACE.THOMPSON@student.example` and the same other details. Select
@@ -216,21 +216,23 @@ As staff:
    Registry account" to Grace holds a link. Open it in a private window and
    choose a password: "Your account is ready". Sign in there as
    `grace.thompson@student.example`: you land on **My record** for Grace.
-8. Back on Grace's record as staff, reload: **Sign-in** reads **Active**,
-   with the date of activation and "Signed in on 1 device now."
+8. Back on Grace's record as staff, reload: **Sign-in** reads **Active**. The
+   **Sign-in** tab gives the date of activation and "Signed in on 1 device
+   now."
 
 ### 2a. Managing a student's sign-in
 
 As staff:
 
-1. Open **Arjun Mehta** (SMS-2026-0007). **Sign-in** reads **Waiting for
-   activation**, with no link waiting. Select **Send activation email**:
+1. Open **Arjun Mehta** (SMS-2026-0007), then the **Sign-in** tab. It reads
+   **Waiting for activation**, with no link waiting. Select **Send activation
+   email**:
    "Activation email sent to arjun.mehta@student.example". The email is in
    Mailpit, and the card now says when it went.
 2. Select **Resend activation email**. The new email's link works; the
    first one's now opens "This link no longer works".
-3. Open **Liam O'Connor**, who is **Active**, and select **Email a password
-   reset link**. Mailpit has "Reset your Student Registry password" for Liam.
+3. Open **Liam O'Connor**'s **Sign-in** tab: **Active**. Select **Email a
+   password reset link**. Mailpit has "Reset your Student Registry password" for Liam.
 4. Sign in as Liam in a private window. As staff, select **Turn sign-in
    off** on Liam's record, and confirm. **Sign-in** reads **Turned off**, and
    a message offers **Undo**. In the private window, reload: Liam is back on
@@ -259,23 +261,27 @@ scenario 2, or 10 on fresh demo data.
 
 ### 4. Editing a record and changing status
 
-As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**.
+As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**. The
+record opens on **Overview**; its tabs are **Overview**, **Fees**,
+**Assessments**, **Results**, **History** and **Sign-in**. Choosing one puts it
+in the address (`?tab=fees`), so a link or a reload opens it again.
 
-1. Under **Change status**, choose **Deferred** and select **Change status**
-   without a reason. The label reads "Reason (required)" and the error "Give a
-   reason for deferral or withdrawal" appears.
+1. Select **Change status**. In the dialog, choose **Deferred** and select
+   **Change status** without a reason. The label reads "Reason (required)" and
+   the error "Give a reason for deferral or withdrawal" appears.
 2. Enter the reason `Family circumstances` and select **Change status**. The
-   badge becomes **Deferred**, and the status history gains "Enrolled →
-   Deferred · Family circumstances". The form now offers only **Enrolled** and
-   **Withdrawn**.
+   dialog closes, the status under the title becomes **Deferred**, and the
+   status history gains "Enrolled → Deferred · Family circumstances". **Change
+   status** now offers only **Enrolled** and **Withdrawn**.
 3. Select **Students** in the sidebar. Oliver shows as Deferred. Open the
    record, change the status back to **Enrolled**, then press the browser's
    **Back** button. The list shows Oliver as **Enrolled**: pages visited
    earlier never show stale data after a change.
-4. Open **Mohammed Al-Farsi** (Completed). The status card reads "Completed is
-   final: this record's status can no longer change."
-5. On Oliver's record, select **Edit details**. Change **Academic year** to
-   **2027/28** and select **Save changes**. The student ID is still
+4. Open **Mohammed Al-Farsi** (Completed). **Change status** can't be
+   selected: a completed record's status can no longer change.
+5. On Oliver's record, select **Edit details**. In the dialog, change
+   **Academic year** to **2027/28** and select **Save changes**. The dialog
+   closes and the record shows 2027/28, with the student ID still
    SMS-2026-0001.
 
 ### 5. A student's own record
@@ -290,22 +296,22 @@ As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**.
 
 ### 6. Fees and payments
 
-As staff, open **Amelia Hart** (SMS-2025-0001). Under **Fees and payments** the
+As staff, open **Amelia Hart** (SMS-2025-0001), then the **Fees** tab. The
 account is **Overdue**:
 
 - £19,070.00 charged, £9,535.00 paid, a balance of £9,535.00, all of it
   overdue for 20 days;
 - last year's charge is **Paid**, this year's is **Overdue**.
 
-1. Under **Record a payment**, enter Amount `5,000`, keep today's date, and
-   enter Reference `bacs ah 2026-1`. Select **Record payment**. The figures
-   update at once: £14,535.00 paid and £4,535.00 overdue. The payment is listed
+1. Select **Record a payment**. In the dialog, enter Amount `5,000`, keep
+   today's date, and enter Reference `bacs ah 2026-1`. Select **Record
+   payment**. The dialog closes and the figures update at once: £14,535.00 paid and £4,535.00 overdue. The payment is listed
    with the reference in capitals, "BACS AH 2026-1".
 2. Record another payment with the reference `BACS  AH 2026-1` (different
    spacing). "A payment with reference BACS AH 2026-1 is already recorded"
    appears under **Reference**.
 3. Try a date after today. "The payment date can't be in the future" appears.
-4. Under **Charge a fee**, keep **2026/27** and select **Charge fee**. You are
+4. Select **Charge a fee**, keep **2026/27** and select **Charge fee**. You are
    told the fee for 2026/27 is already charged.
 5. Choose **2027/28**, change the amount to `4767.50` and select **Charge
    fee** without a note. "Explain why the amount differs from the standard fee
@@ -318,8 +324,8 @@ account is **Overdue**:
 
 ### 7. Correcting a fee and reversing a payment
 
-As staff, open **Kwame Mensah** (SMS-2025-0002). This year's fee is overdue
-after a £5,000.00 card payment.
+As staff, open **Kwame Mensah** (SMS-2025-0002), then the **Fees** tab. This
+year's fee is overdue after a £5,000.00 card payment.
 
 1. In **Payments**, select **Reverse** on **CARD KM 0001**. A dialog explains
    that the payment stays on record but stops counting. Select **Reverse
@@ -447,20 +453,21 @@ Continue from scenario 10, as staff, on **SQL lab test**.
 
 Continue from scenario 11, as staff.
 
-1. Open **Amelia Hart**'s record. Under **Results**, the fees read **Overdue**
-   with "£9,535.00 overdue", and a notice reads "Results withheld since …"
-   with the reason "Outstanding tuition fees". **Algorithms coursework** shows
+1. Open **Amelia Hart**'s record, then the **Results** tab. The fees read
+   **Overdue** with "£9,535.00 overdue", and a notice reads "Results withheld
+   since …" with the reason "Outstanding tuition fees". **Algorithms coursework** shows
    66, **Merit**, published; **SQL lab test** shows 72, **Distinction**, "Not
    published".
 2. As **Amelia Hart**, open **Results**. "Your results are being withheld"
    gives the reason, and no marks are shown.
-3. As staff, select **Lift the hold** on Amelia's record. As Amelia,
+3. As staff, select **Lift the hold** on Amelia's **Results** tab. As Amelia,
    **Results** now lists **Algorithms coursework** only: the SQL lab test mark
    isn't published yet.
 4. As staff, select **Publish 1 mark**. A dialog asks you to confirm, with
    **Cancel** focused. Confirm, and the section reads "Every mark is
    published." As Amelia, **Results** lists both marks.
-5. As staff, open **Kwame Mensah** and select **Withhold results**. Choose
+5. As staff, open **Kwame Mensah**'s **Results** tab and select **Withhold
+   results**. Choose
    **Another reason** and confirm with the box empty: "Give a reason" appears.
    Enter `Awaiting an academic misconduct panel` and confirm. As Kwame,
    **Results** shows that reason and no marks, although the Management essay
@@ -479,13 +486,13 @@ Continue from scenario 11, as staff.
 
 As staff:
 
-1. Open **Kwame Mensah**. **History**, at the foot of the record, lists
-   everything done to the record, newest first: the demo data's own trail
+1. Open **Kwame Mensah**, then the **History** tab. It lists everything done
+   to the record, newest first: the demo data's own trail
    (Jane Okafor enrolled Kwame, Tom Reid charged the fees and recorded the
    payments, Elena Petrova entered and published the Management essay mark),
    each with when it happened.
-2. Record a payment of `100` with the reference `CARD KM 0003`. **History**
-   gains "Recorded a payment of £100.00 (CARD KM 0003)", by Jane Okafor (or
+2. On the **Fees** tab, record a payment of `100` with the reference `CARD
+KM 0003`. **History** gains "Recorded a payment of £100.00 (CARD KM 0003)", by Jane Okafor (or
    whoever you are signed in as).
 3. Select **Activity** in the sidebar. The same payment heads the list, with
    who made it and a link to Kwame's record. Further down are changes with

@@ -28,9 +28,12 @@ import { refreshAfterWrite } from "@/server/actions";
 export function StatusChangeForm({
   studentNumber,
   allowed,
+  onDone,
 }: {
   studentNumber: string;
   allowed: readonly EnrolmentStatus[];
+  /** Called once the status has changed, e.g. to close a dialog. */
+  onDone?: () => void;
 }) {
   const form = useForm({
     resolver: zodResolver(changeStatusSchema),
@@ -49,6 +52,7 @@ export function StatusChangeForm({
         `Status changed to ${ENROLMENT_STATUS_LABELS[values.status]}.`,
       );
       await refreshAfterWrite();
+      onDone?.();
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
       applyServerErrors(form.setError, error);

@@ -58,6 +58,7 @@ test("a newly enrolled student activates the account from the emailed link", asy
   await own.close();
 
   await page.reload();
+  await page.getByRole("tab", { name: "Sign-in" }).click();
   await expect(page.getByText(/^Activated on /)).toBeVisible();
 });
 
@@ -75,7 +76,9 @@ test("turning a student's sign-in off signs them out, even after Undo", async ({
   ).toBeVisible();
 
   await viewAs(page, "staff");
-  await page.goto(`/staff/students/${demoStudent("priya")}`);
+  await page.goto(`/staff/students/${demoStudent("priya")}?tab=sign-in`);
+  // The Sign-in tab (the header shows the state too).
+  const signIn = page.getByRole("tabpanel");
   await page.getByRole("button", { name: "Turn sign-in off" }).click();
   await page
     .getByRole("dialog")
@@ -84,14 +87,14 @@ test("turning a student's sign-in off signs them out, even after Undo", async ({
   await expect(
     page.getByText("Sign-in turned off for Priya Natarajan."),
   ).toBeVisible();
-  await expect(page.getByText("Turned off", { exact: true })).toBeVisible();
+  await expect(signIn.getByText("Turned off", { exact: true })).toBeVisible();
 
   // Undo lets Priya sign in again, but the sessions ended are gone for good.
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(
     page.getByText("Sign-in turned back on for Priya Natarajan."),
   ).toBeVisible();
-  await expect(page.getByText("Active", { exact: true })).toBeVisible();
+  await expect(signIn.getByText("Active", { exact: true })).toBeVisible();
   await student.reload();
   await expect(student).toHaveURL("/login");
   await own.close();

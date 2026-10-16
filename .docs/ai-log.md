@@ -1075,3 +1075,28 @@ search API.
 - **A button name shared:** an older test clicked the student list's
   "Search" button by name, which now also matched "Search…" in the top bar.
   It matches the name exactly.
+
+## A student's record in tabs
+
+**What the AI did:** rebuilt the staff view of a student's record, which the
+user had singled out: everything was on one page.
+
+- A header with the student's status, fees, results and sign-in at a
+  glance, and **Edit details** and **Change status**, each in a dialog. The
+  separate edit page went.
+- Tabs for Overview, Fees, Assessments, Results, History and Sign-in, kept
+  in the address as `?tab=`.
+- On the Fees tab, recording a payment and charging a fee became dialogs
+  too.
+
+**Checked by:**
+
+- `npm run check`;
+- in a browser: each tab, the address following the tab, a payment recorded
+  through its dialog, and the status and edit dialogs;
+- the end-to-end suite, with the record's journeys now using its tabs and
+  dialogs, and an axe scan of every tab and of each dialog open.
+
+**Caught along the way:** the demo data showed Amelia Hart's mark published
+two days after her results were withheld, which the app itself refuses. The
+seed is fixed in the next commit.

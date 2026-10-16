@@ -6,7 +6,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,9 +24,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { SIGN_IN_STATE_LABELS, type SignInState } from "@/domain/accounts";
+import type { SignInState } from "@/domain/accounts";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { refreshAfterWrite } from "@/server/actions";
+
+import { SignInBadge } from "./sign-in-badge";
 
 /** A student's sign-in account, with its dates formatted for display. */
 export interface SignInSummary {
@@ -38,12 +39,6 @@ export interface SignInSummary {
   link: { sentAt: string; expiresAt: string } | null;
   devices: number;
 }
-
-const BADGE_CLASSES: Record<SignInState, string> = {
-  ACTIVE: "border-transparent bg-emerald-100 text-emerald-900",
-  PENDING: "border-transparent bg-amber-100 text-amber-900",
-  DISABLED: "border-transparent bg-muted text-muted-foreground",
-};
 
 export function SignInCard({
   studentNumber,
@@ -112,9 +107,7 @@ export function SignInCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <h2>Sign-in</h2>
-          <Badge className={BADGE_CLASSES[signIn.state]}>
-            {SIGN_IN_STATE_LABELS[signIn.state]}
-          </Badge>
+          <SignInBadge state={signIn.state} />
         </CardTitle>
         <CardDescription>
           Signs in with <span className="break-all">{signIn.email}</span>, the
