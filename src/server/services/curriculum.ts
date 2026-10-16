@@ -496,7 +496,8 @@ export async function getAcademicYear(
  * Sets up or changes an academic year's calendar (staff only): its semester
  * dates, and whether students may choose their own optional modules.
  *
- * @throws AppError: VALIDATION, including a malformed academic year.
+ * @throws AppError: NOT_FOUND for a year that isn't one, such as 2026/28;
+ *   VALIDATION for semester dates out of order or outside the year.
  */
 export async function saveAcademicYear(
   session: Session | null,
