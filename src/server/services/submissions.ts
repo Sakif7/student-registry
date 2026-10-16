@@ -22,6 +22,7 @@ import {
 } from "@/domain/submissions";
 import type { Prisma } from "@/generated/prisma/client";
 
+import { recordEvent } from "../audit";
 import { db } from "../db";
 import { AppError, type ErrorKind, violatedUniqueConstraint } from "../errors";
 import { isId } from "../ids";
@@ -144,7 +145,8 @@ export async function submitWork(
   assessmentId: string,
   file: File,
 ): Promise<{ submission: OwnSubmission; replaced: boolean }> {
-  const { studentNumber } = requireStudent(session);
+  const me = requireStudent(session);
+  const { studentNumber } = me;
   const bytes = new Uint8Array(await file.arrayBuffer());
   const checked = checkUploadedFile(
     { name: file.name, type: file.type, size: bytes.byteLength },
@@ -159,9 +161,14 @@ export async function submitWork(
   try {
     saved = await db().$transaction(async (tx) => {
       const [assessment] = await tx.$queryRaw<
-        { deadline: Date; closed_at: Date | null; programme_id: string }[]
+        {
+          title: string;
+          deadline: Date;
+          closed_at: Date | null;
+          programme_id: string;
+        }[]
       >`
-        SELECT a.deadline, a.closed_at, m.programme_id
+        SELECT a.title, a.deadline, a.closed_at, m.programme_id
         FROM assessments a JOIN modules m ON m.id = a.module_id
         WHERE a.id = ${assessmentId}::uuid
         FOR SHARE OF a`;
@@ -204,8 +211,20 @@ export async function submitWork(
             data: { ...data, studentId: student.id, assessmentId },
             select: SUBMISSION_FIELDS,
           });
+      const late = isLate(now, assessment.deadline);
+      await recordEvent(tx, me, {
+        action: "work.submitted",
+        studentId: student.id,
+        details: {
+          assessmentId,
+          title: assessment.title,
+          fileName: data.fileName,
+          late,
+          attempt: existing ? existing.attempt + 1 : 1,
+        },
+      });
       return {
-        submission: { ...row, late: isLate(now, assessment.deadline) },
+        submission: { ...row, late },
         replacedKey: existing?.storage_key ?? null,
       };
     });

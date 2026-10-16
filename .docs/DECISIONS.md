@@ -480,6 +480,41 @@ site.
   journeys start from a session created in the database (`viewAs`), so the
   suite stays within the sign-in rate limit.
 
+## Audit trail
+
+Every change anyone makes records who made it, when, and what they did, in
+an audit trail.
+
+- **What is recorded:** enrolments and edits (naming the details that
+  changed), status changes, fees charged and corrected, payments recorded
+  and reversed, assessments set, edited, closed and reopened, each mark
+  entered, changed or removed, results published, withheld and released,
+  work submitted, and sign-in links sent or sign-in turned off and on.
+  Requests that change nothing, such as publishing when no mark is waiting,
+  record nothing.
+- **Who:** the signed-in member of staff, or the student, for their own
+  submissions.
+- **In the same transaction as the change:** the trail can't miss a change,
+  and a change that fails, such as a duplicate payment reference, leaves no
+  event behind.
+- **Append-only:** a database trigger refuses to update or delete an event,
+  so neither a bug nor a mistaken script can rewrite history. TRUNCATE,
+  which the seed and the tests use to start afresh, still works.
+- **Self-describing:** each event keeps the details needed to describe it,
+  such as the assessment's title at the time, so its description doesn't
+  change when the record does later. `src/domain/audit.ts` lists every kind
+  of event and its details; `src/lib/audit.ts` words them.
+- **Who can see it:** staff, in the Activity log (every change, newest
+  first, 50 to a page) and in each student's History. Students don't see
+  it.
+- **Not recorded:** reading, and signing in and out. Those are security
+  events rather than changes to the Registry's records (see "With more
+  time").
+- **Demo data:** the seed writes the trail its records imply: Jane Okafor
+  enrolled the students and changed their status, Tom Reid looked after
+  fees, Elena Petrova set assessments and released results, and each
+  student submitted their own work.
+
 ## Time zone
 
 All dates and times use the college's time zone, Europe/London, set by
@@ -763,8 +798,8 @@ In rough order of value to a real Registry:
   so the services wouldn't change.
 - **Stronger sign-in:** two-factor authentication for staff, and an email
   when an account signs in from a new device.
-- **An audit trail of who did what:** status history, reversals and holds
-  record what changed and why, but not yet which member of staff did it.
+- **Security events in the audit trail:** sign-ins, failed attempts and
+  password changes, and an export of the trail for the college's auditors.
 - **Bulk work:**
   - importing students from a spreadsheet, initialising the ID counters;
   - publishing a whole assessment's marks at once;

@@ -42,6 +42,9 @@ Router), PostgreSQL and Prisma.
   - staff can resend that link, email a password reset link, or turn a
     student's sign-in off, which signs them out everywhere;
   - every page and API call checks the role.
+- **Audit trail:** every change records who made it and when, in the same
+  transaction, and the trail can't be edited. Staff see it on each
+  student's record and in an Activity log.
 
 ## Tech stack
 
@@ -208,6 +211,8 @@ means the student whose record it is.
 | GET         | `/api/students/{number}/results`             | Staff or self | Results (students: published only, unless withheld)                 |
 | POST        | `/api/students/{number}/results/publication` | Staff         | Publish all unpublished marks                                       |
 | PUT, DELETE | `/api/students/{number}/results/hold`        | Staff         | Withhold results with a reason; lift the hold                       |
+| GET         | `/api/students/{number}/history`             | Staff         | Everything done to a student's record, and by whom                  |
+| GET         | `/api/activity`                              | Staff         | The audit trail: every change, newest first (`page`)                |
 
 ## Documentation
 

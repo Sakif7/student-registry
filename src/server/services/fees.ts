@@ -28,6 +28,7 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import { formatMoney } from "@/lib/format";
 
+import { recordEvent } from "../audit";
 import { collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput, violatedUniqueConstraint } from "../errors";
@@ -114,7 +115,7 @@ export async function assignFee(
   studentNumber: string,
   input: unknown,
 ): Promise<Account> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const fee = parseInput(assignFeeSchema, input);
   const student = await findStudent(studentNumber);
   const standardFee = student.programme.annualFeePence;
@@ -128,17 +129,27 @@ export async function assignFee(
   }
 
   try {
-    await db().feeCharge.create({
-      data: {
+    await db().$transaction(async (tx) => {
+      await tx.feeCharge.create({
+        data: {
+          studentId: student.id,
+          academicYear: fee.academicYear,
+          description: feeDescription(
+            fee.academicYear,
+            student.programme.title,
+          ),
+          amountPence,
+          dueDate: toDbDate(
+            fee.dueDate ?? addDays(collegeToday(), DEFAULT_FEE_DUE_DAYS),
+          ),
+          note: fee.note,
+        },
+      });
+      await recordEvent(tx, staff, {
+        action: "fee.charged",
         studentId: student.id,
-        academicYear: fee.academicYear,
-        description: feeDescription(fee.academicYear, student.programme.title),
-        amountPence,
-        dueDate: toDbDate(
-          fee.dueDate ?? addDays(collegeToday(), DEFAULT_FEE_DUE_DAYS),
-        ),
-        note: fee.note,
-      },
+        details: { academicYear: fee.academicYear, amountPence },
+      });
     });
   } catch (error) {
     if (
@@ -167,18 +178,28 @@ export async function recordPayment(
   studentNumber: string,
   input: unknown,
 ): Promise<Account> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const payment = parseInput(recordPaymentSchema(collegeToday()), input);
   const student = await findStudent(studentNumber);
 
   try {
-    await db().payment.create({
-      data: {
+    await db().$transaction(async (tx) => {
+      await tx.payment.create({
+        data: {
+          studentId: student.id,
+          amountPence: payment.amountPence,
+          paidOn: toDbDate(payment.paidOn),
+          reference: payment.reference,
+        },
+      });
+      await recordEvent(tx, staff, {
+        action: "payment.recorded",
         studentId: student.id,
-        amountPence: payment.amountPence,
-        paidOn: toDbDate(payment.paidOn),
-        reference: payment.reference,
-      },
+        details: {
+          amountPence: payment.amountPence,
+          reference: payment.reference,
+        },
+      });
     });
   } catch (error) {
     if (violatedUniqueConstraint(error) === "payments_reference_key") {
@@ -205,7 +226,7 @@ export async function correctFee(
   feeId: string,
   input: unknown,
 ): Promise<Account> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const changes = parseInput(correctFeeSchema, input);
   const charge = isId(feeId)
     ? await db().feeCharge.findUnique({
@@ -225,14 +246,25 @@ export async function correctFee(
     });
   }
 
-  await db().feeCharge.update({
-    where: { id: charge.id },
-    data: {
-      amountPence: changes.amountPence,
-      dueDate:
-        changes.dueDate === undefined ? undefined : toDbDate(changes.dueDate),
-      note: changes.note,
-    },
+  await db().$transaction(async (tx) => {
+    const corrected = await tx.feeCharge.update({
+      where: { id: charge.id },
+      data: {
+        amountPence: changes.amountPence,
+        dueDate:
+          changes.dueDate === undefined ? undefined : toDbDate(changes.dueDate),
+        note: changes.note,
+      },
+    });
+    await recordEvent(tx, staff, {
+      action: "fee.corrected",
+      studentId: charge.studentId,
+      details: {
+        academicYear: corrected.academicYear,
+        amountPence: corrected.amountPence,
+        dueDate: fromDbDate(corrected.dueDate),
+      },
+    });
   });
   return getAccount(session, charge.student.studentNumber);
 }
@@ -249,7 +281,7 @@ export async function reversePayment(
   paymentId: string,
   input: unknown,
 ): Promise<Account> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const { reason } = parseInput(reversePaymentSchema, input);
   const payment = isId(paymentId)
     ? await db().payment.findUnique({
@@ -269,8 +301,19 @@ export async function reversePayment(
   }
 
   try {
-    await db().paymentReversal.create({
-      data: { paymentId: payment.id, reason },
+    await db().$transaction(async (tx) => {
+      await tx.paymentReversal.create({
+        data: { paymentId: payment.id, reason },
+      });
+      await recordEvent(tx, staff, {
+        action: "payment.reversed",
+        studentId: payment.studentId,
+        details: {
+          amountPence: payment.amountPence,
+          reference: payment.reference,
+          reason,
+        },
+      });
     });
   } catch (error) {
     // Two reversals at the same moment: the unique constraint lets one win.

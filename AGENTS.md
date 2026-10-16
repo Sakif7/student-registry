@@ -67,6 +67,9 @@ Read it before changing behaviour, and add to it when you make a new decision.
   `<form>`. It stays `aria-disabled` until React has hydrated it.
 - **Element ids:** never hard-code one. `FormField` makes its own; build any
   other id from `useId()`, because hidden pages stay in the document.
+- **Every change records who made it:** a service that writes calls
+  `recordEvent` (`src/server/audit.ts`) in the same transaction, with an
+  event type from `src/domain/audit.ts`. The trail is append-only.
 - **Students only ever receive marks that are published and not withheld:**
   filter on the server, never only in the page.
 - **Dependencies:**

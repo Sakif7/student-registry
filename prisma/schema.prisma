@@ -89,6 +89,8 @@ model Student {
   results       AssessmentResult[]
   /// The student's sign-in account, created when the student is enrolled.
   user          User?
+  /// Everything done to the student's record, by whom.
+  auditEvents   AuditEvent[]
 
   @@index([programmeId])
   @@index([status])
@@ -265,9 +267,11 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  student  Student?  @relation(fields: [studentNumber], references: [studentNumber], onDelete: Restrict)
-  sessions Session[]
-  accounts Account[]
+  student     Student?     @relation(fields: [studentNumber], references: [studentNumber], onDelete: Restrict)
+  sessions    Session[]
+  accounts    Account[]
+  /// The changes this person made, in the audit trail.
+  auditEvents AuditEvent[]
 
   @@map("users")
 }
@@ -351,4 +355,28 @@ model SignInFailure {
 
   @@index([email, createdAt])
   @@map("sign_in_failures")
+}
+
+/// The audit trail: one row for each change anyone made, written in the same
+/// transaction as the change, so it misses none and records none that
+/// didn't happen. Rows are never updated or deleted: a trigger refuses.
+model AuditEvent {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  /// What happened, such as "payment.recorded" (see src/domain/audit.ts).
+  action     String
+  /// Who did it: a member of staff, or a student submitting work.
+  actorId    String   @map("actor_id") @db.Uuid
+  /// The student the change concerns, if any, for their history.
+  studentId  String?  @map("student_id") @db.Uuid
+  /// What the event needs to describe itself, by action.
+  details    Json     @default("{}")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
+
+  actor   User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@index([occurredAt])
+  @@index([studentId, occurredAt])
+  @@index([actorId])
+  @@map("audit_events")
 }

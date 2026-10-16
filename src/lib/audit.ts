@@ -1,0 +1,72 @@
+// Sentences for the audit trail's events, such as "Recorded a payment of
+// £500.00 (BACS 0042)". Who did it and when are shown beside them.
+import {
+  type AuditAction,
+  type AuditDetails,
+  STUDENT_FIELD_LABELS,
+} from "@/domain/audit";
+import { ENROLMENT_STATUS_LABELS } from "@/domain/enrolment";
+
+import { formatDate, formatMoney } from "./format";
+
+type Describe = {
+  [Action in AuditAction]: (details: AuditDetails[Action]) => string;
+};
+
+const DESCRIBE: Describe = {
+  "student.enrolled": ({ studentNumber, status }) =>
+    `Enrolled as ${studentNumber}, ${ENROLMENT_STATUS_LABELS[status]}`,
+  "student.edited": ({ fields }) =>
+    `Edited the ${list(fields.map((field) => STUDENT_FIELD_LABELS[field] ?? field))}`,
+  "student.status_changed": ({ from, to, reason }) =>
+    `Changed the status from ${ENROLMENT_STATUS_LABELS[from]} to ${ENROLMENT_STATUS_LABELS[to]}${reason ? `: ${reason}` : ""}`,
+  "fee.charged": ({ academicYear, amountPence }) =>
+    `Charged the ${academicYear} fee of ${formatMoney(amountPence)}`,
+  "fee.corrected": ({ academicYear, amountPence, dueDate }) =>
+    `Corrected the ${academicYear} fee to ${formatMoney(amountPence)}, due ${formatDate(dueDate)}`,
+  "payment.recorded": ({ amountPence, reference }) =>
+    `Recorded a payment of ${formatMoney(amountPence)} (${reference})`,
+  "payment.reversed": ({ amountPence, reference, reason }) =>
+    `Reversed the payment of ${formatMoney(amountPence)} (${reference}): ${reason}`,
+  "assessment.set": ({ title, moduleCode }) =>
+    `Set the assessment “${title}” for ${moduleCode}`,
+  "assessment.edited": ({ title }) => `Edited the assessment “${title}”`,
+  "assessment.closed": ({ title }) => `Closed “${title}” to submissions`,
+  "assessment.reopened": ({ title }) => `Reopened “${title}” to submissions`,
+  "mark.saved": ({ title, from, to }) =>
+    to === null
+      ? `Removed the mark of ${from ?? "?"} for “${title}”`
+      : from === null
+        ? `Entered a mark of ${to} for “${title}”`
+        : `Changed the mark for “${title}” from ${from} to ${to}`,
+  "results.published": ({ marks }) =>
+    `Published ${marks} ${marks === 1 ? "mark" : "marks"}`,
+  "results.withheld": ({ reason }) => `Withheld the results: ${reason}`,
+  "results.hold_lifted": () => "Lifted the hold on the results",
+  "work.submitted": ({ title, fileName, late, attempt }) =>
+    `${attempt > 1 ? "Replaced the work for" : "Submitted work for"} “${title}”: ${fileName}${late ? ", late" : ""}`,
+  "sign_in.link_sent": ({ kind }) =>
+    kind === "activation"
+      ? "Emailed a link to activate the account"
+      : "Emailed a password reset link",
+  "sign_in.turned_off": () => "Turned sign-in off",
+  "sign_in.turned_on": () => "Turned sign-in back on",
+};
+
+/**
+ * A sentence for an event, given its action and details as stored. An
+ * action this version doesn't know is shown as it is.
+ */
+export function describeEvent(action: string, details: unknown): string {
+  if (!(action in DESCRIBE)) return action;
+  const describe = DESCRIBE[action as AuditAction] as (
+    details: unknown,
+  ) => string;
+  return describe(details);
+}
+
+/** "a", "a and b", "a, b and c". */
+function list(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items.at(-1) ?? ""}`;
+}

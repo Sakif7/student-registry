@@ -48,7 +48,7 @@ the browser once with `npx playwright install chromium`. Each run then:
 
 The specs cover signing in and out, resetting a forgotten password by email,
 access control, enrolment and the student list, fees and the dashboard, the assessment journey (setting, submitting,
-replacing, late work, marking), publishing and withholding results, and an axe
+replacing, late work, marking), publishing and withholding results, the audit trail, and an axe
 accessibility scan of every kind of page.
 
 ### Coverage
@@ -472,6 +472,24 @@ Continue from scenario 11, as staff.
 8. As **Mohammed Al-Farsi** (completed), **Results** lists **Final year
    project** with 68, **Merit**: completed students keep their results.
 
+### 13. Who did what
+
+As staff:
+
+1. Open **Kwame Mensah**. **History**, at the foot of the record, lists
+   everything done to the record, newest first: the demo data's own trail
+   (Jane Okafor enrolled Kwame, Tom Reid charged the fees and recorded the
+   payments, Elena Petrova entered and published the Management essay mark),
+   each with when it happened.
+2. Record a payment of `100` with the reference `CARD KM 0003`. **History**
+   gains "Recorded a payment of £100.00 (CARD KM 0003)", by Jane Okafor (or
+   whoever you are signed in as).
+3. Select **Activity** in the header. The same payment heads the list, with
+   who made it and a link to Kwame's record. Further down are changes with
+   no one student, such as "Set the assessment …".
+4. Sign in as a student: there is no **Activity** page, and
+   <http://localhost:3000/staff/activity> sends you to your own pages.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
@@ -620,6 +638,11 @@ curl -b student.txt http://localhost:3000/api/students/SMS-2025-0001/results
 # Publish all of a student's unpublished marks; 409 while withheld
 curl -i -b cookies.txt -X POST \
   http://localhost:3000/api/students/SMS-2025-0001/results/publication
+
+# The audit trail: everything done to a student's record, and every change
+# made in the Registry, newest first, a page at a time
+curl -b cookies.txt http://localhost:3000/api/students/SMS-2025-0002/history
+curl -b cookies.txt "http://localhost:3000/api/activity?page=1"
 
 # Withhold a student's results with a reason, then lift the hold
 curl -i -b cookies.txt -X PUT -H "Content-Type: application/json" \

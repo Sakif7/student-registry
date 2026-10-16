@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { HistoryCard } from "@/components/activity/history-card";
 import { AccountSection } from "@/components/fees/account-section";
 import { ResultsSection } from "@/components/results/results-section";
 import { PageHeader } from "@/components/page-header";
@@ -29,6 +30,7 @@ import { formatDateOf, formatDateTime } from "@/lib/format";
 import { ENROLMENT_STATUS_LABELS } from "@/domain/enrolment";
 import { collegeTimeZone, collegeToday } from "@/server/college";
 import { orNotFound } from "@/server/pages";
+import { getStudentHistory } from "@/server/services/activity";
 import { getAccount } from "@/server/services/fees";
 import { getResults } from "@/server/services/results";
 import { getStudentSignIn } from "@/server/services/sign-in";
@@ -59,12 +61,13 @@ export default function StudentPage({
 async function StudentRecordView({ params }: { params: Params }) {
   const session = await requirePageRole("staff");
   const { studentNumber } = await params;
-  const [student, account, results, signIn] = await orNotFound(
+  const [student, account, results, signIn, history] = await orNotFound(
     Promise.all([
       getStudent(session, studentNumber),
       getAccount(session, studentNumber),
       getResults(session, studentNumber),
       getStudentSignIn(session, studentNumber),
+      getStudentHistory(session, studentNumber),
     ]),
   );
   const timeZone = collegeTimeZone();
@@ -154,6 +157,7 @@ async function StudentRecordView({ params }: { params: Params }) {
         account={account}
         timeZone={timeZone}
       />
+      <HistoryCard entries={history} timeZone={timeZone} />
     </>
   );
 }

@@ -1,0 +1,86 @@
+// The audit trail's events: every kind of change the app records, with the
+// details each keeps so that it can still be described later, whatever has
+// changed since. src/lib/audit.ts turns them into sentences.
+import { z } from "zod";
+
+import type { CalendarDate } from "./college-time";
+import type { EnrolmentStatus } from "./enrolment";
+
+/** The details each kind of event records. */
+export interface AuditDetails {
+  "student.enrolled": { studentNumber: string; status: EnrolmentStatus };
+  /** Which details changed, by field name (see STUDENT_FIELD_LABELS). */
+  "student.edited": { fields: string[] };
+  "student.status_changed": {
+    from: EnrolmentStatus;
+    to: EnrolmentStatus;
+    reason: string | null;
+  };
+  "fee.charged": { academicYear: string; amountPence: number };
+  /** The charge as corrected. */
+  "fee.corrected": {
+    academicYear: string;
+    amountPence: number;
+    dueDate: CalendarDate;
+  };
+  "payment.recorded": { amountPence: number; reference: string };
+  "payment.reversed": {
+    amountPence: number;
+    reference: string;
+    reason: string;
+  };
+  "assessment.set": { assessmentId: string; title: string; moduleCode: string };
+  "assessment.edited": { assessmentId: string; title: string };
+  "assessment.closed": { assessmentId: string; title: string };
+  "assessment.reopened": { assessmentId: string; title: string };
+  /** A mark entered, changed (from a previous one) or removed (to null). */
+  "mark.saved": {
+    assessmentId: string;
+    title: string;
+    from: number | null;
+    to: number | null;
+  };
+  "results.published": { marks: number };
+  "results.withheld": { reason: string };
+  "results.hold_lifted": Record<string, never>;
+  "work.submitted": {
+    assessmentId: string;
+    title: string;
+    fileName: string;
+    late: boolean;
+    /** 1 for the first upload, 2 for the first replacement, and so on. */
+    attempt: number;
+  };
+  "sign_in.link_sent": { kind: "activation" | "reset" };
+  "sign_in.turned_off": Record<string, never>;
+  "sign_in.turned_on": Record<string, never>;
+}
+
+export type AuditAction = keyof AuditDetails;
+
+/** An event to record: what happened, and the student it concerns. */
+export type AuditEventInput = {
+  [Action in AuditAction]: {
+    action: Action;
+    details: AuditDetails[Action];
+    /** The student's internal ID, if the event concerns a student. */
+    studentId?: string;
+  };
+}[AuditAction];
+
+/** A student's details, by field name, as the edit event lists them. */
+export const STUDENT_FIELD_LABELS: Record<string, string> = {
+  fullName: "name",
+  email: "email address",
+  dateOfBirth: "date of birth",
+  programmeCode: "programme",
+  academicYear: "academic year",
+};
+
+/** Events shown per page of the staff activity log. */
+export const ACTIVITY_PAGE_SIZE = 50;
+
+/** The activity log's query: which page. Anything odd shows the first. */
+export const activityQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(10_000).default(1).catch(1),
+});

@@ -22,6 +22,7 @@ import {
 } from "@/domain/submissions";
 import type { Prisma } from "@/generated/prisma/client";
 
+import { recordEvent } from "../audit";
 import { collegeTimeZone } from "../college";
 import { db } from "../db";
 import {
@@ -244,7 +245,7 @@ export async function createAssessment(
   session: Session | null,
   input: unknown,
 ): Promise<AssessmentDetail> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const details = parseInput(
     createAssessmentSchema(collegeTimeZone(), new Date()),
     input,
@@ -259,12 +260,23 @@ export async function createAssessment(
     });
   }
 
-  const assessment = await db().assessment.create({
-    data: {
-      moduleId: moduleRow.id,
-      title: details.title,
-      deadline: details.deadline,
-    },
+  const assessment = await db().$transaction(async (tx) => {
+    const created = await tx.assessment.create({
+      data: {
+        moduleId: moduleRow.id,
+        title: details.title,
+        deadline: details.deadline,
+      },
+    });
+    await recordEvent(tx, staff, {
+      action: "assessment.set",
+      details: {
+        assessmentId: created.id,
+        title: created.title,
+        moduleCode: details.moduleCode,
+      },
+    });
+    return created;
   });
   return getAssessment(session, assessment.id);
 }
@@ -281,7 +293,7 @@ export async function updateAssessment(
   assessmentId: string,
   input: unknown,
 ): Promise<AssessmentDetail> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const now = new Date();
   const changes = parseInput(
     updateAssessmentSchema(collegeTimeZone(), now),
@@ -290,7 +302,7 @@ export async function updateAssessment(
   const assessment = isId(assessmentId)
     ? await db().assessment.findUnique({
         where: { id: assessmentId },
-        select: { id: true, closedAt: true },
+        select: { id: true, title: true, deadline: true, closedAt: true },
       })
     : null;
   if (!assessment) throw assessmentNotFound();
@@ -302,9 +314,23 @@ export async function updateAssessment(
   } else if (changes.closed === false) {
     closedAt = null;
   }
-  await db().assessment.update({
-    where: { id: assessment.id },
-    data: { title: changes.title, deadline: changes.deadline, closedAt },
+  await db().$transaction(async (tx) => {
+    const updated = await tx.assessment.update({
+      where: { id: assessment.id },
+      data: { title: changes.title, deadline: changes.deadline, closedAt },
+    });
+    const details = { assessmentId: updated.id, title: updated.title };
+    if (
+      updated.title !== assessment.title ||
+      updated.deadline.getTime() !== assessment.deadline.getTime()
+    ) {
+      await recordEvent(tx, staff, { action: "assessment.edited", details });
+    }
+    if (!assessment.closedAt && updated.closedAt) {
+      await recordEvent(tx, staff, { action: "assessment.closed", details });
+    } else if (assessment.closedAt && !updated.closedAt) {
+      await recordEvent(tx, staff, { action: "assessment.reopened", details });
+    }
   });
   return getAssessment(session, assessment.id);
 }
@@ -324,12 +350,16 @@ export async function saveMarks(
   assessmentId: string,
   input: unknown,
 ): Promise<AssessmentDetail> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const { marks } = parseInput(marksheetSchema, input);
   const assessment = isId(assessmentId)
     ? await db().assessment.findUnique({
         where: { id: assessmentId },
-        select: { id: true, module: { select: { programmeId: true } } },
+        select: {
+          id: true,
+          title: true,
+          module: { select: { programmeId: true } },
+        },
       })
     : null;
   if (!assessment) throw assessmentNotFound();
@@ -369,9 +399,8 @@ export async function saveMarks(
         const mark = marks[student.studentNumber] ?? null;
         const [existing] = student.results;
         if (mark === null) {
-          if (existing) {
-            await tx.assessmentResult.delete({ where: { id: existing.id } });
-          }
+          if (!existing) continue;
+          await tx.assessmentResult.delete({ where: { id: existing.id } });
         } else if (!existing) {
           await tx.assessmentResult.create({
             data: { studentId: student.id, assessmentId, mark },
@@ -381,7 +410,19 @@ export async function saveMarks(
             where: { id: existing.id },
             data: { mark, publishedAt: null },
           });
+        } else {
+          continue;
         }
+        await recordEvent(tx, staff, {
+          action: "mark.saved",
+          studentId: student.id,
+          details: {
+            assessmentId,
+            title: assessment.title,
+            from: existing?.mark ?? null,
+            to: mark,
+          },
+        });
       }
     });
   } catch (error) {

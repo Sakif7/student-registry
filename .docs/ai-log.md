@@ -977,3 +977,38 @@ travels with the app's `Session`, to tell this device from the others.
 **Caught along the way:** the second end-to-end test signed in with Tom's
 demo password, which the first had just changed. It now uses another staff
 member's session.
+
+## Audit trail
+
+**What the AI did:** added an audit trail of who did what:
+
+- an `audit_events` table: the action, who did it, the student it
+  concerns, and the details needed to describe it later;
+- every service that changes something records an event in the same
+  transaction: enrolments and edits, status changes, fees, payments,
+  assessments, marks, results, submissions and sign-in controls;
+- a database trigger that refuses to update or delete an event;
+- an Activity log for staff, and a History on each student's record;
+- the demo data's own trail, written by the seed from the records it
+  creates.
+
+**Checked by:**
+
+- `npm run check`;
+- unit tests of every event's wording;
+- integration tests: each kind of change records the right event and actor,
+  an edit names only the details it changed, requests that change nothing
+  record nothing, a failed change leaves no event, the trigger refuses an
+  update and a delete made directly in the database, and only staff can read
+  the trail;
+- an end-to-end journey: a payment appears in the student's History and at
+  the top of the Activity log, with who recorded it;
+- the Activity page in the axe scan.
+
+**Caught along the way:** an enrolment test looked for a deferral's reason
+anywhere on the page, and now found it twice: in the status history and in
+the new History. It now looks in the status history, which it is about.
+
+**Design note:** recording "by" columns on each table would have shown who
+made each change in place, but left no single trail to browse. The event log
+gives staff both the Activity page and each student's history.

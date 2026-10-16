@@ -94,7 +94,11 @@ test("defers a student with a reason, kept in the status history", async ({
   await page.getByLabel("Reason (required)").fill("Family circumstances");
   await page.getByRole("button", { name: "Change status" }).click();
 
-  await expect(page.getByText("Family circumstances")).toBeVisible();
+  // In the status history (the History card, below, records it too).
+  const statusHistory = page
+    .locator("[data-slot=card]")
+    .filter({ has: page.getByRole("heading", { name: "Status history" }) });
+  await expect(statusHistory.getByText("Family circumstances")).toBeVisible();
   // The list reflects the change straight away, even going back to it.
   await page.goto("/staff/students?status=DEFERRED");
   await expect(

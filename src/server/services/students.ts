@@ -33,6 +33,7 @@ import {
 } from "@/domain/students";
 import type { Prisma } from "@/generated/prisma/client";
 
+import { recordEvent } from "../audit";
 import { collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput, violatedUniqueConstraint } from "../errors";
@@ -236,7 +237,7 @@ export async function createStudent(
   session: Session | null,
   input: unknown,
 ): Promise<StudentRecord> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const today = collegeToday();
   const details = parseInput(createStudentSchema(today), input);
   const programme = await findProgramme(details.programmeCode);
@@ -278,6 +279,14 @@ export async function createStudent(
           email: created.email,
           role: "student",
           studentNumber: created.studentNumber,
+        },
+      });
+      await recordEvent(tx, staff, {
+        action: "student.enrolled",
+        studentId: created.id,
+        details: {
+          studentNumber: created.studentNumber,
+          status: created.status,
         },
       });
       return created;
@@ -322,7 +331,7 @@ export async function updateStudent(
   studentNumber: string,
   input: unknown,
 ): Promise<StudentRecord> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const changes = parseInput(updateStudentSchema(collegeToday()), input);
   const { id } = await findStudentId(studentNumber);
   const programmeId = changes.programmeCode
@@ -331,6 +340,7 @@ export async function updateStudent(
 
   try {
     const student = await db().$transaction(async (tx) => {
+      const before = await tx.student.findUniqueOrThrow({ where: { id } });
       const updated = await tx.student.update({
         where: { id },
         data: {
@@ -346,6 +356,14 @@ export async function updateStudent(
         include: recordInclude,
       });
       await syncAccount(tx, updated);
+      const fields = changedFields(before, updated);
+      if (fields.length > 0) {
+        await recordEvent(tx, staff, {
+          action: "student.edited",
+          studentId: id,
+          details: { fields },
+        });
+      }
       return updated;
     });
     return toRecord(student);
@@ -353,6 +371,30 @@ export async function updateStudent(
     throw asDuplicateEmail(error);
   }
 }
+
+/** The details an edit changed, named as the edit form names them. */
+function changedFields(
+  before: StudentDetailsRow,
+  after: StudentDetailsRow,
+): string[] {
+  const fields: string[] = [];
+  if (before.fullName !== after.fullName) fields.push("fullName");
+  if (before.email !== after.email) fields.push("email");
+  if (before.dateOfBirth.getTime() !== after.dateOfBirth.getTime()) {
+    fields.push("dateOfBirth");
+  }
+  if (before.programmeId !== after.programmeId) fields.push("programmeCode");
+  if (before.academicYear !== after.academicYear) fields.push("academicYear");
+  return fields;
+}
+
+type StudentDetailsRow = {
+  fullName: string;
+  email: string;
+  dateOfBirth: Date;
+  programmeId: string;
+  academicYear: string;
+};
 
 /** Copies a student's name and email address to their sign-in account. */
 async function syncAccount(
@@ -391,7 +433,7 @@ export async function changeStatus(
   studentNumber: string,
   input: unknown,
 ): Promise<StudentRecord> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const { status: to, reason } = parseInput(changeStatusSchema, input);
   const { id, status: from } = await findStudentId(studentNumber);
   if (!canChangeStatus(from, to)) {
@@ -413,6 +455,11 @@ export async function changeStatus(
     }
     await tx.enrolmentStatusChange.create({
       data: { studentId: id, fromStatus: from, toStatus: to, reason },
+    });
+    await recordEvent(tx, staff, {
+      action: "student.status_changed",
+      studentId: id,
+      details: { from, to, reason: reason ?? null },
     });
     return tx.student.findUniqueOrThrow({
       where: { id },

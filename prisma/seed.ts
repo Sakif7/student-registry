@@ -14,9 +14,11 @@ import {
   formatAcademicYear,
   startYearOf,
 } from "@/domain/academic-year";
+import type { AuditEventInput } from "@/domain/audit";
 import {
   addDays,
   type CalendarDate,
+  fromDbDate,
   todayIn,
   toDbDate,
   wallTimeToInstant,
@@ -250,8 +252,9 @@ async function main(): Promise<void> {
     });
     await seedHolds(prisma, students, now);
     const logins = await seedLogins(prisma, students, now);
+    const events = await seedAuditTrail(prisma, now);
     console.log(
-      `Seeded ${PROGRAMMES.length} programmes, ${Object.keys(students).length} students, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions and ${work.marks} marks.`,
+      `Seeded ${PROGRAMMES.length} programmes, ${Object.keys(students).length} students, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions, ${work.marks} marks and ${events} audit events.`,
     );
     console.log(
       `Sign-in: ${logins.staff} staff and ${logins.active} students use the password "${DEMO_PASSWORD}". Accounts awaiting activation: ${logins.pending}; turned off: ${logins.disabled}.`,
@@ -829,6 +832,204 @@ async function seedLogins(
     pending: count("pending"),
     disabled: count("disabled"),
   };
+}
+
+/**
+ * Writes the audit trail the demo data would have left: who enrolled each
+ * student and changed their status, charged, corrected and reversed fees and
+ * payments, set assessments, entered and published marks, withheld results
+ * and turned sign-in off, at the times the data says. Jane Okafor looks after
+ * enrolment, Tom Reid fees, and Elena Petrova assessments and results; each
+ * student submits their own work.
+ */
+async function seedAuditTrail(
+  prisma: PrismaClient,
+  now: Date,
+): Promise<number> {
+  const [jane, tom, elena] = await Promise.all(
+    DEMO_STAFF.map(async ({ email }) => {
+      const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+      return user.id;
+    }),
+  );
+  if (!jane || !tom || !elena) throw new Error("The demo staff are missing.");
+  const events: Prisma.AuditEventCreateManyInput[] = [];
+  const add = (actorId: string, occurredAt: Date, event: AuditEventInput) => {
+    events.push({
+      actorId,
+      occurredAt,
+      action: event.action,
+      studentId: event.studentId ?? null,
+      details: event.details,
+    });
+  };
+
+  const students = await prisma.student.findMany({
+    include: {
+      programme: true,
+      statusChanges: { orderBy: { changedAt: "asc" } },
+      feeCharges: true,
+      payments: { include: { reversal: true } },
+      submissions: { include: { assessment: true } },
+      results: { include: { assessment: true } },
+      user: true,
+    },
+  });
+  for (const student of students) {
+    const studentId = student.id;
+    const [first, ...changes] = student.statusChanges;
+    add(jane, student.createdAt, {
+      action: "student.enrolled",
+      studentId,
+      details: {
+        studentNumber: student.studentNumber,
+        status: first?.toStatus ?? student.status,
+      },
+    });
+    for (const change of changes) {
+      if (!change.fromStatus) continue;
+      add(jane, change.changedAt, {
+        action: "student.status_changed",
+        studentId,
+        details: {
+          from: change.fromStatus,
+          to: change.toStatus,
+          reason: change.reason,
+        },
+      });
+    }
+
+    // A fee other than the standard one was charged at the standard fee,
+    // then corrected: on deferral, if the student deferred.
+    const deferredAt = changes.find(
+      ({ toStatus }) => toStatus === "DEFERRED",
+    )?.changedAt;
+    for (const charge of student.feeCharges) {
+      const standardFee = student.programme.annualFeePence;
+      add(tom, charge.createdAt, {
+        action: "fee.charged",
+        studentId,
+        details: {
+          academicYear: charge.academicYear,
+          amountPence: standardFee,
+        },
+      });
+      if (charge.amountPence !== standardFee) {
+        add(
+          tom,
+          deferredAt ?? new Date(charge.createdAt.getTime() + MS_PER_DAY),
+          {
+            action: "fee.corrected",
+            studentId,
+            details: {
+              academicYear: charge.academicYear,
+              amountPence: charge.amountPence,
+              dueDate: fromDbDate(charge.dueDate),
+            },
+          },
+        );
+      }
+    }
+    for (const payment of student.payments) {
+      const details = {
+        amountPence: payment.amountPence,
+        reference: payment.reference,
+      };
+      add(tom, payment.recordedAt, {
+        action: "payment.recorded",
+        studentId,
+        details,
+      });
+      if (payment.reversal) {
+        add(tom, payment.reversal.reversedAt, {
+          action: "payment.reversed",
+          studentId,
+          details: { ...details, reason: payment.reversal.reason },
+        });
+      }
+    }
+
+    for (const submission of student.submissions) {
+      if (!student.user) continue;
+      add(student.user.id, submission.submittedAt, {
+        action: "work.submitted",
+        studentId,
+        details: {
+          assessmentId: submission.assessmentId,
+          title: submission.assessment.title,
+          fileName: submission.fileName,
+          late: submission.submittedAt > submission.assessment.deadline,
+          attempt: submission.attempt,
+        },
+      });
+    }
+
+    // Marks are entered the day before they are published, or two days
+    // after the deadline if they aren't published yet.
+    const publications = new Map<number, number>();
+    for (const result of student.results) {
+      const enteredAt = result.publishedAt
+        ? new Date(result.publishedAt.getTime() - MS_PER_DAY)
+        : new Date(
+            Math.min(
+              now.getTime() - 60 * 60 * 1000,
+              result.assessment.deadline.getTime() + 2 * MS_PER_DAY,
+            ),
+          );
+      add(elena, enteredAt, {
+        action: "mark.saved",
+        studentId,
+        details: {
+          assessmentId: result.assessmentId,
+          title: result.assessment.title,
+          from: null,
+          to: result.mark,
+        },
+      });
+      if (result.publishedAt) {
+        const at = result.publishedAt.getTime();
+        publications.set(at, (publications.get(at) ?? 0) + 1);
+      }
+    }
+    for (const [at, marks] of publications) {
+      add(elena, new Date(at), {
+        action: "results.published",
+        studentId,
+        details: { marks },
+      });
+    }
+    if (student.resultsWithheldAt && student.resultsWithheldReason) {
+      add(elena, student.resultsWithheldAt, {
+        action: "results.withheld",
+        studentId,
+        details: { reason: student.resultsWithheldReason },
+      });
+    }
+    if (student.user?.disabledAt) {
+      add(jane, student.user.disabledAt, {
+        action: "sign_in.turned_off",
+        studentId,
+        details: {},
+      });
+    }
+  }
+
+  const assessments = await prisma.assessment.findMany({
+    include: { module: true },
+  });
+  for (const assessment of assessments) {
+    const details = { assessmentId: assessment.id, title: assessment.title };
+    add(elena, assessment.createdAt, {
+      action: "assessment.set",
+      details: { ...details, moduleCode: assessment.module.code },
+    });
+    if (assessment.closedAt) {
+      add(elena, assessment.closedAt, { action: "assessment.closed", details });
+    }
+  }
+
+  await prisma.auditEvent.createMany({ data: events });
+  return events.length;
 }
 
 /** "Chloé Dubois" → "chloe-dubois", for file names. */

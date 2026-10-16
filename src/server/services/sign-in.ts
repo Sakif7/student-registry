@@ -12,6 +12,7 @@ import {
 } from "@/domain/accounts";
 import type { Prisma } from "@/generated/prisma/client";
 
+import { auditEvent } from "../audit";
 import { createPasswordLink } from "../auth";
 import { db } from "../db";
 import { activationEmail, passwordResetEmail } from "../emails";
@@ -110,7 +111,7 @@ export async function sendSignInLink(
   session: Session | null,
   studentNumber: string,
 ): Promise<SentLink> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const student = await findStudent(studentNumber, { select: accountSelect });
   if (student.user?.disabledAt) {
     throw new AppError(
@@ -144,6 +145,13 @@ export async function sendSignInLink(
     await db().verification.deleteMany({ where: passwordLinksOf(account.id) });
     return { kind, to: account.email, sent: false };
   }
+  await db().auditEvent.create({
+    data: auditEvent(staff, {
+      action: "sign_in.link_sent",
+      studentId: student.id,
+      details: { kind },
+    }),
+  });
   return { kind, to: account.email, sent: true };
 }
 
@@ -158,16 +166,28 @@ export async function setSignInEnabled(
   studentNumber: string,
   input: unknown,
 ): Promise<StudentSignIn> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const { enabled } = parseInput(signInAccessSchema, input);
   const student = await findStudent(studentNumber, { select: accountSelect });
   const account = student.user ?? (await createAccount(student));
+  const wasDisabled = account.disabledAt !== null;
 
   if (enabled) {
-    await db().user.update({
-      where: { id: account.id },
-      data: { disabledAt: null },
-    });
+    if (wasDisabled) {
+      await db().$transaction([
+        db().user.update({
+          where: { id: account.id },
+          data: { disabledAt: null },
+        }),
+        db().auditEvent.create({
+          data: auditEvent(staff, {
+            action: "sign_in.turned_on",
+            studentId: student.id,
+            details: {},
+          }),
+        }),
+      ]);
+    }
   } else {
     await db().$transaction([
       db().user.update({
@@ -177,6 +197,17 @@ export async function setSignInEnabled(
       }),
       db().session.deleteMany({ where: { userId: account.id } }),
       db().verification.deleteMany({ where: passwordLinksOf(account.id) }),
+      ...(wasDisabled
+        ? []
+        : [
+            db().auditEvent.create({
+              data: auditEvent(staff, {
+                action: "sign_in.turned_off",
+                studentId: student.id,
+                details: {},
+              }),
+            }),
+          ]),
     ]);
   }
   return getStudentSignIn(session, studentNumber);
@@ -190,7 +221,13 @@ async function findStudent<Select extends Prisma.UserSelect>(
   const number = studentNumber.toUpperCase();
   const student = await db().student.findUnique({
     where: { studentNumber: number },
-    select: { studentNumber: true, fullName: true, email: true, user },
+    select: {
+      id: true,
+      studentNumber: true,
+      fullName: true,
+      email: true,
+      user,
+    },
   });
   if (!student) {
     throw new AppError("NOT_FOUND", `There is no student with ID ${number}.`);

@@ -13,6 +13,7 @@ import {
   withholdResultsSchema,
 } from "@/domain/results";
 
+import { recordEvent } from "../audit";
 import { collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput } from "../errors";
@@ -117,7 +118,7 @@ export async function publishResults(
   session: Session | null,
   studentNumber: string,
 ): Promise<{ published: number; results: StudentResults }> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const student = await findStudent(studentNumber);
   const hold = holdOf(student);
   if (hold) {
@@ -126,9 +127,19 @@ export async function publishResults(
       `Results are withheld (${hold.reason}). Lift the hold before publishing.`,
     );
   }
-  const { count } = await db().assessmentResult.updateMany({
-    where: { studentId: student.id, publishedAt: null },
-    data: { publishedAt: new Date() },
+  const count = await db().$transaction(async (tx) => {
+    const published = await tx.assessmentResult.updateMany({
+      where: { studentId: student.id, publishedAt: null },
+      data: { publishedAt: new Date() },
+    });
+    if (published.count > 0) {
+      await recordEvent(tx, staff, {
+        action: "results.published",
+        studentId: student.id,
+        details: { marks: published.count },
+      });
+    }
+    return published.count;
   });
   return {
     published: count,
@@ -148,15 +159,22 @@ export async function withholdResults(
   studentNumber: string,
   input: unknown,
 ): Promise<StudentResults> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const { reason } = parseInput(withholdResultsSchema, input);
   const student = await findStudent(studentNumber);
-  await db().student.update({
-    where: { id: student.id },
-    data: {
-      resultsWithheldAt: student.resultsWithheldAt ?? new Date(),
-      resultsWithheldReason: reason,
-    },
+  await db().$transaction(async (tx) => {
+    await tx.student.update({
+      where: { id: student.id },
+      data: {
+        resultsWithheldAt: student.resultsWithheldAt ?? new Date(),
+        resultsWithheldReason: reason,
+      },
+    });
+    await recordEvent(tx, staff, {
+      action: "results.withheld",
+      studentId: student.id,
+      details: { reason },
+    });
   });
   return getResults(session, student.studentNumber);
 }
@@ -171,12 +189,21 @@ export async function liftResultsHold(
   session: Session | null,
   studentNumber: string,
 ): Promise<StudentResults> {
-  requireStaff(session);
+  const staff = requireStaff(session);
   const student = await findStudent(studentNumber);
-  await db().student.update({
-    where: { id: student.id },
-    data: { resultsWithheldAt: null, resultsWithheldReason: null },
-  });
+  if (student.resultsWithheldAt) {
+    await db().$transaction(async (tx) => {
+      await tx.student.update({
+        where: { id: student.id },
+        data: { resultsWithheldAt: null, resultsWithheldReason: null },
+      });
+      await recordEvent(tx, staff, {
+        action: "results.hold_lifted",
+        studentId: student.id,
+        details: {},
+      });
+    });
+  }
   return getResults(session, student.studentNumber);
 }
 

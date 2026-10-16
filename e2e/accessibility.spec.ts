@@ -58,6 +58,7 @@ test("staff pages", async ({ page }) => {
     marksheet,
     "/staff/results",
     "/staff/account",
+    "/staff/activity",
   ]) {
     await expectNoViolations(page, path);
   }
