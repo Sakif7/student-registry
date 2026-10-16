@@ -261,11 +261,21 @@ brief and from decisions agreed before any code was written.
   unit tests:
   - a page telling a deferred student they could still submit;
   - a colour-contrast failure;
-  - a prerender error that showed only in the production server's log.
+  - a prerender error that showed only in the production server's log;
+  - a dashboard that made the whole page scroll sideways on a phone;
+  - a chart hidden from screen readers that stayed in the keyboard's tab
+    order.
 
   The [AI log](.docs/ai-log.md) records, step by step, what the agent did,
   how it was checked and what was caught.
 
+- **A second round followed a review of the first build.** The owner asked
+  for sign-in as a production app would have it, and an interface like a
+  real application's. The agent put its suggestions and questions to the
+  owner, then built what was chosen, sign-in first: Better Auth with
+  emailed links, account pages and an audit trail, then the app shell,
+  the record's tabs, the dashboard, the student's home page, search,
+  sortable lists and Undo.
 - **Guardrails were set for the agent.**
   - Dependencies may only be installed through npm, never hand-edited.
   - Destructive database commands are off-limits, and tests may only touch

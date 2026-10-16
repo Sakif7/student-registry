@@ -997,6 +997,11 @@ In rough order of value to a real Registry:
   a charge's single due date.
 - **Modules by year of study:** today an assessment is open to everyone on
   the programme, whatever their year.
+- **More from the lists:** sorting the results list too, a sign-in filter on
+  the student list (to see everyone waiting to activate), and row actions
+  on the assessments list.
+- **Trends on the dashboard:** payments and submissions over the weeks of
+  the year, rather than only where things stand today.
 - **Production hardening:**
   - object storage and virus scanning for uploads;
   - balances computed in a database view;
