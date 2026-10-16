@@ -106,7 +106,7 @@ describe("summariseAccount", () => {
     expect(accountStanding(summary)).toBe("PAID");
   });
 
-  it("treats a zero charge (full scholarship) as paid", () => {
+  it("treats a zero charge (full scholarship) as no fees, with nothing overdue", () => {
     const summary = summariseAccount(
       [{ amountPence: 0, dueDate: "2026-09-15" }],
       [],
