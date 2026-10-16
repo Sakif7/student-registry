@@ -344,6 +344,25 @@ services already used. No service changed.
   email and reports a failure: a warning after enrolment, and a 503 from
   the link endpoint.
 
+### Your account
+
+- Staff and students each have an account page, reached from their name in
+  the header. It shows their details, changes their password, and lists the
+  devices they are signed in on. Names and email addresses can't be changed
+  there: they come from the Registry's records.
+- Changing a password needs the current one, and signs out every other
+  device, so a password changed because it leaked also ends the sessions it
+  opened. This device stays signed in.
+- A wrong current password counts as a failed sign-in for the address, so a
+  stolen session can't be used to guess the password: five lock it, as for
+  sign-in. The service checks the password itself, with Better Auth's own
+  scrypt helpers, because Better Auth's change-password endpoint, called
+  from the server, skips its rate limit.
+- Each device shows its browser and system (worked out from the user
+  agent), address and sign-in time, and can be signed out, one at a time or
+  all but this one. Sessions are signed out by their ID, so their tokens
+  never reach the browser.
+
 ### Sessions and cookies
 
 - The cookie, `registry.session_token`, is HttpOnly and SameSite=Lax, and

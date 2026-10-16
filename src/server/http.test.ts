@@ -26,7 +26,12 @@ afterEach(() => {
 
 describe("handle", () => {
   it("passes the signed-in user's session to the handler", async () => {
-    const staff = { role: "staff", userId: "u1", name: "Jane Okafor" } as const;
+    const staff = {
+      role: "staff",
+      userId: "u1",
+      name: "Jane Okafor",
+      sessionId: "s1",
+    } as const;
     vi.mocked(sessionFromRequest).mockResolvedValue(staff);
     const route = handle((_request, _context, session) =>
       Response.json({ session }),

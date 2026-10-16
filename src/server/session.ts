@@ -12,11 +12,18 @@ import type { NextRequest } from "next/server";
 import { auth } from "./auth";
 import { AppError } from "./errors";
 
-export type StaffSession = { role: "staff"; userId: string; name: string };
+export type StaffSession = {
+  role: "staff";
+  userId: string;
+  name: string;
+  /** This session's own ID, to tell it apart from the user's others. */
+  sessionId: string;
+};
 export type StudentSession = {
   role: "student";
   userId: string;
   name: string;
+  sessionId: string;
   studentNumber: string;
 };
 export type Session = StaffSession | StudentSession;
@@ -32,14 +39,16 @@ export async function sessionFromHeaders(
   if (!result) return null;
   const { user } = result;
   if (user.disabledAt) return null;
+  const sessionId = result.session.id;
   if (user.role === "staff") {
-    return { role: "staff", userId: user.id, name: user.name };
+    return { role: "staff", userId: user.id, name: user.name, sessionId };
   }
   if (user.role === "student" && user.studentNumber) {
     return {
       role: "student",
       userId: user.id,
       name: user.name,
+      sessionId,
       studentNumber: user.studentNumber,
     };
   }

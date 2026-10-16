@@ -50,7 +50,7 @@ export async function signIn(
       : await studentUser(viewer.studentNumber);
 
   const token = newSessionToken();
-  await db().session.create({
+  const { id: sessionId } = await db().session.create({
     data: {
       token,
       userId: user.id,
@@ -60,11 +60,12 @@ export async function signIn(
   const secret = process.env.BETTER_AUTH_SECRET ?? "";
   const session: Session =
     viewer.role === "staff"
-      ? { role: "staff", userId: user.id, name: user.name }
+      ? { role: "staff", userId: user.id, name: user.name, sessionId }
       : {
           role: "student",
           userId: user.id,
           name: user.name,
+          sessionId,
           studentNumber: viewer.studentNumber,
         };
   return {

@@ -157,6 +157,22 @@ in as Amelia Hart.
 Sign-in allows 30 attempts a minute from one address. The integration tests
 check the limit, as it is impractical to reach by hand.
 
+### 1a. Your account
+
+1. Sign in as `tom.reid@college.example` in your browser, and again in a
+   private window.
+2. In your browser, select **Tom Reid** in the header. **Your account** shows
+   Tom's details, and **Where you're signed in** lists both browsers, with
+   this one marked **This device**.
+3. Under **Change your password**, enter a wrong current password and a new
+   one twice. "That isn't your current password" appears.
+4. Enter the demo password as the current one and a new one twice, then
+   select **Change password**. "Password changed. Signed out on 1 other
+   device." appears, and the list shows this browser only. Reload the private
+   window: it is back on the sign-in page.
+5. Sign out and sign in again with the new password. `npm run db:seed`
+   restores Tom's demo password.
+
 ### 2. Enrolling a student
 
 As staff:

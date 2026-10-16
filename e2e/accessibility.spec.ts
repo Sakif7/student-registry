@@ -57,6 +57,7 @@ test("staff pages", async ({ page }) => {
     "/staff/assessments/new",
     marksheet,
     "/staff/results",
+    "/staff/account",
   ]) {
     await expectNoViolations(page, path);
   }
@@ -73,6 +74,7 @@ test("student pages", async ({ page }) => {
     "/student/assessments",
     `/student/assessments/${id ?? ""}`,
     "/student/results",
+    "/student/account",
   ]) {
     await expectNoViolations(page, path);
   }

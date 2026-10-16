@@ -15,6 +15,7 @@ export type ErrorKind =
   | "CONFLICT"
   | "PAYLOAD_TOO_LARGE"
   | "UNSUPPORTED_MEDIA_TYPE"
+  | "TOO_MANY_REQUESTS"
   /** A service the app depends on, such as the mail server, failed. */
   | "UNAVAILABLE";
 
@@ -29,6 +30,7 @@ const STATUS: Record<ErrorKind, number> = {
   CONFLICT: 409,
   PAYLOAD_TOO_LARGE: 413,
   UNSUPPORTED_MEDIA_TYPE: 415,
+  TOO_MANY_REQUESTS: 429,
   UNAVAILABLE: 503,
 };
 

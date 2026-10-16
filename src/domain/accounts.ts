@@ -86,6 +86,52 @@ export function signInLockedMessage(until: Date, now: Date): string {
   return `Too many failed attempts to sign in with this email address. Try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`;
 }
 
+/** Changing one's own password: the current one, and the new one twice. */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+  })
+  .and(newPasswordSchema);
+
+/**
+ * A browser and system from a User-Agent header, such as "Chrome on
+ * Windows", for listing where someone is signed in. Common browsers only;
+ * anything else is named by its first product token, or not at all.
+ */
+export function describeDevice(userAgent: string | null): string {
+  if (!userAgent) return "Unknown device";
+  const browser = firstMatch(userAgent, [
+    [/Edg(e|A|iOS)?\//, "Edge"],
+    [/OPR\/|Opera/, "Opera"],
+    [/Firefox\/|FxiOS\//, "Firefox"],
+    [/Chrome\/|CriOS\//, "Chrome"],
+    [/Safari\//, "Safari"],
+  ]);
+  const system = firstMatch(userAgent, [
+    [/iPhone/, "iPhone"],
+    [/iPad/, "iPad"],
+    [/Android/, "Android"],
+    [/Windows/, "Windows"],
+    [/CrOS/, "ChromeOS"],
+    [/Mac OS X|Macintosh/, "macOS"],
+    [/Linux/, "Linux"],
+  ]);
+  if (browser && system) return `${browser} on ${system}`;
+  return (
+    browser ??
+    system ??
+    /^([A-Za-z][\w.-]*)\/[\d.]+/.exec(userAgent)?.[1] ??
+    "Unknown device"
+  );
+}
+
+function firstMatch(
+  value: string,
+  patterns: [RegExp, string][],
+): string | undefined {
+  return patterns.find(([pattern]) => pattern.test(value))?.[1];
+}
+
 /** Where a student's sign-in account stands. */
 export type SignInState = "PENDING" | "ACTIVE" | "DISABLED";
 
@@ -115,3 +161,4 @@ export const signInAccessSchema = z.object({
 export type SignInInput = z.infer<typeof signInSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type NewPasswordInput = z.infer<typeof newPasswordSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  changePasswordSchema,
+  describeDevice,
   newPasswordSchema,
   signInAccessSchema,
   signInLockedMessage,
@@ -137,5 +139,59 @@ describe("signInAccessSchema", () => {
     expect(
       signInAccessSchema.safeParse({ enabled: "no" }).error?.issues[0]?.message,
     ).toBe("Say whether sign-in should be on");
+  });
+});
+
+describe("changePasswordSchema", () => {
+  it("asks for the current password, and the new one twice", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "",
+      password: "a-brand-new-passphrase",
+      confirmation: "something-else-entirely",
+    });
+
+    expect(
+      result.error?.issues.map(({ path, message }) => [path, message]),
+    ).toEqual([
+      [["currentPassword"], "Enter your current password"],
+      [["confirmation"], "The passwords don't match"],
+    ]);
+  });
+});
+
+describe("describeDevice", () => {
+  it.each([
+    [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      "Chrome on Windows",
+    ],
+    [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.2903.86",
+      "Edge on Windows",
+    ],
+    [
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1",
+      "Safari on iPhone",
+    ],
+    [
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1",
+      "Chrome on iPhone",
+    ],
+    [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.7; rv:132.0) Gecko/20100101 Firefox/132.0",
+      "Firefox on macOS",
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+      "Chrome on Android",
+    ],
+    ["curl/8.9.1", "curl"],
+    ["Test browser", "Unknown device"],
+  ])("describes %s", (userAgent, device) => {
+    expect(describeDevice(userAgent)).toBe(device);
+  });
+
+  it("knows nothing without a user agent", () => {
+    expect(describeDevice(null)).toBe("Unknown device");
   });
 });

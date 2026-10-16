@@ -944,3 +944,36 @@ Auth for the link without emailing it, then sends and checks its own email.
 **Caught along the way:** the enrolment journey's check for the student's
 email address now found it three times, on the record, in the Sign-in card
 and in the confirmation. It now looks only among the record's details.
+
+## Account page
+
+**What the AI did:** added an account page for staff and students, reached
+from their name in the header:
+
+- their details, read-only, as the Registry holds them;
+- changing their password, which needs the current one and signs out every
+  other device;
+- the devices they are signed in on, each described from its browser's user
+  agent, and signing out on any of them, or on all but this one.
+
+A wrong current password counts as a failed sign-in for the address, so a
+stolen session can't be used to guess the password. The session's own ID now
+travels with the app's `Session`, to tell this device from the others.
+
+**Checked by:**
+
+- `npm run check`;
+- unit tests of the device descriptions (real user-agent strings for
+  Chrome, Edge, Safari, Firefox and Android, and ones the code doesn't
+  recognise) and of the form's rules;
+- integration tests through the account routes, signing in through Better
+  Auth from two devices: the change itself, the other device signed out and
+  this one kept, the wrong current password and the lock it leads to, the
+  new password's rules, the list of devices, signing out one or all others,
+  and refusing someone else's session or this one;
+- an end-to-end journey with two browsers, and the account pages in the axe
+  scan.
+
+**Caught along the way:** the second end-to-end test signed in with Tom's
+demo password, which the first had just changed. It now uses another staff
+member's session.

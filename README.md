@@ -32,6 +32,8 @@ Router), PostgreSQL and Prisma.
 - **Sign-in:**
   - staff and students sign in with their email address and a password;
   - sessions are stored in the database, so signing out ends them at once;
+  - an account page changes one's password and lists the devices one is
+    signed in on, any of which can be signed out;
   - a forgotten password is replaced through a link sent by email;
   - five wrong passwords lock the email address for 15 minutes, on top of
     rate limits per client address;
@@ -183,6 +185,9 @@ means the student whose record it is.
 | Method      | Path                                         | Who           | Purpose                                                             |
 | ----------- | -------------------------------------------- | ------------- | ------------------------------------------------------------------- |
 | GET, POST   | `/api/auth/*`                                | Anyone        | Better Auth: sign in, sign out, read the session                    |
+| POST        | `/api/account/password`                      | Signed in     | Change one's password, signing out other devices                    |
+| GET, DELETE | `/api/account/sessions`                      | Signed in     | The devices one is signed in on; sign out all but this one          |
+| DELETE      | `/api/account/sessions/{id}`                 | Signed in     | Sign out on one other device                                        |
 | GET         | `/api/programmes`, `/api/modules`            | Signed in     | Reference data for forms                                            |
 | GET, POST   | `/api/students`                              | Staff         | Search and filter students; enrol one, emailing the activation link |
 | GET, PATCH  | `/api/students/{number}`                     | Staff or self | Read a record (staff edit it)                                       |
