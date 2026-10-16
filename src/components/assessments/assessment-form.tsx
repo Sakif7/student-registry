@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { Form } from "@/components/forms/form";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -64,7 +65,7 @@ export function AssessmentForm({
   }
 
   return (
-    <form
+    <Form
       noValidate
       className="max-w-xl"
       onSubmit={(event) => void form.handleSubmit(save)(event)}
@@ -137,7 +138,7 @@ export function AssessmentForm({
           </Link>
         </div>
       </FieldGroup>
-    </form>
+    </Form>
   );
 }
 

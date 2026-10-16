@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { Form } from "@/components/forms/form";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { FormField } from "@/components/forms/form-field";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -103,7 +104,7 @@ export function StudentForm(props: StudentFormProps) {
       : "/staff/students";
 
   return (
-    <form
+    <Form
       noValidate
       className="max-w-xl"
       onSubmit={(event) => void form.handleSubmit(save)(event)}
@@ -235,7 +236,7 @@ export function StudentForm(props: StudentFormProps) {
           </Link>
         </div>
       </FieldGroup>
-    </form>
+    </Form>
   );
 }
 

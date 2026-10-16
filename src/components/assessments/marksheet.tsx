@@ -9,6 +9,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { Form } from "@/components/forms/form";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -103,7 +104,7 @@ export function Marksheet({
   }
 
   return (
-    <form noValidate onSubmit={(event) => void form.handleSubmit(save)(event)}>
+    <Form noValidate onSubmit={(event) => void form.handleSubmit(save)(event)}>
       <Table>
         <TableCaption className="sr-only">
           Marksheet for {title}: submissions and marks by student
@@ -216,6 +217,6 @@ export function Marksheet({
           only once you publish them, from their record.
         </p>
       </div>
-    </form>
+    </Form>
   );
 }

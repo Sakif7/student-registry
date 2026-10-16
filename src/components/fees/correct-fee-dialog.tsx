@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { Form } from "@/components/forms/form";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,7 @@ export function CorrectFeeDialog({
         <span className="sr-only"> the fee for {charge.academicYear}</span>
       </DialogTrigger>
       <DialogContent>
-        <form
+        <Form
           noValidate
           className="grid gap-4"
           onSubmit={(event) => void form.handleSubmit(save)(event)}
@@ -153,7 +154,7 @@ export function CorrectFeeDialog({
               {isSubmitting ? "Saving…" : "Save correction"}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

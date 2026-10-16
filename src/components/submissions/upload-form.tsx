@@ -6,6 +6,7 @@
 import { type FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { Form } from "@/components/forms/form";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,7 +84,7 @@ export function UploadForm({
   }
 
   return (
-    <form
+    <Form
       noValidate
       className="grid gap-4"
       onSubmit={(event) => void upload(event)}
@@ -105,6 +106,6 @@ export function UploadForm({
             ? "Replace my work"
             : "Submit my work"}
       </Button>
-    </form>
+    </Form>
   );
 }

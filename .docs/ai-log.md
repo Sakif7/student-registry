@@ -702,3 +702,25 @@ reviewer would meet it.
 **Checked by:** starting the new Compose file, with both services healthy,
 then sending a message with the same SMTP settings and reading it back
 through Mailpit's API.
+
+## Forms that wait for hydration
+
+**What the AI did:** fixed an end-to-end test that failed in one run out of
+several. The test chose a module on "Set an assessment" the instant the form
+appeared, and the choice was gone when it submitted. The trace showed why:
+
+- the form arrived as server-rendered HTML;
+- the choice landed before React had hydrated it;
+- React Hook Form then reset the field to its default.
+
+Every form now marks itself `aria-disabled` until React has hydrated it, which
+Playwright waits for, and which tells assistive technology the form isn't
+ready. A person could still type in that fraction of a second; DECISIONS.md
+explains why the fields aren't disabled outright.
+
+**Checked by:**
+
+- a unit test of the server-rendered form;
+- the end-to-end suite, where every form journey now depends on the forms
+  becoming available once hydrated;
+- `npm run check`.

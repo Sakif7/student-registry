@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { Form } from "@/components/forms/form";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ export function AssignFeeForm({
   }
 
   return (
-    <form noValidate onSubmit={(event) => void form.handleSubmit(save)(event)}>
+    <Form noValidate onSubmit={(event) => void form.handleSubmit(save)(event)}>
       <FieldGroup>
         <FormField
           id="feeAcademicYear"
@@ -146,6 +147,6 @@ export function AssignFeeForm({
           {isSubmitting ? "Charging…" : "Charge fee"}
         </Button>
       </FieldGroup>
-    </form>
+    </Form>
   );
 }

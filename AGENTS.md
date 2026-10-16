@@ -55,6 +55,8 @@ Read it before changing behaviour, and add to it when you make a new decision.
 - **Uploads:** stored under random keys in `UPLOAD_DIR` by
   `src/server/storage.ts`, and served only as attachments through
   `download()` in `src/server/http.ts`.
+- **Forms:** use `Form` from `src/components/forms/form.tsx`, never a bare
+  `<form>`. It stays `aria-disabled` until React has hydrated it.
 - **Students only ever receive marks that are published and not withheld:**
   filter on the server, never only in the page.
 - **Dependencies:**

@@ -8,6 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { Form } from "@/components/forms/form";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,7 +87,7 @@ export function WithholdResultsDialog({
         Withhold results
       </DialogTrigger>
       <DialogContent>
-        <form
+        <Form
           noValidate
           className="grid gap-4"
           onSubmit={(event) => void form.handleSubmit(withhold)(event)}
@@ -136,7 +137,7 @@ export function WithholdResultsDialog({
               {isSubmitting ? "Withholding…" : "Withhold results"}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

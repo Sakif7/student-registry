@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { Form } from "@/components/forms/form";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,7 @@ export function StatusChangeForm({
   }
 
   return (
-    <form
+    <Form
       noValidate
       className="grid gap-4"
       onSubmit={(event) => void form.handleSubmit(save)(event)}
@@ -97,6 +98,6 @@ export function StatusChangeForm({
       <Button type="submit" disabled={isSubmitting} className="w-fit">
         {isSubmitting ? "Saving…" : "Change status"}
       </Button>
-    </form>
+    </Form>
   );
 }

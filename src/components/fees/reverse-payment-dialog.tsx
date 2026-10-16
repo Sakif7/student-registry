@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { Form } from "@/components/forms/form";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button } from "@/components/ui/button";
@@ -56,7 +57,7 @@ export function ReversePaymentDialog({ payment }: { payment: PaymentView }) {
         <span className="sr-only"> payment {payment.reference}</span>
       </DialogTrigger>
       <DialogContent>
-        <form
+        <Form
           noValidate
           className="grid gap-4"
           onSubmit={(event) => void form.handleSubmit(reverse)(event)}
@@ -86,7 +87,7 @@ export function ReversePaymentDialog({ payment }: { payment: PaymentView }) {
               {isSubmitting ? "Reversing…" : "Reverse payment"}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

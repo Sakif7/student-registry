@@ -365,6 +365,24 @@ read. When two people change the same record at the same moment, one change
 wins and the other gets a 409 asking them to reload. A test sends both changes
 at once.
 
+### Forms wait for hydration
+
+Pages stream their forms in as server-rendered HTML, and React hydrates them a
+moment later. Until then nothing handles their input. Once React Hook Form
+takes over, it fills each field with its default, replacing anything typed or
+chosen in between. So every form uses the `Form` component, which marks the
+form `aria-disabled` until React has hydrated it:
+
+- assistive technology announces the form as unavailable for that moment;
+- Playwright treats controls inside an `aria-disabled` element as disabled,
+  so the end-to-end tests wait for hydration instead of sometimes losing what
+  they entered.
+
+`aria-disabled` doesn't stop someone typing in that fraction of a second, as
+`disabled` would, but `disabled` would also dim every field for a moment each
+time a form appeared. An end-to-end test found the problem: it chose a module
+the instant the form appeared, and the choice was gone when it submitted.
+
 ### Errors
 
 API errors use RFC 9457 problem details (`application/problem+json`):
