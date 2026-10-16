@@ -609,7 +609,13 @@ shell, as in most business applications:
 - **Breadcrumbs** on deeper pages, such as a student's record, lead back up.
   They belong to each page's header rather than the top bar, so they can
   name the record from the data the page has already read.
-- **The top bar** holds the sidebar button, and room for search.
+- **The top bar** holds the sidebar button and the search.
+- **Search,** with Ctrl/⌘+K or the button, finds pages and actions by name
+  and, for staff, students by name, ID or email, through the same search as
+  the student list. It searches a moment after typing stops, and shows
+  students only for the words they were found for: stale results let Enter
+  open a student who didn't match. Like a form, the button is
+  `aria-disabled` until React has hydrated it and can hear the shortcut.
 - The sidebar remembers whether it was collapsed for as long as the page is
   open. Reading its cookie on the server would make every page wait on a
   request-time read before the shell could render, so a full reload opens

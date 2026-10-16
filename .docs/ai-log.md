@@ -1048,3 +1048,30 @@ same as ours, so nothing of ours changed.
 - **Contrast:** the axe scan failed on the user menu's avatar: shadcn's
   initials are grey on light grey. They are now white on the sidebar's
   near-black.
+
+## Search palette
+
+**What the AI did:** added a search for every signed-in page, opened with
+Ctrl/⌘+K or a button in the top bar. It finds pages and actions by name and,
+for staff, students by name, ID or email, through the existing student
+search API.
+
+**Checked by:**
+
+- `npm run check`;
+- end-to-end tests, run twice in a row: a student found by name and by ID,
+  an action opened with Enter, and a student finding only their own pages.
+
+**Caught along the way:**
+
+- **Stale results:** a test searched for one student, closed the search,
+  then searched for "enrol" and pressed Enter. It opened the first
+  student's record: the earlier results were still listed until the new
+  search returned. Students now show only for the words they were found
+  for.
+- **A shortcut before hydration:** pressing Ctrl+K before React has
+  hydrated the page does nothing, so the button is `aria-disabled` until
+  then, as forms are, and the tests wait for it.
+- **A button name shared:** an older test clicked the student list's
+  "Search" button by name, which now also matched "Search…" in the top bar.
+  It matches the name exactly.

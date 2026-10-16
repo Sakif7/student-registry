@@ -44,7 +44,8 @@ Router), PostgreSQL and Prisma.
   - every page and API call checks the role.
 - **Interface:** an app shell with a sidebar of the section's pages, which
   collapses to icons or, on a phone, slides in; breadcrumbs on deeper pages;
-  and a menu for one's account and signing out.
+  a menu for one's account and signing out; and a search (Ctrl/⌘+K) for
+  pages, actions and students.
 - **Audit trail:** every change records who made it and when, in the same
   transaction, and the trail can't be edited. Staff see it on each
   student's record and in an Activity log.
@@ -270,8 +271,8 @@ The project depends on open-source packages under these licences:
 
 - **MIT:** Next.js, React, Better Auth, Base UI, shadcn/ui (whose components
   are copied into `src/components/ui`), Tailwind CSS, Zod, React Hook Form,
-  sonner, file-type, Vitest, ESLint, typescript-eslint, Prettier, Husky,
-  lint-staged and tsx; Mailpit (run in Docker for development only)
+  sonner, cmdk, file-type, Vitest, ESLint, typescript-eslint, Prettier,
+  Husky, lint-staged and tsx; Mailpit (run in Docker for development only)
 - **MIT-0:** Nodemailer
 - **Apache 2.0:** Prisma, Playwright, TypeScript and class-variance-authority
 - **ISC:** Lucide icons

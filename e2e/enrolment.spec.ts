@@ -67,7 +67,8 @@ test("refuses an email address another student already uses", async ({
 test("finds students by name and filters them by status", async ({ page }) => {
   await page.goto("/staff/students");
   await page.getByLabel("Search").fill("grace");
-  await page.getByRole("button", { name: "Search" }).click();
+  // Exactly: the search in the top bar is "Search…".
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/q=grace/);
   await expect(
     page.getByRole("link", { name: "Grace Thompson" }),

@@ -3,15 +3,7 @@
 // The sidebar beside every signed-in page: the product, the section's pages
 // with the current one marked, and who is signed in. It collapses to icons on
 // a desktop (Ctrl/⌘+B), and slides in from the left on a phone.
-import {
-  ClipboardList,
-  GraduationCap,
-  History,
-  House,
-  LayoutDashboard,
-  type LucideIcon,
-  Users,
-} from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, Suspense } from "react";
@@ -31,29 +23,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-/** Whose pages the sidebar lists. */
-export type ShellRole = "staff" | "student";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-const NAV: Record<ShellRole, readonly NavItem[]> = {
-  staff: [
-    { href: "/staff", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/staff/students", label: "Students", icon: Users },
-    { href: "/staff/assessments", label: "Assessments", icon: ClipboardList },
-    { href: "/staff/results", label: "Results", icon: GraduationCap },
-    { href: "/staff/activity", label: "Activity", icon: History },
-  ],
-  student: [
-    { href: "/student", label: "My record", icon: House },
-    { href: "/student/assessments", label: "Assessments", icon: ClipboardList },
-    { href: "/student/results", label: "Results", icon: GraduationCap },
-  ],
-};
+import { NAV, type NavItem, type ShellRole } from "./nav";
 
 export function AppSidebar({
   role,

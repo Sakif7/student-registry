@@ -6,7 +6,9 @@ import { type ReactNode, Suspense } from "react";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
-import { AppSidebar, type ShellRole } from "./app-sidebar";
+import { AppSidebar } from "./app-sidebar";
+import { CommandMenu } from "./command-menu";
+import type { ShellRole } from "./nav";
 import { UserMenu, UserMenuPlaceholder } from "./user-menu";
 
 export function AppShell({
@@ -29,8 +31,9 @@ export function AppShell({
       {/* The sidebar's inset, as a div: the top bar sits beside the main
           content rather than inside it. */}
       <div className="relative flex w-full min-w-0 flex-1 flex-col bg-background">
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80">
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80">
           <SidebarTrigger className="-ml-1" />
+          <CommandMenu role={role} />
         </header>
         <main
           id="main"

@@ -493,6 +493,16 @@ As staff:
 4. Sign in as a student: there is no **Activity** page, and
    <http://localhost:3000/staff/activity> sends you to your own pages.
 
+### 14. Searching
+
+1. As staff, press Ctrl+K (⌘K on a Mac), or select **Search…** in the top
+   bar. Type `kwame`: **Kwame Mensah** appears under **Students**. Press
+   Enter to open the record.
+2. Search again for `0003`: **Sofia Rossi** is found by student ID.
+3. Search for `enrol` and press Enter: **Enrol a student** opens.
+4. As a student, search for `enrol`: "Nothing matches". Search for
+   `results` and press Enter: **My results** opens.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly
