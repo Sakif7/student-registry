@@ -1509,3 +1509,19 @@ from git and the entry added by a script instead.
 
 **Checked by:** the type-check, lint and tests, and knip again, which now
 reports only the items explained above.
+
+## An academic year whose years don't follow on
+
+**What the AI did:** while writing a private walkthrough of every file for
+the owner, a sub-agent noticed that setting up an academic year checked only
+the shape of the year (four digits, a slash, two digits). `PUT
+/api/academic-years/2026-28` got past that check, and building the semester
+rules for "2026/28" then threw, so the API answered 500 instead of 404. The
+check now uses the same rule as everywhere else, `isAcademicYear`, which
+also requires the second year to follow the first. The same reading found a
+unit test named "treats a zero charge (full scholarship) as paid" that
+checks the account shows no fees; its name now says what it checks.
+
+**Checked by:** a new case in the curriculum integration tests, which failed
+with the 500 before the fix and passes after it; the rest of the curriculum
+and fees tests.

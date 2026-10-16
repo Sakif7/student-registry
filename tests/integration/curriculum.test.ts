@@ -517,5 +517,7 @@ describe("academic years", () => {
       },
     });
     expect((await put("2026", SEMESTERS)).status).toBe(404);
+    // The right shape, but 2026/28 doesn't follow on from 2026.
+    expect((await put("2026-28", SEMESTERS)).status).toBe(404);
   });
 });

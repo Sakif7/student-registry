@@ -18,7 +18,7 @@ import {
   updateModuleSchema,
   updateProgrammeSchema,
 } from "@/domain/curriculum";
-import { academicYearOn } from "@/domain/academic-year";
+import { academicYearOn, isAcademicYear } from "@/domain/academic-year";
 import { fromDbDate, toDbDate } from "@/domain/college-time";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -504,7 +504,8 @@ export async function saveAcademicYear(
   input: unknown,
 ): Promise<AcademicYearCalendar> {
   const staff = requireStaff(session);
-  if (!/^\d{4}\/\d{2}$/.test(year)) {
+  // The years must follow on, as in 2026/27: 2026/28 is no academic year.
+  if (!isAcademicYear(year)) {
     throw new AppError("NOT_FOUND", `There is no academic year ${year}.`);
   }
   const settings = parseInput(academicYearSettingsSchema(year), input);
