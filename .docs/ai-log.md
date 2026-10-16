@@ -1134,3 +1134,15 @@ for.
   and of an unknown column or direction falling back to name order;
 - an end-to-end journey: sorting by name, then opening a record's Fees tab
   from a row's menu; and the axe scan of the list.
+
+## A slow sign-in test
+
+**What the AI did:** gave the integration test that makes 32 sign-in attempts
+a 30-second timeout. Each attempt hashes a password, which is slow on purpose,
+so on a busy machine the test ran past the default 5 seconds. A timed-out
+test keeps running in the background: its last, successful sign-in then
+cleared the failed attempts the next test had just recorded, and that test
+failed too. The assertions are unchanged.
+
+**Checked by:** the full unit and integration run with coverage, and the
+end-to-end suite.

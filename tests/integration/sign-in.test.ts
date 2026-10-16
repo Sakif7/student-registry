@@ -137,19 +137,26 @@ describe("signing in", () => {
     expect(await db().session.count({ where: { userId: user.id } })).toBe(0);
   });
 
-  it("allows 30 attempts a minute from one address", async () => {
-    await createUser({ email: EMAIL, password: PASSWORD });
+  // Each attempt hashes a password, which is slow on purpose: 32 of them can
+  // take longer than the default 5 seconds on a busy machine. A test that
+  // times out keeps sending requests, which would then upset the next tests.
+  it(
+    "allows 30 attempts a minute from one address",
+    { timeout: 30_000 },
+    async () => {
+      await createUser({ email: EMAIL, password: PASSWORD });
 
-    for (let attempt = 1; attempt <= 30; attempt += 1) {
-      const email = `nobody${attempt}@college.example`;
-      expect((await signInWith(email, PASSWORD)).status).toBe(401);
-    }
-    const next = await signInWith(EMAIL, PASSWORD);
-    const elsewhere = await signInWith(EMAIL, PASSWORD, "198.51.100.23");
+      for (let attempt = 1; attempt <= 30; attempt += 1) {
+        const email = `nobody${attempt}@college.example`;
+        expect((await signInWith(email, PASSWORD)).status).toBe(401);
+      }
+      const next = await signInWith(EMAIL, PASSWORD);
+      const elsewhere = await signInWith(EMAIL, PASSWORD, "198.51.100.23");
 
-    expect(next.status).toBe(429);
-    expect(elsewhere.status).toBe(200);
-  });
+      expect(next.status).toBe(429);
+      expect(elsewhere.status).toBe(200);
+    },
+  );
 
   it("has no way to sign up or to change one's own name", async () => {
     await createStudent({ studentNumber: "SMS-2026-0001" });
