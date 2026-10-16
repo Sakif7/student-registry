@@ -19,7 +19,7 @@ import {
 
 import { useHydrated } from "@/lib/use-hydrated";
 
-import { NAV, type NavItem, type ShellRole } from "./nav";
+import { type NavItem, navItems, type ShellRole } from "./nav";
 
 /** A student found by the search. */
 interface StudentHit {
@@ -79,7 +79,7 @@ export function CommandMenu({ role }: { role: ShellRole }) {
   const term = query.trim().toLowerCase();
   const matches = ({ label }: NavItem) => label.toLowerCase().includes(term);
   const pages = [
-    ...NAV[role],
+    ...navItems(role),
     { href: `/${role}/account`, label: "Your account", icon: UserRound },
   ].filter(matches);
   const actions = ACTIONS[role].filter(matches);

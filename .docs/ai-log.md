@@ -1337,3 +1337,34 @@ Found along the way:
 - the migration run on the demo data, and Prisma's diff confirming the
   database then matches the schema;
 - the end-to-end suite against the rebuilt demo data.
+
+## Curriculum pages
+
+**What the AI did:** gave staff pages for the curriculum, in a second
+sidebar group, Curriculum, which the search (Ctrl/⌘+K) also lists:
+
+- **Programmes:** the list, and each programme's structure year by year,
+  with what its core modules take of the year's credits;
+- **Modules:** the catalogue, with each module's programmes and how many
+  students take it this year;
+- **Academic years:** the semester dates, the next year ready to set up,
+  and the switch that lets students choose their options.
+
+Each change is made in a dialog through the API of the previous step.
+Taking a module out of a programme, and the students' switch, can be
+undone from the message that confirms them. A module's credits field is
+read-only once students have taken it, as the API would refuse a change.
+
+Found along the way: the AI's first draft of the manual scenario showed
+the credit limit with a module that brought year 1 to exactly 120 credits,
+which is allowed. It now uses a 60-credit module, which is refused.
+
+**Checked by:** an integration test of the catalogue (each module's
+programmes, this year's students, and credits locked by any registration,
+however old); end-to-end tests that set up a module (correcting its
+credits first), make it an option in a programme, remove it and undo, and
+that set up the next academic year (correcting the semester dates first)
+and let students choose, then undo; axe scans of the four pages and their
+dialogs; and the check that every page fits a phone. The sorting test
+needed the exact name of its Module link, now that the sidebar has a
+Modules link too.

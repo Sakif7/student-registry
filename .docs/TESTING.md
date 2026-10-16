@@ -585,6 +585,34 @@ KM 0003`. **History** gains "Recorded a payment of £100.00 (CARD KM 0003)", by 
 4. As a student, search for `enrol`: "Nothing matches". Search for
    `results` and press Enter: **My results** opens.
 
+### 15. Setting up the curriculum
+
+As staff:
+
+1. Under **Curriculum** in the sidebar, open **Programmes**. Three are
+   listed with their length, credits, fee, modules and enrolled students.
+   Open **BSc (Hons) Computer Science**: years 1 to 3 list their core
+   modules, then their options. Year 1 reads "Core modules take 90 of the
+   120 credits. Students choose 30 more from 45 credits of options."
+2. Open **Modules** and select **Set up a module**. Enter the code
+   `cs4006`, the title `Ethical Hacking` and 12 credits: "Credits come in
+   multiples of 5" appears. Change it to 15, choose **Semester 2** and set
+   it up. Its row reads "No programme yet". The credits of a module students
+   take, such as CS4001, can't be edited.
+3. Back on BSc (Hons) Computer Science, select **Add a module**: choose
+   CS4006, **Year 1** and **Optional**, and add it. Year 1 lists it as
+   **Optional**, with options now worth 60 credits. Choose **Remove** beside
+   it, then **Undo**: it comes back as an option in year 1.
+4. Try to add BM6001 Dissertation, worth 60 credits, to year 1 as **Core**:
+   it is refused, because year 1's core modules would come to 150 credits,
+   more than the 120 a year carries.
+5. Open **Academic years**. The current year is marked **Current**. Select
+   **Set up** for the next year and enter semester 2 starting before
+   semester 1 ends: "Start semester 2 after semester 1 ends" appears. Fix
+   the date and set it up: the year joins the list.
+6. On the current year, select **Let students choose**: it reads "Students
+   choose their own optional modules." Select **Undo** to stop them again.
+
 ## Trying the API with curl
 
 Every write in the app goes through these routes, so the API behaves exactly

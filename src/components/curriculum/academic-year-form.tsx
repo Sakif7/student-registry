@@ -1,0 +1,138 @@
+"use client";
+
+// Sets up or changes an academic year's calendar: the dates of its two
+// semesters, and whether students may choose their own optional modules.
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useId } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
+
+import { Form } from "@/components/forms/form";
+import { FormField } from "@/components/forms/form-field";
+import { applyServerErrors } from "@/components/forms/server-errors";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FieldGroup } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { academicYearSlug } from "@/domain/academic-year";
+import {
+  type AcademicYearSettingsInput,
+  academicYearSettingsSchema,
+  type SemesterDates,
+} from "@/domain/curriculum";
+import { ApiError, apiRequest } from "@/lib/api-client";
+import { refreshAfterWrite } from "@/server/actions";
+
+const DATE_FIELDS = [
+  ["semester1Start", "Semester 1 starts"],
+  ["semester1End", "Semester 1 ends"],
+  ["semester2Start", "Semester 2 starts"],
+  ["semester2End", "Semester 2 ends"],
+] as const satisfies readonly (readonly [keyof SemesterDates, string])[];
+
+export function AcademicYearForm({
+  year,
+  calendar,
+  onDone,
+}: {
+  /** E.g. "2027/28". */
+  year: string;
+  /** Its calendar now, if it has one. */
+  calendar?: SemesterDates & { studentsChooseModules: boolean };
+  onDone: () => void;
+}) {
+  const form = useForm({
+    resolver: zodResolver(academicYearSettingsSchema(year)),
+    defaultValues: calendar ?? {
+      semester1Start: "",
+      semester1End: "",
+      semester2Start: "",
+      semester2End: "",
+      studentsChooseModules: false,
+    },
+  });
+  const { errors, isSubmitting } = form.formState;
+  const studentsChoose = useWatch({
+    control: form.control,
+    name: "studentsChooseModules",
+  });
+
+  async function save(settings: AcademicYearSettingsInput) {
+    try {
+      await apiRequest(
+        "PUT",
+        `/api/academic-years/${academicYearSlug(year)}`,
+        settings,
+      );
+      toast.success(calendar ? `${year} saved.` : `${year} is set up.`);
+      await refreshAfterWrite();
+      onDone();
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      applyServerErrors(form.setError, error);
+      toast.error(error.message);
+    }
+  }
+
+  return (
+    <Form noValidate onSubmit={(event) => void form.handleSubmit(save)(event)}>
+      <FieldGroup>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {DATE_FIELDS.map(([name, label]) => (
+            <FormField
+              key={name}
+              id={name}
+              label={label}
+              error={errors[name]?.message}
+            >
+              {(control) => (
+                <Input
+                  {...control}
+                  type="date"
+                  className="w-fit"
+                  {...form.register(name)}
+                />
+              )}
+            </FormField>
+          ))}
+        </div>
+        <ChooseModulesField
+          checked={studentsChoose === true}
+          onChange={(checked) =>
+            form.setValue("studentsChooseModules", checked)
+          }
+        />
+        <Button type="submit" disabled={isSubmitting} className="w-fit">
+          {isSubmitting ? "Saving…" : calendar ? "Save changes" : "Set up"}
+        </Button>
+      </FieldGroup>
+    </Form>
+  );
+}
+
+function ChooseModulesField({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  // Not a fixed id: a page hidden by client navigation stays in the document.
+  const descriptionId = useId();
+  return (
+    <div className="grid gap-1">
+      <label className="flex items-center gap-3 text-sm font-medium">
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(value) => onChange(value === true)}
+          aria-describedby={descriptionId}
+        />
+        Students choose their own optional modules
+      </label>
+      <p id={descriptionId} className="pl-7 text-sm text-muted-foreground">
+        While this is on, students can add and drop their own options, within
+        the credits their year carries.
+      </p>
+    </div>
+  );
+}

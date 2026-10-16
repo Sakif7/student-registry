@@ -45,6 +45,10 @@ test("staff pages fit a phone", async ({ page }) => {
     marksheet,
     "/staff/results",
     "/staff/activity",
+    "/staff/programmes",
+    "/staff/programmes/BSC-CS",
+    "/staff/modules",
+    "/staff/academic-years",
     "/staff/account",
   ]) {
     await expectNoSidewaysScroll(page, path);

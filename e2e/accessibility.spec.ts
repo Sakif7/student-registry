@@ -86,6 +86,10 @@ test("staff pages", async ({ page }) => {
     "/staff/results",
     "/staff/account",
     "/staff/activity",
+    "/staff/programmes",
+    "/staff/programmes/BSC-CS",
+    "/staff/modules",
+    "/staff/academic-years",
   ]) {
     await expectNoViolations(page, path);
   }
@@ -122,6 +126,23 @@ test("dialogs on a student's record", async ({ page }) => {
     await page.getByRole("button", { name: button }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await scan(page, button, "[role=dialog]");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
+  }
+});
+
+test("dialogs on the curriculum pages", async ({ page }) => {
+  await viewAs(page, "staff");
+  for (const [path, button] of [
+    ["/staff/programmes", "Set up a programme"],
+    ["/staff/programmes/BSC-CS", "Add a module"],
+    ["/staff/modules", "Set up a module"],
+    ["/staff/academic-years", /^Set up \d{4}\/\d{2}$/],
+  ] as const) {
+    await page.goto(path);
+    await page.getByRole("button", { name: button }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await scan(page, path, "[role=dialog]");
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden();
   }

@@ -23,7 +23,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-import { NAV, type NavItem, type ShellRole } from "./nav";
+import { NAV, type NavGroup, type ShellRole } from "./nav";
 
 export function AppSidebar({
   role,
@@ -33,7 +33,7 @@ export function AppSidebar({
   /** Who is signed in, with their menu, for the foot of the sidebar. */
   user: ReactNode;
 }) {
-  const items = NAV[role];
+  const groups = NAV[role];
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -54,20 +54,13 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>
-            {role === "staff" ? "Registry" : "Your studies"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <nav aria-label="Main">
-              {/* Reading the path suspends on pages with dynamic params, so
-                  the links show unmarked until it is known. */}
-              <Suspense fallback={<NavMenu items={items} />}>
-                <ActiveNavMenu items={items} />
-              </Suspense>
-            </nav>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <nav aria-label="Main">
+          {/* Reading the path suspends on pages with dynamic params, so
+              the links show unmarked until it is known. */}
+          <Suspense fallback={<NavGroups groups={groups} />}>
+            <ActiveNavGroups groups={groups} />
+          </Suspense>
+        </nav>
       </SidebarContent>
       <SidebarFooter>{user}</SidebarFooter>
       <SidebarRail />
@@ -75,29 +68,47 @@ export function AppSidebar({
   );
 }
 
-function ActiveNavMenu({ items }: { items: readonly NavItem[] }) {
+function ActiveNavGroups({ groups }: { groups: readonly NavGroup[] }) {
   const pathname = usePathname();
   // The longest matching prefix wins, so /staff/students/SMS-2026-0001 marks
   // "Students" rather than the "/staff" dashboard.
-  const active = items
+  const active = groups
+    .flatMap((group) => group.items)
     .filter(
       (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
     )
     .sort((a, b) => b.href.length - a.href.length)[0];
-  return <NavMenu items={items} activeHref={active?.href} />;
+  return <NavGroups groups={groups} activeHref={active?.href} />;
+}
+
+function NavGroups({
+  groups,
+  activeHref,
+}: {
+  groups: readonly NavGroup[];
+  activeHref?: string;
+}) {
+  return groups.map((group) => (
+    <SidebarGroup key={group.label}>
+      <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <NavMenu group={group} activeHref={activeHref} />
+      </SidebarGroupContent>
+    </SidebarGroup>
+  ));
 }
 
 function NavMenu({
-  items,
+  group,
   activeHref,
 }: {
-  items: readonly NavItem[];
+  group: NavGroup;
   activeHref?: string;
 }) {
   const { setOpenMobile } = useSidebar();
   return (
     <SidebarMenu>
-      {items.map(({ href, label, icon: Icon }) => {
+      {group.items.map(({ href, label, icon: Icon }) => {
         const active = href === activeHref;
         return (
           <SidebarMenuItem key={href}>

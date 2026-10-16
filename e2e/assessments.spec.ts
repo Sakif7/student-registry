@@ -146,7 +146,7 @@ test("staff sort the assessments by a column, either way", async ({ page }) => {
   // Open ones first, soonest deadline first.
   await expect(first).toHaveText("Systems lab report");
 
-  await page.getByRole("link", { name: "Module" }).click();
+  await page.getByRole("link", { name: "Module", exact: true }).click();
   await expect(page).toHaveURL("/staff/assessments?sort=module&dir=asc");
   await expect(
     page.getByRole("columnheader", { name: "Module" }),
@@ -154,7 +154,7 @@ test("staff sort the assessments by a column, either way", async ({ page }) => {
   // BM4001 comes first.
   await expect(first).toHaveText("Management essay");
 
-  await page.getByRole("link", { name: "Module" }).click();
+  await page.getByRole("link", { name: "Module", exact: true }).click();
   await expect(page).toHaveURL("/staff/assessments?sort=module&dir=desc");
   // DS7002 comes first.
   await expect(first).toHaveText("Data pipeline design");

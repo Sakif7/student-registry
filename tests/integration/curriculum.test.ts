@@ -16,6 +16,7 @@ import {
 } from "@/app/api/programmes/[code]/route";
 import { POST as createProgramme } from "@/app/api/programmes/route";
 import { db } from "@/server/db";
+import { listModuleSummaries } from "@/server/services/curriculum";
 
 import {
   createModule as makeModule,
@@ -27,6 +28,7 @@ import {
   apiRequest,
   asStudent,
   routeContext,
+  sessionFor,
   STAFF,
   type Viewer,
 } from "../helpers/requests";
@@ -341,6 +343,63 @@ describe("modules", () => {
         details: { code: "CS4002", fields: ["semester"] },
       },
     ]);
+  });
+
+  it("are listed for staff with their programmes, this year's students, and whether their credits can change", async () => {
+    const programme = await makeProgramme({ code: "BSC-CS" });
+    const algorithms = await makeModule({
+      code: "CS4001",
+      programmeId: programme.id,
+    });
+    const databases = await makeModule({
+      code: "CS4002",
+      programmeId: programme.id,
+      kind: "OPTIONAL",
+    });
+    await makeModule({ code: "CS4006" });
+    const [first, second] = [
+      await createStudent({ programmeId: programme.id }),
+      await createStudent({ programmeId: programme.id }),
+    ];
+    await registerStudents(databases.id, [first.id, second.id]);
+    // Taken only last year: no students now, but the credits stay put.
+    await registerStudents(algorithms.id, [first.id], "2025/26");
+
+    const listed = await listModuleSummaries(await sessionFor(STAFF));
+
+    expect(
+      listed.map(({ code, programmes, registeredCount, creditsLocked }) => ({
+        code,
+        programmes: programmes.map(({ code: programmeCode, kind }) => ({
+          programmeCode,
+          kind,
+        })),
+        registeredCount,
+        creditsLocked,
+      })),
+    ).toEqual([
+      {
+        code: "CS4001",
+        programmes: [{ programmeCode: "BSC-CS", kind: "CORE" }],
+        registeredCount: 0,
+        creditsLocked: true,
+      },
+      {
+        code: "CS4002",
+        programmes: [{ programmeCode: "BSC-CS", kind: "OPTIONAL" }],
+        registeredCount: 2,
+        creditsLocked: true,
+      },
+      {
+        code: "CS4006",
+        programmes: [],
+        registeredCount: 0,
+        creditsLocked: false,
+      },
+    ]);
+    await expect(
+      listModuleSummaries(await sessionFor(asStudent(first.studentNumber))),
+    ).rejects.toMatchObject({ kind: "FORBIDDEN" });
   });
 
   it("keep their credits once students are registered on them", async () => {

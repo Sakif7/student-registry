@@ -20,6 +20,7 @@ Router), PostgreSQL and Prisma.
   - each programme's structure: the core modules and the options of each
     year of study;
   - academic years with their semester dates;
+  - staff pages to set all of this up, under Curriculum in the sidebar;
   - students registered on modules each year: core modules automatically,
     options by staff (or by students, while staff allow it), within the
     year's credits;

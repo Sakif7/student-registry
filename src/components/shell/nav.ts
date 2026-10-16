@@ -1,12 +1,16 @@
-// The pages of each section, for the sidebar and the search palette.
+// The pages of each section, in groups, for the sidebar and the search
+// palette.
 import {
   Banknote,
+  BookOpen,
+  CalendarDays,
   ClipboardList,
   GraduationCap,
   History,
   House,
   IdCard,
   LayoutDashboard,
+  Library,
   type LucideIcon,
   Users,
 } from "lucide-react";
@@ -21,19 +25,60 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-export const NAV: Record<ShellRole, readonly NavItem[]> = {
+/** A group of pages under a heading in the sidebar. */
+export interface NavGroup {
+  label: string;
+  items: readonly NavItem[];
+}
+
+export const NAV: Record<ShellRole, readonly NavGroup[]> = {
   staff: [
-    { href: "/staff", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/staff/students", label: "Students", icon: Users },
-    { href: "/staff/assessments", label: "Assessments", icon: ClipboardList },
-    { href: "/staff/results", label: "Results", icon: GraduationCap },
-    { href: "/staff/activity", label: "Activity", icon: History },
+    {
+      label: "Registry",
+      items: [
+        { href: "/staff", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/staff/students", label: "Students", icon: Users },
+        {
+          href: "/staff/assessments",
+          label: "Assessments",
+          icon: ClipboardList,
+        },
+        { href: "/staff/results", label: "Results", icon: GraduationCap },
+        { href: "/staff/activity", label: "Activity", icon: History },
+      ],
+    },
+    {
+      label: "Curriculum",
+      items: [
+        { href: "/staff/programmes", label: "Programmes", icon: Library },
+        { href: "/staff/modules", label: "Modules", icon: BookOpen },
+        {
+          href: "/staff/academic-years",
+          label: "Academic years",
+          icon: CalendarDays,
+        },
+      ],
+    },
   ],
   student: [
-    { href: "/student", label: "Home", icon: House },
-    { href: "/student/assessments", label: "Assessments", icon: ClipboardList },
-    { href: "/student/results", label: "Results", icon: GraduationCap },
-    { href: "/student/fees", label: "Fees", icon: Banknote },
-    { href: "/student/record", label: "My record", icon: IdCard },
+    {
+      label: "Your studies",
+      items: [
+        { href: "/student", label: "Home", icon: House },
+        {
+          href: "/student/assessments",
+          label: "Assessments",
+          icon: ClipboardList,
+        },
+        { href: "/student/results", label: "Results", icon: GraduationCap },
+        { href: "/student/fees", label: "Fees", icon: Banknote },
+        { href: "/student/record", label: "My record", icon: IdCard },
+      ],
+    },
   ],
 };
+
+/** Every page of a section, whatever its group. */
+export function navItems(role: ShellRole): readonly NavItem[] {
+  return NAV[role].flatMap((group) => group.items);
+}

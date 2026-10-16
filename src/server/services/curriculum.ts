@@ -78,6 +78,8 @@ export interface ModuleSummary {
   }[];
   /** Students registered on it for the current academic year. */
   registeredCount: number;
+  /** Students have been registered on it, so its credits can't change. */
+  creditsLocked: boolean;
 }
 
 /** An academic year's calendar. */
@@ -354,17 +356,21 @@ export async function listModuleSummaries(
 ): Promise<ModuleSummary[]> {
   requireStaff(session);
   const academicYear = academicYearOn(collegeToday());
-  const modules = await db().module.findMany({
-    include: {
-      programmes: {
-        include: { programme: { select: { code: true, title: true } } },
+  const [modules, everRegistered] = await Promise.all([
+    db().module.findMany({
+      include: {
+        programmes: {
+          include: { programme: { select: { code: true, title: true } } },
+        },
+        _count: {
+          select: { registrations: { where: { academicYear } } },
+        },
       },
-      _count: {
-        select: { registrations: { where: { academicYear } } },
-      },
-    },
-    orderBy: { code: "asc" },
-  });
+      orderBy: { code: "asc" },
+    }),
+    db().moduleRegistration.groupBy({ by: ["moduleId"] }),
+  ]);
+  const locked = new Set(everRegistered.map(({ moduleId }) => moduleId));
   return modules.map((module) => ({
     code: module.code,
     title: module.title,
@@ -379,6 +385,7 @@ export async function listModuleSummaries(
       }))
       .sort((a, b) => a.title.localeCompare(b.title)),
     registeredCount: module._count.registrations,
+    creditsLocked: locked.has(module.id),
   }));
 }
 

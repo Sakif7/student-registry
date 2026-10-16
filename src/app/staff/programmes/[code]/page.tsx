@@ -1,0 +1,197 @@
+// A programme and its structure: for each year of study, the core modules
+// every student takes and the options students choose from, with the
+// credits they come to.
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
+
+import {
+  AddStructureModuleDialog,
+  EditProgrammeDialog,
+} from "@/components/curriculum/curriculum-dialogs";
+import { RemoveStructureModuleButton } from "@/components/curriculum/remove-structure-module-button";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { MODULE_KIND_LABELS, SEMESTER_LABELS } from "@/domain/curriculum";
+import { formatCount, formatMoney } from "@/lib/format";
+import { orNotFound } from "@/server/pages";
+import {
+  getProgramme,
+  listModuleSummaries,
+  type StructureYear,
+} from "@/server/services/curriculum";
+import { requirePageRole } from "@/server/session";
+
+export const metadata: Metadata = { title: "Programme" };
+
+type Props = PageProps<"/staff/programmes/[code]">;
+
+export default function ProgrammePage({ params }: Props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="grid gap-6">
+          <Skeleton className="h-12 w-72" />
+          <Skeleton className="h-64" />
+        </div>
+      }
+    >
+      <ProgrammeView params={params} />
+    </Suspense>
+  );
+}
+
+async function ProgrammeView({ params }: Pick<Props, "params">) {
+  const session = await requirePageRole("staff");
+  const { code } = await params;
+  const [programme, modules] = await orNotFound(
+    Promise.all([getProgramme(session, code), listModuleSummaries(session)]),
+  );
+  const inProgramme = new Set(
+    programme.structure.flatMap((year) => year.modules.map((m) => m.code)),
+  );
+  return (
+    <>
+      <PageHeader
+        breadcrumbs={[{ label: "Programmes", href: "/staff/programmes" }]}
+        eyebrow={<span className="font-mono">{programme.code}</span>}
+        title={programme.title}
+        description={`${formatCount(programme.years, "year")} of study · ${programme.creditsPerYear} credits a year · ${formatMoney(programme.annualFeePence)} a year`}
+        actions={
+          <>
+            <EditProgrammeDialog
+              programme={{
+                code: programme.code,
+                title: programme.title,
+                annualFeePence: programme.annualFeePence,
+                years: programme.years,
+                creditsPerYear: programme.creditsPerYear,
+              }}
+            />
+            <AddStructureModuleDialog
+              programmeCode={programme.code}
+              years={programme.years}
+              modules={modules.filter((m) => !inProgramme.has(m.code))}
+            />
+          </>
+        }
+      />
+      <p className="mb-6 text-sm">
+        <Link
+          href={`/staff/students?programme=${encodeURIComponent(programme.code)}&status=ENROLLED`}
+          className="underline-offset-4 hover:underline"
+        >
+          {formatCount(programme.enrolledCount, "student")} enrolled
+        </Link>
+      </p>
+      <div className="grid grid-cols-1 gap-6">
+        {programme.structure.map((year) => (
+          <YearCard
+            key={year.yearOfStudy}
+            programmeCode={programme.code}
+            creditsPerYear={programme.creditsPerYear}
+            year={year}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function YearCard({
+  programmeCode,
+  creditsPerYear,
+  year,
+}: {
+  programmeCode: string;
+  creditsPerYear: number;
+  year: StructureYear;
+}) {
+  const optionsNeeded = creditsPerYear - year.coreCredits;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h2>Year {year.yearOfStudy}</h2>
+        </CardTitle>
+        <CardDescription>
+          Core modules take {year.coreCredits} of the {creditsPerYear} credits.
+          {optionsNeeded > 0 &&
+            ` Students choose ${optionsNeeded} more from ${year.optionalCredits} credits of options.`}
+          {optionsNeeded > year.optionalCredits &&
+            " There aren't enough options yet."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {year.modules.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No modules in year {year.yearOfStudy} yet.
+          </p>
+        ) : (
+          <Table>
+            <TableCaption className="sr-only">
+              Modules in year {year.yearOfStudy}, core first
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Module</TableHead>
+                <TableHead className="text-right">Credits</TableHead>
+                <TableHead>Taught in</TableHead>
+                <TableHead>Core or optional</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {year.modules.map((module) => (
+                <TableRow key={module.code}>
+                  <TableCell className="min-w-48 whitespace-normal">
+                    <span className="font-mono text-xs">{module.code}</span>{" "}
+                    {module.title}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {module.credits}
+                  </TableCell>
+                  <TableCell>{SEMESTER_LABELS[module.semester]}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={module.kind === "CORE" ? "default" : "secondary"}
+                    >
+                      {MODULE_KIND_LABELS[module.kind]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <RemoveStructureModuleButton
+                      programmeCode={programmeCode}
+                      moduleCode={module.code}
+                      yearOfStudy={year.yearOfStudy}
+                      kind={module.kind}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

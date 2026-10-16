@@ -179,6 +179,28 @@ That isn't how a registry works, so the curriculum is now modelled.
   registered, and any they submitted work for, even after dropping the
   module.
 
+### The curriculum pages
+
+The sidebar has a second group for staff, **Curriculum**, with three pages:
+
+- **Programmes:** each programme's length, credits a year, fee, modules and
+  enrolled students. A programme's page shows its structure year by year:
+  the core modules, then the options, with what the core modules take of
+  the year's credits and how many more students choose from the options.
+  Staff set up programmes, edit them, and add modules to a year as core or
+  optional, each in a dialog.
+- **Modules:** the catalogue, with the programmes each module is part of
+  and how many students take it this year. Its credits field is read-only
+  once students have been registered on it, as the API would refuse a
+  change.
+- **Academic years:** each year's semesters, with the current year marked
+  and the next one ready to set up. A button lets students choose their
+  own options, or stops them.
+
+Taking a module out of a programme, and the students' choice switch, say
+what they did with an Undo button, like the other actions that can be
+reversed at once.
+
 ### Moving the existing data
 
 The migration keeps what existing data meant. Every module becomes a core
