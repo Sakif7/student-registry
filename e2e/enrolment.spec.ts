@@ -39,7 +39,12 @@ test("enrols a student with the next ID in this year's sequence", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: "Grace Thompson" }),
   ).toBeVisible();
-  await expect(page.getByText("grace.thompson@student.example")).toBeVisible();
+  // In lower case, among the record's details.
+  await expect(
+    page
+      .getByRole("definition")
+      .filter({ hasText: "grace.thompson@student.example" }),
+  ).toBeVisible();
   await expect(page.getByText("Record created as Enrolled")).toBeVisible();
 });
 

@@ -14,7 +14,9 @@ export type ErrorKind =
   | "NOT_FOUND"
   | "CONFLICT"
   | "PAYLOAD_TOO_LARGE"
-  | "UNSUPPORTED_MEDIA_TYPE";
+  | "UNSUPPORTED_MEDIA_TYPE"
+  /** A service the app depends on, such as the mail server, failed. */
+  | "UNAVAILABLE";
 
 /** Messages per field, e.g. `{ email: ["Enter a valid email address"] }`. */
 export type FieldErrors = Record<string, string[]>;
@@ -27,6 +29,7 @@ const STATUS: Record<ErrorKind, number> = {
   CONFLICT: 409,
   PAYLOAD_TOO_LARGE: 413,
   UNSUPPORTED_MEDIA_TYPE: 415,
+  UNAVAILABLE: 503,
 };
 
 /** An expected failure, with a message that is safe to show to the user. */

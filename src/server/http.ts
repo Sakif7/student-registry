@@ -19,6 +19,7 @@ const TITLES: Record<number, string> = {
   413: "Content Too Large",
   415: "Unsupported Media Type",
   500: "Internal Server Error",
+  503: "Service Unavailable",
 };
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);

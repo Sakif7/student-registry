@@ -1,11 +1,14 @@
 // Sign-in with Better Auth: email and password, sessions stored in
 // PostgreSQL, password-reset links by email, rate limiting, and a lock on an
-// email address after repeated failed sign-ins. Nobody signs up: every
-// account is made for its owner (see prisma/seed.ts).
+// email address after repeated failed sign-ins. Nobody signs up: staff
+// accounts come from prisma/seed.ts, and each student's is created at
+// enrolment (see services/sign-in.ts).
 //
 // The instance is created on first use, like the database client, so
 // importing this module (as `next build` does) needs no configuration.
 import "server-only";
+
+import { AsyncLocalStorage } from "node:async_hooks";
 
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -24,6 +27,7 @@ import { db } from "./db";
 import { activationEmail, passwordResetEmail } from "./emails";
 import { env } from "./env";
 import { sendEmailLater } from "./mail";
+import { passwordLinksOf } from "./password-links";
 import {
   forgetFailedSignIns,
   normaliseEmail,
@@ -32,6 +36,10 @@ import {
 } from "./sign-in-failures";
 
 const HOUR_SECONDS = 60 * 60;
+
+// While the Registry creates a link to send itself (createPasswordLink), the
+// link Better Auth makes is kept here instead of being emailed.
+const linkForRegistry = new AsyncLocalStorage<{ url?: string }>();
 
 function createAuth() {
   const { BETTER_AUTH_SECRET, BETTER_AUTH_URL } = env();
@@ -95,6 +103,11 @@ function createAuth() {
       // out after the response, which then takes about as long whether or
       // not the address has an account.
       sendResetPassword: async ({ user, url }) => {
+        const forRegistry = linkForRegistry.getStore();
+        if (forRegistry) {
+          forRegistry.url = url;
+          return;
+        }
         const account = await db().user.findUnique({
           where: { id: user.id },
           select: { emailVerified: true, disabledAt: true },
@@ -105,8 +118,7 @@ function createAuth() {
         // Better Auth has already stored this link with the others.
         const linksThisHour = await db().verification.count({
           where: {
-            value: user.id,
-            identifier: { startsWith: "reset-password:" },
+            ...passwordLinksOf(user.id),
             createdAt: { gt: new Date(Date.now() - HOUR_SECONDS * 1000) },
           },
         });
@@ -205,4 +217,24 @@ let instance: ReturnType<typeof createAuth> | undefined;
 export function auth(): ReturnType<typeof createAuth> {
   instance ??= createAuth();
   return instance;
+}
+
+/**
+ * Creates a link for setting the password of the account with this email
+ * address, as "forgot password" does, but returns it instead of emailing it,
+ * so that the Registry can send its own email and know whether it went.
+ *
+ * @param redirectTo - The page the link opens once Better Auth has checked it.
+ * @throws Error if no account uses the address.
+ */
+export async function createPasswordLink(
+  email: string,
+  redirectTo: "/activate" | "/reset-password",
+): Promise<string> {
+  const link: { url?: string } = {};
+  await linkForRegistry.run(link, () =>
+    auth().api.requestPasswordReset({ body: { email, redirectTo } }),
+  );
+  if (!link.url) throw new Error(`No account uses ${email}.`);
+  return link.url;
 }

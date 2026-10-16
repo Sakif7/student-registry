@@ -35,7 +35,10 @@ Router), PostgreSQL and Prisma.
   - a forgotten password is replaced through a link sent by email;
   - five wrong passwords lock the email address for 15 minutes, on top of
     rate limits per client address;
-  - nobody signs up: every account is made for its owner;
+  - nobody signs up: staff accounts come with the system, and each
+    student's is created at enrolment and activated from an emailed link;
+  - staff can resend that link, email a password reset link, or turn a
+    student's sign-in off, which signs them out everywhere;
   - every page and API call checks the role.
 
 ## Tech stack
@@ -177,27 +180,29 @@ cookie that signing in sets (`POST /api/auth/sign-in/email`). Errors come back
 as RFC 9457 problem details, with an error per field where it applies. "Self"
 means the student whose record it is.
 
-| Method      | Path                                         | Who           | Purpose                                             |
-| ----------- | -------------------------------------------- | ------------- | --------------------------------------------------- |
-| GET, POST   | `/api/auth/*`                                | Anyone        | Better Auth: sign in, sign out, read the session    |
-| GET         | `/api/programmes`, `/api/modules`            | Signed in     | Reference data for forms                            |
-| GET, POST   | `/api/students`                              | Staff         | Search and filter students; enrol one               |
-| GET, PATCH  | `/api/students/{number}`                     | Staff or self | Read a record (staff edit it)                       |
-| POST        | `/api/students/{number}/status`              | Staff         | Change the enrolment status                         |
-| GET         | `/api/students/{number}/account`             | Staff or self | Charges, payments, balance and overdue amount       |
-| POST        | `/api/students/{number}/fees`                | Staff         | Charge a fee for an academic year                   |
-| POST        | `/api/students/{number}/payments`            | Staff         | Record a payment                                    |
-| PATCH       | `/api/fees/{id}`                             | Staff         | Correct a fee charge                                |
-| POST        | `/api/payments/{id}/reversal`                | Staff         | Reverse a payment                                   |
-| GET, POST   | `/api/assessments`                           | Staff         | List assessments; set one                           |
-| GET, PATCH  | `/api/assessments/{id}`                      | Staff         | Read with its marksheet; edit, close or reopen      |
-| PUT         | `/api/assessments/{id}/submission`           | Student       | Submit or replace work (multipart, field `file`)    |
-| PUT         | `/api/assessments/{id}/marks`                | Staff         | Save marks, keyed by student number                 |
-| GET         | `/api/students/{number}/assessments`         | Staff or self | A student's assessments, with their own work        |
-| GET         | `/api/submissions/{id}/file`                 | Staff or self | Download a submitted file                           |
-| GET         | `/api/students/{number}/results`             | Staff or self | Results (students: published only, unless withheld) |
-| POST        | `/api/students/{number}/results/publication` | Staff         | Publish all unpublished marks                       |
-| PUT, DELETE | `/api/students/{number}/results/hold`        | Staff         | Withhold results with a reason; lift the hold       |
+| Method      | Path                                         | Who           | Purpose                                                             |
+| ----------- | -------------------------------------------- | ------------- | ------------------------------------------------------------------- |
+| GET, POST   | `/api/auth/*`                                | Anyone        | Better Auth: sign in, sign out, read the session                    |
+| GET         | `/api/programmes`, `/api/modules`            | Signed in     | Reference data for forms                                            |
+| GET, POST   | `/api/students`                              | Staff         | Search and filter students; enrol one, emailing the activation link |
+| GET, PATCH  | `/api/students/{number}`                     | Staff or self | Read a record (staff edit it)                                       |
+| POST        | `/api/students/{number}/status`              | Staff         | Change the enrolment status                                         |
+| GET, PATCH  | `/api/students/{number}/sign-in`             | Staff         | A student's sign-in account; turn sign-in off or on                 |
+| POST        | `/api/students/{number}/sign-in/link`        | Staff         | Email an activation or password reset link                          |
+| GET         | `/api/students/{number}/account`             | Staff or self | Charges, payments, balance and overdue amount                       |
+| POST        | `/api/students/{number}/fees`                | Staff         | Charge a fee for an academic year                                   |
+| POST        | `/api/students/{number}/payments`            | Staff         | Record a payment                                                    |
+| PATCH       | `/api/fees/{id}`                             | Staff         | Correct a fee charge                                                |
+| POST        | `/api/payments/{id}/reversal`                | Staff         | Reverse a payment                                                   |
+| GET, POST   | `/api/assessments`                           | Staff         | List assessments; set one                                           |
+| GET, PATCH  | `/api/assessments/{id}`                      | Staff         | Read with its marksheet; edit, close or reopen                      |
+| PUT         | `/api/assessments/{id}/submission`           | Student       | Submit or replace work (multipart, field `file`)                    |
+| PUT         | `/api/assessments/{id}/marks`                | Staff         | Save marks, keyed by student number                                 |
+| GET         | `/api/students/{number}/assessments`         | Staff or self | A student's assessments, with their own work                        |
+| GET         | `/api/submissions/{id}/file`                 | Staff or self | Download a submitted file                                           |
+| GET         | `/api/students/{number}/results`             | Staff or self | Results (students: published only, unless withheld)                 |
+| POST        | `/api/students/{number}/results/publication` | Staff         | Publish all unpublished marks                                       |
+| PUT, DELETE | `/api/students/{number}/results/hold`        | Staff         | Withhold results with a reason; lift the hold                       |
 
 ## Documentation
 

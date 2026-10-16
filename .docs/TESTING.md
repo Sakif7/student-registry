@@ -180,6 +180,10 @@ As staff:
    - The ID is **SMS-2026-0008**, the next number after the seeded 0001–0007.
    - The email is shown in lower case.
    - The status history reads "Record created as Enrolled".
+   - A message confirms "An activation email went to
+     grace.thompson@student.example".
+   - **Sign-in** reads **Waiting for activation**, with when the email went
+     and until when its link works.
 
 4. Select **Enrol a student** again. Enter another name, the email
    `GRACE.THOMPSON@student.example` and the same other details. Select
@@ -189,6 +193,33 @@ As staff:
    appears under **Date of birth**.
 6. Choose **2025/26** as the academic year and enrol a new student. Their ID
    starts with **SMS-2025-** and continues that year's sequence (0003).
+7. Open Mailpit at <http://localhost:8025>. The email "Activate your Student
+   Registry account" to Grace holds a link. Open it in a private window and
+   choose a password: "Your account is ready". Sign in there as
+   `grace.thompson@student.example`: you land on **My record** for Grace.
+8. Back on Grace's record as staff, reload: **Sign-in** reads **Active**,
+   with the date of activation and "Signed in on 1 device now."
+
+### 2a. Managing a student's sign-in
+
+As staff:
+
+1. Open **Arjun Mehta** (SMS-2026-0007). **Sign-in** reads **Waiting for
+   activation**, with no link waiting. Select **Send activation email**:
+   "Activation email sent to arjun.mehta@student.example". The email is in
+   Mailpit, and the card now says when it went.
+2. Select **Resend activation email**. The new email's link works; the
+   first one's now opens "This link no longer works".
+3. Open **Liam O'Connor**, who is **Active**, and select **Email a password
+   reset link**. Mailpit has "Reset your Student Registry password" for Liam.
+4. Sign in as Liam in a private window. As staff, select **Turn sign-in
+   off** on Liam's record, and confirm. **Sign-in** reads **Turned off**, and
+   a message offers **Undo**. In the private window, reload: Liam is back on
+   the sign-in page, and signing in says sign-in is turned off.
+5. Select **Turn sign-in back on**. Liam can sign in again with the demo
+   password.
+6. Open **Hannah Kowalski** (withdrawn): sign-in is **Turned off**, as the
+   demo data has it.
 
 ### 3. Finding students
 
@@ -479,6 +510,15 @@ curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
 curl -i -b cookies.txt -H "Content-Type: application/json" \
   -d '{"status":"WITHDRAWN","reason":"Moved abroad"}' \
   http://localhost:3000/api/students/SMS-2026-0008/status
+
+# A student's sign-in account: where it stands, emailing a link (activation
+# until it is active, then a password reset), and turning sign-in off or on
+curl -b cookies.txt http://localhost:3000/api/students/SMS-2026-0007/sign-in
+curl -i -b cookies.txt -X POST \
+  http://localhost:3000/api/students/SMS-2026-0007/sign-in/link
+curl -i -b cookies.txt -X PATCH -H "Content-Type: application/json" \
+  -d '{"enabled":false}' \
+  http://localhost:3000/api/students/SMS-2026-0007/sign-in
 
 # A student's account: charges, payments, balance and overdue amount
 curl -b cookies.txt http://localhost:3000/api/students/SMS-2025-0001/account

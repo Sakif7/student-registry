@@ -908,3 +908,39 @@ pages can state them.
   now waits for each new page's heading, and types into the visible "Email"
   field only, as the sign-in page's stays in the document, hidden. It then
   passed three runs in a row.
+
+## Students' sign-in accounts
+
+**What the AI did:** gave every student an account:
+
+- enrolment creates it in the same transaction as the record, and emails an
+  activation link. The enrolment stands if the email fails, and staff are
+  told;
+- a Sign-in card on the student's record shows where the account stands,
+  emails an activation or password reset link (the newest link replacing
+  the rest), and turns sign-in off, with a confirmation and an undo, or back
+  on;
+- editing a student's name or email updates the account, and a new address
+  cancels links sent to the old one;
+- a data migration gave existing students accounts.
+
+Better Auth's reset endpoint only logs a failed email, which would have
+hidden failures from staff. So for links staff send, the app asks Better
+Auth for the link without emailing it, then sends and checks its own email.
+
+**Checked by:**
+
+- `npm run check`;
+- integration tests through the API: the account and activation email at
+  enrolment, following the link to activate and sign in, enrolment
+  surviving a failed email, staff-only access, link replacement, the 503,
+  turning sign-in off (sessions ended, sign-in refused, links cancelled) and
+  on, record edits moving the account, and a student with no account yet;
+- unit tests of the account's states;
+- end-to-end journeys through Mailpit: staff enrol a student, who activates
+  the account in a separate browser and signs in; staff turn a student's
+  sign-in off, and the student is signed out even after Undo.
+
+**Caught along the way:** the enrolment journey's check for the student's
+email address now found it three times, on the record, in the Sign-in card
+and in the confirmation. It now looks only among the record's details.

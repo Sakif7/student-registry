@@ -86,6 +86,32 @@ export function signInLockedMessage(until: Date, now: Date): string {
   return `Too many failed attempts to sign in with this email address. Try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`;
 }
 
+/** Where a student's sign-in account stands. */
+export type SignInState = "PENDING" | "ACTIVE" | "DISABLED";
+
+export const SIGN_IN_STATE_LABELS: Record<SignInState, string> = {
+  PENDING: "Waiting for activation",
+  ACTIVE: "Active",
+  DISABLED: "Turned off",
+};
+
+/**
+ * An account is active once its owner has set a password from an emailed
+ * link, and staff can turn sign-in off whatever its state. A student without
+ * an account yet is waiting for activation.
+ */
+export function signInState(
+  account: { emailVerified: boolean; disabledAt: Date | null } | null,
+): SignInState {
+  if (account?.disabledAt) return "DISABLED";
+  return account?.emailVerified ? "ACTIVE" : "PENDING";
+}
+
+/** Turning a student's sign-in off or back on. */
+export const signInAccessSchema = z.object({
+  enabled: z.boolean({ error: "Say whether sign-in should be on" }),
+});
+
 export type SignInInput = z.infer<typeof signInSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type NewPasswordInput = z.infer<typeof newPasswordSchema>;

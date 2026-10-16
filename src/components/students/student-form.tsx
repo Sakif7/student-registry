@@ -69,26 +69,35 @@ export function StudentForm(props: StudentFormProps) {
 
   async function save(details: StudentDetailsValues) {
     try {
-      const { student } =
-        props.mode === "create"
-          ? await apiRequest<{ student: SavedStudent }>(
-              "POST",
-              "/api/students",
-              {
-                ...details,
-                status,
-              },
-            )
-          : await apiRequest<{ student: SavedStudent }>(
-              "PATCH",
-              `/api/students/${props.studentNumber}`,
-              details,
-            );
-      toast.success(
-        props.mode === "create"
-          ? `Enrolled ${student.fullName} as ${student.studentNumber}.`
-          : "Changes saved.",
-      );
+      let student: SavedStudent;
+      if (props.mode === "create") {
+        const enrolled = await apiRequest<{
+          student: SavedStudent;
+          activationEmail: { to: string; sent: boolean };
+        }>("POST", "/api/students", { ...details, status });
+        student = enrolled.student;
+        const { to, sent } = enrolled.activationEmail;
+        const enrolledAs = `Enrolled ${student.fullName} as ${student.studentNumber}.`;
+        if (sent) {
+          toast.success(enrolledAs, {
+            description: `An activation email went to ${to}.`,
+          });
+        } else {
+          // The student can't sign in until it goes, so say so plainly.
+          toast.warning(enrolledAs, {
+            description:
+              "The activation email couldn't be sent. Send it again from the record, under Sign-in.",
+            duration: Infinity,
+          });
+        }
+      } else {
+        ({ student } = await apiRequest<{ student: SavedStudent }>(
+          "PATCH",
+          `/api/students/${props.studentNumber}`,
+          details,
+        ));
+        toast.success("Changes saved.");
+      }
       await refreshAfterWrite();
       router.push(`/staff/students/${student.studentNumber}`);
     } catch (error) {

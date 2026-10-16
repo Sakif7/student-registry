@@ -36,6 +36,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput, violatedUniqueConstraint } from "../errors";
+import { passwordLinksOf } from "../password-links";
 import {
   requireSession,
   requireStaff,
@@ -225,9 +226,11 @@ export async function getStudent(
  * transaction as the insert, so numbers are unique and have no gaps. A student
  * enrolled straight away is charged the programme's standard fee for the
  * year in the same transaction, so a new enrolment can't be left unbilled.
+ * The student's sign-in account is created with the record, waiting for
+ * activation (see services/sign-in.ts for the email).
  *
  * @throws AppError: VALIDATION for invalid details or an unknown programme;
- *   CONFLICT if another student already uses the email address.
+ *   CONFLICT if another student or account already uses the email address.
  */
 export async function createStudent(
   session: Session | null,
@@ -242,7 +245,7 @@ export async function createStudent(
   try {
     const student = await db().$transaction(async (tx) => {
       const sequence = await nextStudentSequence(tx, intakeYear);
-      return tx.student.create({
+      const created = await tx.student.create({
         data: {
           studentNumber: formatStudentNumber(intakeYear, sequence),
           fullName: details.fullName,
@@ -269,6 +272,15 @@ export async function createStudent(
         },
         include: recordInclude,
       });
+      await tx.user.create({
+        data: {
+          name: created.fullName,
+          email: created.email,
+          role: "student",
+          studentNumber: created.studentNumber,
+        },
+      });
+      return created;
     });
     return toRecord(student);
   } catch (error) {
@@ -299,6 +311,8 @@ async function nextStudentSequence(
 /**
  * Edits a student's details (staff only). The student number never changes,
  * even when the academic year does. Status changes go through changeStatus.
+ * The sign-in account follows the record's name and email address; a new
+ * address cancels any link emailed to the old one.
  *
  * @throws AppError: NOT_FOUND, VALIDATION, or CONFLICT for an email already
  *   in use.
@@ -316,23 +330,51 @@ export async function updateStudent(
     : undefined;
 
   try {
-    const student = await db().student.update({
-      where: { id },
-      data: {
-        fullName: changes.fullName,
-        email: changes.email,
-        dateOfBirth:
-          changes.dateOfBirth === undefined
-            ? undefined
-            : toDbDate(changes.dateOfBirth),
-        academicYear: changes.academicYear,
-        programmeId,
-      },
-      include: recordInclude,
+    const student = await db().$transaction(async (tx) => {
+      const updated = await tx.student.update({
+        where: { id },
+        data: {
+          fullName: changes.fullName,
+          email: changes.email,
+          dateOfBirth:
+            changes.dateOfBirth === undefined
+              ? undefined
+              : toDbDate(changes.dateOfBirth),
+          academicYear: changes.academicYear,
+          programmeId,
+        },
+        include: recordInclude,
+      });
+      await syncAccount(tx, updated);
+      return updated;
     });
     return toRecord(student);
   } catch (error) {
     throw asDuplicateEmail(error);
+  }
+}
+
+/** Copies a student's name and email address to their sign-in account. */
+async function syncAccount(
+  tx: Prisma.TransactionClient,
+  student: { studentNumber: string; fullName: string; email: string },
+): Promise<void> {
+  const account = await tx.user.findUnique({
+    where: { studentNumber: student.studentNumber },
+    select: { id: true, name: true, email: true },
+  });
+  if (
+    !account ||
+    (account.name === student.fullName && account.email === student.email)
+  ) {
+    return;
+  }
+  await tx.user.update({
+    where: { id: account.id },
+    data: { name: student.fullName, email: student.email },
+  });
+  if (account.email !== student.email) {
+    await tx.verification.deleteMany({ where: passwordLinksOf(account.id) });
   }
 }
 
@@ -416,9 +458,16 @@ export async function findProgramme(code: string) {
 
 /** Turns the email unique-constraint violation into a field error. */
 export function asDuplicateEmail(error: unknown): unknown {
-  if (violatedUniqueConstraint(error) === "students_email_key") {
+  const constraint = violatedUniqueConstraint(error);
+  if (constraint === "students_email_key") {
     return new AppError("CONFLICT", "Some fields need correcting.", {
       email: ["Another student already uses this email address"],
+    });
+  }
+  // A member of staff, say: sign-in addresses are unique across everyone.
+  if (constraint === "users_email_key") {
+    return new AppError("CONFLICT", "Some fields need correcting.", {
+      email: ["Another account already uses this email address"],
     });
   }
   return error;

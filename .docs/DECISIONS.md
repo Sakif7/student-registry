@@ -306,6 +306,44 @@ services already used. No service changed.
     that the account exists and is turned off;
   - `session.ts` treats the account's existing sessions as signed out.
 
+### Students' accounts
+
+- **At enrolment:** the student's account is created in the same transaction
+  as the record, waiting for activation, and an activation email goes to the
+  student's address. Its link opens the activation page, where the student
+  chooses a password.
+- **If the email fails:** the enrolment still stands, as the record matters
+  more than the email. Staff see a warning that stays until dismissed, and
+  can send the email again from the record.
+- **Staff controls,** on the student's record:
+  - the account's state: waiting for activation, active or turned off, with
+    when the latest link went and until when it works;
+  - emailing a link: an activation link until the student has activated the
+    account, a password reset link after. A new link replaces any earlier
+    one, so only the latest email works;
+  - turning sign-in off, after a confirmation. This signs the student out on
+    every device at once and cancels any emailed link. A message offers to
+    undo it, which turns sign-in back on but can't restore the sessions
+    ended;
+  - turning sign-in back on.
+- **Withdrawn and completed students keep their sign-in,** so they can still
+  see their fees and results. Staff turn it off when access should end, as
+  the demo data has done for Hannah Kowalski.
+- **The account follows the record:** a change of name or email address on
+  the record changes the account's, in the same transaction. A new address
+  cancels any link sent to the old one, so it can't be used by whoever reads
+  the old inbox. An address another account uses, such as a member of
+  staff's, is refused.
+- **Existing students:** a data migration gave every student enrolled before
+  sign-in existed an account waiting for activation.
+- **Emails the Registry sends itself:** Better Auth's reset endpoint emails
+  its link and only logs a mail failure, which is right for "forgot
+  password" but would hide a failure from staff. For links staff send, the
+  app asks Better Auth to create the link without emailing it (a flag in
+  `AsyncLocalStorage` that the email callback checks), then sends its own
+  email and reports a failure: a warning after enrolment, and a 503 from
+  the link endpoint.
+
 ### Sessions and cookies
 
 - The cookie, `registry.session_token`, is HttpOnly and SameSite=Lax, and

@@ -1,6 +1,6 @@
-// A student's record, as Registry staff see it: details, status history and
-// account, with the controls to edit details, change status, charge fees and
-// record payments.
+// A student's record, as Registry staff see it: details, status history,
+// sign-in account, fees and results, with the controls to edit details,
+// change status, manage sign-in, charge fees and record payments.
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import { AccountSection } from "@/components/fees/account-section";
 import { ResultsSection } from "@/components/results/results-section";
 import { PageHeader } from "@/components/page-header";
+import { SignInCard } from "@/components/students/sign-in-card";
 import { StatusBadge } from "@/components/status-badge";
 import { StatusChangeForm } from "@/components/students/status-change-form";
 import {
@@ -24,11 +25,13 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
+import { formatDateOf, formatDateTime } from "@/lib/format";
 import { ENROLMENT_STATUS_LABELS } from "@/domain/enrolment";
 import { collegeTimeZone, collegeToday } from "@/server/college";
 import { orNotFound } from "@/server/pages";
 import { getAccount } from "@/server/services/fees";
 import { getResults } from "@/server/services/results";
+import { getStudentSignIn } from "@/server/services/sign-in";
 import { getStudent } from "@/server/services/students";
 import { requirePageRole } from "@/server/session";
 
@@ -56,11 +59,12 @@ export default function StudentPage({
 async function StudentRecordView({ params }: { params: Params }) {
   const session = await requirePageRole("staff");
   const { studentNumber } = await params;
-  const [student, account, results] = await orNotFound(
+  const [student, account, results, signIn] = await orNotFound(
     Promise.all([
       getStudent(session, studentNumber),
       getAccount(session, studentNumber),
       getResults(session, studentNumber),
+      getStudentSignIn(session, studentNumber),
     ]),
   );
   const timeZone = collegeTimeZone();
@@ -110,6 +114,24 @@ async function StudentRecordView({ params }: { params: Params }) {
               />
             </CardContent>
           </Card>
+          <SignInCard
+            studentNumber={student.studentNumber}
+            fullName={student.fullName}
+            signIn={{
+              email: signIn.email,
+              state: signIn.state,
+              activatedOn:
+                signIn.activatedAt &&
+                formatDateOf(signIn.activatedAt, timeZone),
+              disabledOn:
+                signIn.disabledAt && formatDateOf(signIn.disabledAt, timeZone),
+              link: signIn.link && {
+                sentAt: formatDateTime(signIn.link.sentAt, timeZone),
+                expiresAt: formatDateTime(signIn.link.expiresAt, timeZone),
+              },
+              devices: signIn.devices,
+            }}
+          />
           <StatusHistoryCard student={student} timeZone={timeZone} />
         </div>
       </div>

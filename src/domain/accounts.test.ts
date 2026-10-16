@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   newPasswordSchema,
+  signInAccessSchema,
   signInLockedMessage,
   signInLockedUntil,
   signInSchema,
+  signInState,
 } from "./accounts";
 
 const firstMessage = (result: { error?: { issues: { message: string }[] } }) =>
@@ -103,5 +105,37 @@ describe("signInLockedMessage", () => {
     expect(signInLockedMessage(new Date("2026-10-16T09:00:20.000Z"), now)).toBe(
       "Too many failed attempts to sign in with this email address. Try again in 1 minute.",
     );
+  });
+});
+
+describe("signInState", () => {
+  it("is waiting for activation until a password is set", () => {
+    expect(signInState(null)).toBe("PENDING");
+    expect(signInState({ emailVerified: false, disabledAt: null })).toBe(
+      "PENDING",
+    );
+  });
+
+  it("is active once the owner has set a password from an emailed link", () => {
+    expect(signInState({ emailVerified: true, disabledAt: null })).toBe(
+      "ACTIVE",
+    );
+  });
+
+  it("is turned off whenever staff have turned it off", () => {
+    const disabledAt = new Date("2026-10-08T09:00:00.000Z");
+    expect(signInState({ emailVerified: true, disabledAt })).toBe("DISABLED");
+    expect(signInState({ emailVerified: false, disabledAt })).toBe("DISABLED");
+  });
+});
+
+describe("signInAccessSchema", () => {
+  it("takes true or false, and nothing else", () => {
+    expect(signInAccessSchema.parse({ enabled: false })).toEqual({
+      enabled: false,
+    });
+    expect(
+      signInAccessSchema.safeParse({ enabled: "no" }).error?.issues[0]?.message,
+    ).toBe("Say whether sign-in should be on");
   });
 });
