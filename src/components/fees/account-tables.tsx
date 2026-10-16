@@ -1,8 +1,11 @@
 // A student's account in detail: the headline figures, each fee charge with
 // what has been paid towards it, and every payment (reversed ones included).
 import { cn } from "cn";
+import { ReceiptText, Scale, TriangleAlert, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { SummaryStrip } from "@/components/summary-strip";
+import type { Tone } from "@/components/tone";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -13,7 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ACCOUNT_STANDING_LABELS, type AccountStanding } from "@/domain/fees";
 import {
+  formatCount,
   formatDate,
   formatDateTime,
   formatDays,
@@ -21,58 +26,58 @@ import {
 } from "@/lib/format";
 import type { Account } from "@/server/services/fees";
 
-import { StandingBadge } from "./standing-badge";
+const STANDING_TONES: Record<AccountStanding, Tone> = {
+  OVERDUE: "negative",
+  DUE: "attention",
+  PAID: "positive",
+  CREDIT: "info",
+  NONE: "neutral",
+};
 
-/** The headline figures: charged, paid, balance (or credit) and overdue. */
+/**
+ * The headline figures: charged, paid, the balance (or credit) with where
+ * the account stands, and what is overdue.
+ */
 export function AccountFigures({ account }: { account: Account }) {
-  const { summary } = account;
-  const figures: [string, ReactNode, string?][] = [
-    ["Charged", formatMoney(summary.chargedPence)],
-    ["Paid", formatMoney(summary.paidPence)],
-    summary.balancePence < 0
-      ? ["In credit", formatMoney(-summary.balancePence)]
-      : ["Balance", formatMoney(summary.balancePence)],
-    summary.overduePence > 0
-      ? [
-          "Overdue",
-          formatMoney(summary.overduePence),
-          `since ${summary.overdueSince ? formatDate(summary.overdueSince) : ""} (${formatDays(summary.daysOverdue)})`,
-        ]
-      : ["Overdue", "Nothing overdue"],
-  ];
+  const { summary, standing } = account;
+  const payments = account.payments.filter(({ reversal }) => !reversal).length;
   return (
-    <div className="grid gap-3">
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">Account</span>
-        <StandingBadge standing={account.standing} />
-      </div>
-      <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {figures.map(([label, value, detail]) => {
-          const flagged = label === "Overdue" && summary.overduePence > 0;
-          return (
-            <div
-              key={label}
-              className={cn(
-                "rounded-lg border p-3",
-                flagged && "border-red-200 bg-red-50",
-              )}
-            >
-              {/* Muted grey is too faint on the red tint, so dark red. */}
-              <dt
-                className={cn(
-                  "text-sm",
-                  flagged ? "text-red-900" : "text-muted-foreground",
-                )}
-              >
-                {label}
-              </dt>
-              <dd className="text-lg font-semibold tabular-nums">{value}</dd>
-              {detail && <dd className="text-xs text-red-900">{detail}</dd>}
-            </div>
-          );
-        })}
-      </dl>
-    </div>
+    <SummaryStrip
+      facts={[
+        {
+          label: "Charged",
+          icon: ReceiptText,
+          value: formatMoney(summary.chargedPence),
+          detail: formatCount(account.charges.length, "fee"),
+        },
+        {
+          label: "Paid",
+          icon: Wallet,
+          value: formatMoney(summary.paidPence),
+          detail: formatCount(payments, "payment"),
+        },
+        {
+          label: summary.balancePence < 0 ? "In credit" : "Balance",
+          icon: Scale,
+          value: formatMoney(Math.abs(summary.balancePence)),
+          tone: STANDING_TONES[standing],
+          detail: ACCOUNT_STANDING_LABELS[standing],
+        },
+        summary.overduePence > 0
+          ? {
+              label: "Overdue",
+              icon: TriangleAlert,
+              value: formatMoney(summary.overduePence),
+              tone: "negative",
+              detail: `Since ${summary.overdueSince ? formatDate(summary.overdueSince) : ""} (${formatDays(summary.daysOverdue)})`,
+            }
+          : {
+              label: "Overdue",
+              icon: TriangleAlert,
+              value: "Nothing overdue",
+            },
+      ]}
+    />
   );
 }
 

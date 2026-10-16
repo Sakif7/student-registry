@@ -48,7 +48,7 @@ test("staff set an assessment, with the deadline in college time", async ({
   await expect(page.getByText(/17:00 (GMT|BST)/)).toBeVisible();
   await expect(
     // Oliver and Priya: the first-years registered on CS4002.
-    page.getByText("0 of 2 registered students have submitted."),
+    page.getByText("0 of 2 students"),
   ).toBeVisible();
   assessmentUrl = new URL(page.url()).pathname;
 });
@@ -117,9 +117,7 @@ test("work submitted after the deadline is accepted but marked late", async ({
 test("staff see the submission and enter marks", async ({ page }) => {
   await viewAs(page, "staff");
   await page.goto(assessmentUrl);
-  await expect(
-    page.getByText("1 of 2 registered students have submitted."),
-  ).toBeVisible();
+  await expect(page.getByText("1 of 2 students")).toBeVisible();
   await expect(page.getByText("Replaced 1 time")).toBeVisible();
 
   await page.getByLabel("Mark for Priya Natarajan").fill("64");

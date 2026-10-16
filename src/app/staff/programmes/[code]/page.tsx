@@ -1,8 +1,9 @@
-// A programme and its structure: for each year of study, the core modules
-// every student takes and the options students choose from, with the
-// credits they come to.
+// A programme and its structure: a summary of its length, credits, fee,
+// modules and students, then for each year of study the core modules every
+// student takes and the options students choose from, with the credits they
+// come to.
+import { Banknote, BookOpen, CalendarRange, Layers, Users } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/components/curriculum/curriculum-dialogs";
 import { RemoveStructureModuleButton } from "@/components/curriculum/remove-structure-module-button";
 import { PageHeader } from "@/components/page-header";
+import { SummaryStrip } from "@/components/summary-strip";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -64,16 +66,15 @@ async function ProgrammeView({ params }: Pick<Props, "params">) {
   const [programme, modules] = await orNotFound(
     Promise.all([getProgramme(session, code), listModuleSummaries(session)]),
   );
-  const inProgramme = new Set(
-    programme.structure.flatMap((year) => year.modules.map((m) => m.code)),
-  );
+  const placed = programme.structure.flatMap((year) => year.modules);
+  const inProgramme = new Set(placed.map((m) => m.code));
+  const core = placed.filter((m) => m.kind === "CORE").length;
   return (
     <>
       <PageHeader
         breadcrumbs={[{ label: "Programmes", href: "/staff/programmes" }]}
         eyebrow={<span className="font-mono">{programme.code}</span>}
         title={programme.title}
-        description={`${formatCount(programme.years, "year")} of study · ${programme.creditsPerYear} credits a year · ${formatMoney(programme.annualFeePence)} a year`}
         actions={
           <>
             <EditProgrammeDialog
@@ -93,15 +94,44 @@ async function ProgrammeView({ params }: Pick<Props, "params">) {
           </>
         }
       />
-      <p className="mb-6 text-sm">
-        <Link
-          href={`/staff/students?programme=${encodeURIComponent(programme.code)}&status=ENROLLED`}
-          className="underline-offset-4 hover:underline"
-        >
-          {formatCount(programme.enrolledCount, "student")} enrolled
-        </Link>
-      </p>
       <div className="grid grid-cols-1 gap-6">
+        <SummaryStrip
+          facts={[
+            {
+              label: "Length",
+              icon: CalendarRange,
+              value: formatCount(programme.years, "year"),
+              detail: "Of study",
+            },
+            {
+              label: "Credits",
+              icon: Layers,
+              value: `${programme.creditsPerYear} a year`,
+              detail: "Core and options together",
+            },
+            {
+              label: "Fee",
+              icon: Banknote,
+              value: `${formatMoney(programme.annualFeePence)} a year`,
+              detail: "The standard tuition fee",
+            },
+            {
+              label: "Modules",
+              icon: BookOpen,
+              value: formatCount(placed.length, "module"),
+              detail: `${core} core, ${placed.length - core} optional`,
+            },
+            {
+              label: "Students",
+              icon: Users,
+              value: `${programme.enrolledCount} enrolled`,
+              detail: "On the student list",
+              link: {
+                href: `/staff/students?programme=${encodeURIComponent(programme.code)}&status=ENROLLED`,
+              },
+            },
+          ]}
+        />
         {programme.structure.map((year) => (
           <YearCard
             key={year.yearOfStudy}

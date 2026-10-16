@@ -131,3 +131,32 @@ test("sorts the list by a column, and goes from a row to part of a record", asyn
     page.getByRole("tab", { name: "Fees", selected: true }),
   ).toBeVisible();
 });
+
+test("the summary at the top of a record opens the tab behind each fact", async ({
+  page,
+}) => {
+  const record = `/staff/students/${demoStudent("priya")}`;
+  await page.goto(record);
+  // The sidebar has a Modules page too, so look in the page's own content.
+  const main = page.getByRole("main");
+  await expect(main.getByText("105 of 120 credits")).toBeVisible();
+
+  await main.getByRole("link", { name: "Modules", exact: true }).click();
+  await expect(
+    page.getByRole("tab", { name: "Modules", selected: true }),
+  ).toBeFocused();
+  await expect(page).toHaveURL(`${record}?tab=modules`);
+
+  // After choosing another tab by hand, a fact still opens its own.
+  await page.getByRole("tab", { name: "Overview" }).click();
+  await main.getByRole("link", { name: "Modules", exact: true }).click();
+  await expect(
+    page.getByRole("tab", { name: "Modules", selected: true }),
+  ).toBeVisible();
+
+  await main.getByRole("link", { name: "Sign-in", exact: true }).click();
+  await expect(
+    page.getByRole("tab", { name: "Sign-in", selected: true }),
+  ).toBeFocused();
+  await expect(page).toHaveURL(`${record}?tab=sign-in`);
+});

@@ -1,13 +1,14 @@
 // A student's modules, as staff see them on the student's record and the
-// student on their own page: this academic year's registrations, by
-// semester, with the credits they come to; the options of the student's
-// year, which can be added while changes are open to the viewer; and the
-// modules of earlier years.
-import { SemesterCalendar } from "@/components/curriculum/semester-calendar";
+// student on their own page: a summary of the year's credits and semesters;
+// this academic year's registrations, by semester; the options of the
+// student's year, which can be added while changes are open to the viewer;
+// and the modules of earlier years.
+import { CalendarDays, Layers } from "lucide-react";
+
+import { type SummaryFact, SummaryStrip } from "@/components/summary-strip";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -23,8 +24,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MODULE_KIND_LABELS, SEMESTER_LABELS } from "@/domain/curriculum";
-import { formatCount } from "@/lib/format";
+import {
+  MODULE_KIND_LABELS,
+  type Semester,
+  SEMESTER_LABELS,
+} from "@/domain/curriculum";
+import { formatCount, formatDate } from "@/lib/format";
 import type { StudentModules } from "@/server/services/registrations";
 
 import { RegistrationButton } from "./registration-button";
@@ -41,6 +46,7 @@ export function ModulesSection({
 }) {
   return (
     <div className="grid grid-cols-1 gap-6">
+      <SummaryStrip facts={yearFacts(modules)} />
       <RegisteredCard modules={modules} viewer={viewer} />
       {modules.options.length > 0 && (
         <OptionsCard modules={modules} viewer={viewer} />
@@ -57,6 +63,63 @@ function creditsLeft(modules: StudentModules): number {
   return Math.max(modules.creditsPerYear - modules.registeredCredits, 0);
 }
 
+/**
+ * The year's credits, and each semester with how many of the student's
+ * modules are taught in it, counting all-year ones in both.
+ */
+function yearFacts(modules: StudentModules): SummaryFact[] {
+  const left = creditsLeft(modules);
+  const enrolled = modules.status === "ENROLLED";
+  const credits: SummaryFact = {
+    label: "Credits",
+    icon: Layers,
+    value: `${modules.registeredCredits} of ${modules.creditsPerYear}`,
+    tone: !enrolled ? "neutral" : left > 0 ? "attention" : "positive",
+    progress: { value: modules.registeredCredits, max: modules.creditsPerYear },
+    detail:
+      left === 0
+        ? "The year's credits are made up"
+        : enrolled
+          ? `${left} credits to choose`
+          : `${left} credits short`,
+  };
+  const { calendar } = modules;
+  if (!calendar) {
+    return [
+      credits,
+      {
+        label: "Semesters",
+        icon: CalendarDays,
+        value: "Not set yet",
+        detail: `The dates for ${modules.academicYear} aren't set`,
+      },
+    ];
+  }
+  const taught = (semester: Semester) =>
+    formatCount(
+      modules.registered.filter(
+        (module) =>
+          module.semester === semester || module.semester === "ALL_YEAR",
+      ).length,
+      "module",
+    );
+  return [
+    credits,
+    {
+      label: "Semester 1",
+      icon: CalendarDays,
+      value: `${formatDate(calendar.semester1Start)} to ${formatDate(calendar.semester1End)}`,
+      detail: `${taught("FIRST")} taught`,
+    },
+    {
+      label: "Semester 2",
+      icon: CalendarDays,
+      value: `${formatDate(calendar.semester2Start)} to ${formatDate(calendar.semester2End)}`,
+      detail: `${taught("SECOND")} taught`,
+    },
+  ];
+}
+
 function RegisteredCard({
   modules,
   viewer,
@@ -64,7 +127,6 @@ function RegisteredCard({
   modules: StudentModules;
   viewer: Viewer;
 }) {
-  const left = creditsLeft(modules);
   const changing = modules.changes.allowed;
   return (
     <Card>
@@ -73,23 +135,10 @@ function RegisteredCard({
           <h2>Modules in {modules.academicYear}</h2>
         </CardTitle>
         <CardDescription>
-          Year {modules.yearOfStudy} of {modules.programme.title}:{" "}
-          {modules.registeredCredits} of the {modules.creditsPerYear} credits a
-          year carries.
+          Year {modules.yearOfStudy} of {modules.programme.title}, by semester.
         </CardDescription>
-        {modules.status === "ENROLLED" && left > 0 && (
-          <CardAction>
-            <Badge className="border-transparent bg-amber-100 text-amber-900">
-              {left} credits to choose
-            </Badge>
-          </CardAction>
-        )}
       </CardHeader>
       <CardContent className="grid gap-4">
-        <SemesterCalendar
-          academicYear={modules.academicYear}
-          calendar={modules.calendar}
-        />
         {modules.registered.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {viewer === "student" ? "You aren't" : "Not"} registered on any

@@ -769,12 +769,20 @@ shell, as in most business applications:
 The record was one long page, with details, status, fees, results and history
 one after another. It is now a header and tabs.
 
-- **The header** names the student with the facts staff check first: status,
-  fees (with any amount overdue), results (withheld, or how many marks wait
-  to be published) and sign-in. It holds the two actions on the record as a
-  whole: editing the details and changing the status.
-- **Tabs:** Overview (details and status history), Fees, Assessments (the
-  student's work for each), Results, History (the audit trail) and Sign-in.
+- **The header** names the student, with their programme, year of study and
+  academic year, and holds the two actions on the record as a whole: editing
+  the details and changing the status.
+- **A summary under it** gives the facts staff check first, one to a cell
+  (see "Summaries at the top of a page"): status and since when, the year's
+  credits, fees (what is overdue or due), results (withheld, or how many
+  marks wait to be published) and sign-in. Each fact opens the tab that
+  explains it, in place, and moves focus to that tab. A plain link wouldn't
+  always work: the page stays mounted, so after a tab is chosen by hand,
+  following a link back to the tab the page was opened on would change
+  nothing.
+- **Tabs:** Overview (details and status history), Modules, Fees,
+  Assessments (the student's work for each), Results, History (the audit
+  trail) and Sign-in.
 - **Every tab's content arrives with the page,** which reads it all in one go
   anyway, so switching is instant. The chosen tab goes into the address as
   `?tab=`, through `history.replaceState`, which Next.js keeps its router in
@@ -784,6 +792,29 @@ one after another. It is now a header and tabs.
   edit page), changing the status, recording a payment and charging a fee,
   as correcting a fee and reversing a payment already were. A dialog closes
   once its form has saved, and the record refreshes behind it.
+
+### Summaries at the top of a page
+
+Key facts that used to run together in a line of text, or sit in a card of
+their own, are now a summary strip (`src/components/summary-strip.tsx`),
+one fact to a cell:
+
+- each cell has a label with an icon, the value, and a line of detail;
+- a dot, or a bar for a share such as credits, shows the fact's tone (fine,
+  needs attention, overdue, for information, or neither). The words always
+  say the same, so colour is never the only cue, and the bar is hidden from
+  screen readers;
+- a fact can link to where it is explained. Its label is the link,
+  stretched over the cell, so the whole cell can be clicked while screen
+  readers hear a short link named after the label;
+- cells wrap onto more rows on narrow screens, two to a row on a phone, and
+  the cells of the last row widen to fill it, so the strip has no gaps.
+
+The strip heads a student's record, a programme (length, credits, fee,
+modules and students), an assessment (deadline, whether it takes work, what
+has been submitted, and the marks), the Modules tab and My modules (credits
+and both semesters), and the Fees tab and My fees (charged, paid, the
+balance with where the account stands, and what is overdue).
 
 ### The student list
 

@@ -4,9 +4,10 @@
 // switching is instant; the chosen tab goes into the address as ?tab=, so a
 // link or a reload opens it again. Switching replaces the address rather
 // than adding to the history, so Back leaves the record instead of stepping
-// back through its tabs.
-import type { ReactNode } from "react";
-import { useState } from "react";
+// back through its tabs. A summary above the tabs can open them too, through
+// RecordTabLink.
+import type { MouseEvent, ReactNode } from "react";
+import { createContext, use, useRef, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -17,18 +18,25 @@ export interface RecordTab {
   content: ReactNode;
 }
 
+/** Opens a tab from outside the tab list, for RecordTabLink. */
+const OpenTab = createContext<((value: string) => void) | null>(null);
+
 export function RecordTabs({
   tabs,
   initialTab,
+  header,
 }: {
   tabs: readonly RecordTab[];
   /** The ?tab= value the page was opened with, if any. */
   initialTab?: string;
+  /** Shown above the tabs, e.g. a summary whose facts open them. */
+  header?: ReactNode;
 }) {
   const first = tabs[0]?.value ?? "";
   const [tab, setTab] = useState(
     tabs.some(({ value }) => value === initialTab) ? initialTab : first,
   );
+  const tabList = useRef<HTMLDivElement>(null);
 
   function choose(value: string) {
     setTab(value);
@@ -39,22 +47,68 @@ export function RecordTabs({
     window.history.replaceState(null, "", url);
   }
 
+  /** Opens a tab and moves focus to it, so the reader knows where they are. */
+  function open(value: string) {
+    choose(value);
+    tabList.current
+      ?.querySelector<HTMLElement>(`[data-tab="${value}"]`)
+      ?.focus();
+  }
+
   return (
-    <Tabs value={tab} onValueChange={(value: string) => choose(value)}>
-      <div className="-mx-1 overflow-x-auto px-1 pb-1">
-        <TabsList>
-          {tabs.map(({ value, label }) => (
-            <TabsTrigger key={value} value={value}>
-              {label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </div>
-      {tabs.map(({ value, content }) => (
-        <TabsContent key={value} value={value} className="mt-6">
-          {content}
-        </TabsContent>
-      ))}
-    </Tabs>
+    <OpenTab value={open}>
+      {header && <div className="mb-6">{header}</div>}
+      <Tabs value={tab} onValueChange={(value: string) => choose(value)}>
+        <div ref={tabList} className="-mx-1 overflow-x-auto px-1 pb-1">
+          <TabsList>
+            {tabs.map(({ value, label }) => (
+              <TabsTrigger key={value} value={value} data-tab={value}>
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+        {tabs.map(({ value, content }) => (
+          <TabsContent key={value} value={value} className="mt-6">
+            {content}
+          </TabsContent>
+        ))}
+      </Tabs>
+    </OpenTab>
+  );
+}
+
+/**
+ * A link to one of the record's tabs, from the header of RecordTabs: it
+ * opens the tab in place. Opened in a new window, or before the page is
+ * interactive, it loads the record on that tab instead.
+ */
+export function RecordTabLink({
+  tab,
+  className,
+  children,
+}: {
+  tab: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const open = use(OpenTab);
+
+  function onClick(event: MouseEvent<HTMLAnchorElement>) {
+    const newWindow =
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey;
+    if (!open || newWindow) return;
+    event.preventDefault();
+    open(tab);
+  }
+
+  return (
+    <a href={`?tab=${tab}`} className={className} onClick={onClick}>
+      {children}
+    </a>
   );
 }

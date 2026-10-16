@@ -3,31 +3,28 @@
 // record: details, modules, fees, assessments, results, history and
 // sign-in. The tab in the address (?tab=) opens first.
 import type { Metadata } from "next";
-import { type ReactNode, Suspense } from "react";
+import { Suspense } from "react";
 
 import { HistoryCard } from "@/components/activity/history-card";
 import { AccountSection } from "@/components/fees/account-section";
-import { StandingBadge } from "@/components/fees/standing-badge";
 import { PageHeader } from "@/components/page-header";
 import { RecordTabs } from "@/components/record-tabs";
 import { ModulesSection } from "@/components/registration/modules-section";
 import { ResultsSection } from "@/components/results/results-section";
-import { StatusBadge } from "@/components/status-badge";
 import {
   ChangeStatusDialog,
   EditDetailsDialog,
 } from "@/components/students/record-actions";
-import { SignInBadge } from "@/components/students/sign-in-badge";
+import { RecordSummary } from "@/components/students/record-summary";
 import { SignInCard } from "@/components/students/sign-in-card";
 import {
   StatusHistoryCard,
   StudentDetailsCard,
 } from "@/components/students/student-details";
 import { StudentAssessmentsTable } from "@/components/submissions/student-assessments-table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
-import { formatDateOf, formatDateTime, formatMoney } from "@/lib/format";
+import { formatDateOf, formatDateTime } from "@/lib/format";
 import { collegeTimeZone, collegeToday } from "@/server/college";
 import { firstValues, orNotFound } from "@/server/pages";
 import { getStudentHistory } from "@/server/services/activity";
@@ -49,7 +46,7 @@ export default function StudentPage({ params, searchParams }: Props) {
       fallback={
         <div className="grid gap-6">
           <Skeleton className="h-12 w-72" />
-          <Skeleton className="h-9 w-full max-w-xl" />
+          <Skeleton className="h-28 rounded-xl" />
           <Skeleton className="h-64" />
         </div>
       }
@@ -94,9 +91,6 @@ async function StudentRecordView({ params, searchParams }: Props) {
         student.academicYear,
       ]),
     ].sort();
-  const unpublished = results.results.filter((r) => !r.publishedAt).length;
-  const overdue = account.summary.overduePence;
-  const creditsLeft = modules.creditsPerYear - modules.registeredCredits;
 
   return (
     <>
@@ -104,7 +98,7 @@ async function StudentRecordView({ params, searchParams }: Props) {
         breadcrumbs={[{ label: "Students", href: "/staff/students" }]}
         eyebrow={<span className="font-mono">{student.studentNumber}</span>}
         title={student.fullName}
-        description={`${student.programme.title} · ${student.academicYear}`}
+        description={`${student.programme.title} · Year ${student.yearOfStudy} · ${student.academicYear}`}
         actions={
           <>
             <EditDetailsDialog
@@ -130,49 +124,21 @@ async function StudentRecordView({ params, searchParams }: Props) {
         }
       />
 
-      <dl className="mb-6 flex flex-wrap gap-x-6 gap-y-3 text-sm">
-        <Fact label="Status">
-          <StatusBadge status={student.status} />
-        </Fact>
-        <Fact label="Modules">
-          <span className="tabular-nums">
-            {modules.registeredCredits} of {modules.creditsPerYear} credits
-          </span>
-          {student.status === "ENROLLED" && creditsLeft > 0 && (
-            <Badge className="border-transparent bg-amber-100 text-amber-900">
-              {creditsLeft} to choose
-            </Badge>
-          )}
-        </Fact>
-        <Fact label="Fees">
-          <StandingBadge standing={account.standing} />
-          {overdue > 0 && (
-            <span className="text-red-900">{formatMoney(overdue)} overdue</span>
-          )}
-        </Fact>
-        <Fact label="Results">
-          {results.withheld ? (
-            <Badge className="border-transparent bg-amber-100 text-amber-900">
-              Withheld
-            </Badge>
-          ) : unpublished > 0 ? (
-            <span>{unpublished} to publish</span>
-          ) : results.results.length > 0 ? (
-            <span>All published</span>
-          ) : (
-            <span className="text-muted-foreground">None yet</span>
-          )}
-        </Fact>
-        <Fact label="Sign-in">
-          <SignInBadge state={signIn.state} />
-        </Fact>
-      </dl>
-
       {/* Keyed by the tab asked for, so a link to another tab of this record
           opens it even though the page stays mounted. */}
       <RecordTabs
         key={tab ?? ""}
         initialTab={tab}
+        header={
+          <RecordSummary
+            student={student}
+            modules={modules}
+            account={account}
+            results={results}
+            signIn={signIn}
+            timeZone={timeZone}
+          />
+        }
         tabs={[
           {
             value: "overview",
@@ -265,15 +231,5 @@ async function StudentRecordView({ params, searchParams }: Props) {
         ]}
       />
     </>
-  );
-}
-
-/** One of the facts under the record's title. */
-function Fact({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="flex items-center gap-2">{children}</dd>
-    </div>
   );
 }

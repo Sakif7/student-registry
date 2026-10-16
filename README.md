@@ -67,9 +67,10 @@ Router), PostgreSQL and Prisma.
 - **Interface:** an app shell with a sidebar of the section's pages, which
   collapses to icons or, on a phone, slides in; breadcrumbs on deeper pages;
   a menu for one's account and signing out; a search (Ctrl/⌘+K) for pages,
-  actions and students; each student's record in tabs (overview, modules,
-  fees, assessments, results, history, sign-in), with its actions in
-  dialogs; and
+  actions and students; a summary of the key facts at the top of a
+  record, a programme, an assessment and an account; each student's record
+  in tabs (overview, modules, fees, assessments, results, history,
+  sign-in), opened from its summary too, with its actions in dialogs; and
   Undo for actions that can be reversed straight away.
 - **Audit trail:** every change records who made it and when, in the same
   transaction, and the trail can't be edited. Staff see it on each

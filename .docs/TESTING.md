@@ -287,15 +287,18 @@ scenario 2, or 10 on fresh demo data.
 ### 4. Editing a record and changing status
 
 As staff, open **Oliver Bennett** (SMS-2026-0001) from **Students**. The
-record opens on **Overview**; its tabs are **Overview**, **Fees**,
-**Assessments**, **Results**, **History** and **Sign-in**. Choosing one puts it
-in the address (`?tab=fees`), so a link or a reload opens it again.
+record opens on **Overview**; its tabs are **Overview**, **Modules**,
+**Fees**, **Assessments**, **Results**, **History** and **Sign-in**. Choosing
+one puts it in the address (`?tab=fees`), so a link or a reload opens it
+again. The summary above the tabs gives Oliver's status, modules, fees,
+results and sign-in: select **Fees** in it and the Fees tab opens, with the
+focus on that tab.
 
 1. Select **Change status**. In the dialog, choose **Deferred** and select
    **Change status** without a reason. The label reads "Reason (required)" and
    the error "Give a reason for deferral or withdrawal" appears.
 2. Enter the reason `Family circumstances` and select **Change status**. The
-   dialog closes, the status under the title becomes **Deferred**, and the
+   dialog closes, **Status** in the summary becomes **Deferred**, and the
    status history gains "Enrolled → Deferred · Family circumstances". **Change
    status** now offers only **Enrolled** and **Withdrawn**.
 3. Select **Students** in the sidebar. Oliver shows as Deferred. Open the
@@ -336,7 +339,7 @@ in the address (`?tab=fees`), so a link or a reload opens it again.
 ### 6. Fees and payments
 
 As staff, open **Amelia Hart** (SMS-2025-0001), then the **Fees** tab. The
-account is **Overdue**:
+balance reads **Overdue**:
 
 - £19,070.00 charged, £9,535.00 paid, a balance of £9,535.00, all of it
   overdue for 20 days;
@@ -458,11 +461,12 @@ As staff:
    UK clocks jump from 01:00 to 02:00. A date in the past is refused too: "The
    deadline must be in the future".
 4. Choose a date about four weeks ahead at 17:00 and select **Set
-   assessment**. The assessment's page shows the deadline with its weekday and
-   time zone, such as "Fri 20 Nov 2026, 17:00 GMT" (BST in summer), and
-   **Open**. Under **Submissions and marks**, "0 of 2 registered students
-   have submitted" lists Oliver Bennett and Priya Natarajan, the first-years
-   registered on CS4002. Amelia Hart, a second-year, isn't on the module.
+   assessment**. The summary at the top of the assessment's page shows the
+   **Deadline** with its weekday and time zone, such as "Fri 20 Nov 2026,
+   17:00 GMT" (BST in summer), **Submissions** **Open**, **Submitted** "0 of
+   2 students" and **Marked** "0 marks". **Submissions and marks** lists
+   Oliver Bennett and Priya Natarajan, the first-years registered on CS4002.
+   Amelia Hart, a second-year, isn't on the module.
 5. Select **Edit title or deadline**, move the deadline a week later and save.
    The page shows the new deadline.
 6. Select **Close to submissions**. A dialog asks you to confirm, with
@@ -525,8 +529,8 @@ Continue from scenario 10, as staff, on **SQL lab test**.
 
 Continue from scenario 11, as staff.
 
-1. Open **Amelia Hart**'s record, then the **Results** tab. The fees read
-   **Overdue** with "£9,535.00 overdue", and a notice reads "Results withheld
+1. Open **Amelia Hart**'s record, then the **Results** tab. In the summary,
+   **Fees** reads "£9,535.00 overdue", and a notice reads "Results withheld
    since …" with the reason "Outstanding tuition fees". **Software design
    report** shows 66, **Merit**, published.
 2. As **Amelia Hart**, open **Results**. "Your results are being withheld"
@@ -620,9 +624,10 @@ As staff:
 
 As staff:
 
-1. Open **Priya Natarajan**'s record. The header reads "105 of 120
-   credits" and "15 to choose". Open the **Modules** tab: the semester
-   dates, then CS4001, CS4002 and CS4003 as **Core** and AI4001 as
+1. Open **Priya Natarajan**'s record. In the summary, **Modules** reads
+   "105 of 120 credits", with "15 credits to choose". Select it: the
+   **Modules** tab opens with the credits and both semesters' dates at the
+   top, then CS4001, CS4002 and CS4003 as **Core** and AI4001 as
    **Optional**, 105 credits in all. Core modules have no **Drop** button.
 2. Under **Options**, select **Add** beside CS4004: "Added CS4004." appears
    with **Undo**. The total is 120, and CS4005 now reads "Too many

@@ -1424,3 +1424,35 @@ the year, one short, one with none, one whose session is last year, and
 one who has withdrawn; running it without the academic-year match made it
 fail, as it should. An end-to-end test follows the worklist to Priya's
 Modules tab, and a screenshot showed the dashboard's layout.
+
+## Summaries at the top of a page
+
+**What the AI did:** the owner pointed out that the facts under a student's
+name read as a run of words and badges. The AI made a summary strip, one
+fact to a cell: a label with an icon, the value with a dot (or a bar) in
+its tone, and a line of detail. On the record, the strip gives status and
+since when, the year's credits with a bar, what is due or overdue, the
+results waiting to be published, and sign-in. Each fact opens its tab in
+place and moves the focus to it. Asked to address similar things, the AI
+used the same strip for:
+
+- a programme: length, credits, fee, modules and enrolled students (which
+  opens the student list), instead of a line of facts and a separate link;
+- an assessment: deadline, whether it takes work, how much has been
+  submitted and how many marks are published, instead of a Deadline card and
+  a sentence; the marks hadn't been counted anywhere before;
+- the Modules tab and My modules: the year's credits and both semesters,
+  with how many modules each holds;
+- the Fees tab and My fees: the four figures, with the account's standing
+  in the balance instead of a line of its own.
+
+The tab links could not be plain links: the record stays mounted, so after a
+tab was chosen by hand, a link back to the tab the page had opened on would
+have changed nothing. They open the tab through the tabs' own state instead,
+and still work as ordinary links in a new window.
+
+**Checked by:** screenshots of each page on a wide screen and a phone; an
+end-to-end test that the summary opens the Modules and Sign-in tabs, moving
+the focus to them, including after a tab was chosen by hand; the assessment
+tests now read the Submitted fact; and the axe scans and the phone-width
+check of every page.
