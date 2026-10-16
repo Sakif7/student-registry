@@ -300,6 +300,15 @@ brief and from decisions agreed before any code was written.
   emailed links, account pages and an audit trail, then the app shell,
   the record's tabs, the dashboard, the student's home page, search,
   sortable lists and Undo.
+- **A third round took on the curriculum.** Asked how programmes and
+  modules were created and how students' modules were chosen, the agent
+  explained that the first build seeded them, with every student taking
+  every module of their programme, and put the options to the owner. The
+  owner chose full module registration: a shared module catalogue, core and
+  optional modules for each year of a programme, dated semesters, and
+  options chosen by staff or, while staff allow it, by students, within the
+  year's credits. Smaller changes followed the owner's feedback, such as a
+  clearer summary at the top of a record.
 - **Guardrails were set for the agent.**
   - Dependencies may only be installed through npm, never hand-edited.
   - Destructive database commands are off-limits, and tests may only touch
@@ -315,9 +324,10 @@ brief and from decisions agreed before any code was written.
 The project depends on open-source packages under these licences:
 
 - **MIT:** Next.js, React, Better Auth, Base UI, shadcn/ui (whose components
-  are copied into `src/components/ui`), Tailwind CSS, Zod, React Hook Form,
-  sonner, cmdk, file-type, Vitest, ESLint, typescript-eslint, Prettier,
-  Husky, lint-staged and tsx; Mailpit (run in Docker for development only)
+  are copied into `src/components/ui`, with its helpers cn and
+  tw-animate-css), Tailwind CSS, Recharts, Zod, React Hook Form, sonner,
+  cmdk, file-type, Vitest, ESLint, typescript-eslint, Prettier, Husky,
+  lint-staged and tsx; Mailpit (run in Docker for development only)
 - **MIT-0:** Nodemailer
 - **Apache 2.0:** Prisma, Playwright, TypeScript and class-variance-authority
 - **ISC:** Lucide icons

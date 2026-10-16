@@ -1456,3 +1456,25 @@ end-to-end test that the summary opens the Modules and Sign-in tabs, moving
 the focus to them, including after a tab was chosen by hand; the assessment
 tests now read the Submitted fact; and the axe scans and the phone-width
 check of every page.
+
+## Checks before submitting
+
+**What the AI did:** asked whether the project was ready to submit, the AI
+checked it against the brief's definition of done instead of answering from
+memory:
+
+- **A fresh clone, following the README:** `npm install`, the example
+  environment file, the migrations from an empty database, the seed and the
+  dev server, then signing in as staff and opening the dashboard and a
+  record. It worked, with no errors in the browser or the server log. (A
+  separate database was used, so that the owner's own data stayed as it
+  was.)
+- **The dependency audit:** nothing beyond the three reviewed advisories.
+- **The documents, for anything the later rounds had made untrue.** It found
+  three things and fixed them: "With more time" still listed assessments for
+  students of the right year, which the curriculum round had built; the
+  README's account of AI use stopped at the second round; and the licences
+  left out Recharts, which draws the dashboard's charts.
+
+**Checked by:** the fresh clone itself, and a search of the documents for
+the features each round added.

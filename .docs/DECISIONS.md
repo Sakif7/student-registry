@@ -1164,8 +1164,6 @@ In rough order of value to a real Registry:
 - **Individual deadline extensions** for students with mitigating
   circumstances, and **payment plans** with instalments, rather than moving
   a charge's single due date.
-- **Modules by year of study:** today an assessment is open to everyone on
-  the programme, whatever their year.
 - **More registration tools:** progressing a whole year's students to the
   next year at once; registering a student on a module from outside their
   programme (an elective from another programme, or a resit); applying a
