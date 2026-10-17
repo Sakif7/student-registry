@@ -5,7 +5,10 @@ import type { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET as listAcademicYears } from "@/app/api/academic-years/route";
-import { PUT as saveAcademicYear } from "@/app/api/academic-years/[year]/route";
+import {
+  PUT as saveAcademicYear,
+  PATCH as setStudentsChoose,
+} from "@/app/api/academic-years/[year]/route";
 import { PATCH as updateModule } from "@/app/api/modules/[code]/route";
 import { POST as createModule } from "@/app/api/modules/route";
 import { DELETE as removeModule } from "@/app/api/programmes/[code]/modules/[moduleCode]/route";
@@ -265,6 +268,17 @@ describe("a programme's structure", () => {
           "Core modules in year 1 would come to 135 credits, more than the 120 a year carries.",
       },
     });
+    // CS4002 is worth 60: no student could ever take it as an option with
+    // only 45 credits left.
+    expect(
+      await add({ moduleCode: "CS4002", yearOfStudy: 1, kind: "OPTIONAL" }),
+    ).toMatchObject({
+      status: 409,
+      body: {
+        detail:
+          "An option in year 1 can be worth at most 45 credits: core modules take 75 of the 120 a year carries.",
+      },
+    });
     expect(
       await add({ moduleCode: "CS4002", yearOfStudy: 4, kind: "OPTIONAL" }),
     ).toMatchObject({
@@ -449,6 +463,40 @@ describe("modules", () => {
       },
     });
   });
+
+  it("can't overfill a year with a credits change and a new core module at once", async () => {
+    const programme = await makeProgramme({
+      code: "BSC-CS",
+      creditsPerYear: 120,
+    });
+    await makeModule({
+      code: "CS4001",
+      credits: 60,
+      programmeId: programme.id,
+    });
+    await makeModule({
+      code: "CS4002",
+      credits: 30,
+      programmeId: programme.id,
+    });
+    await makeModule({ code: "CS4003", credits: 30 });
+
+    // Each fits on its own (105 and 120 credits); both would make 135.
+    const [changed, added] = await Promise.all([
+      call(updateModule, "PATCH", "/api/modules/CS4002", {
+        json: { credits: 45 },
+        params: { code: "CS4002" },
+      }),
+      call(addModule, "POST", "/api/programmes/BSC-CS/modules", {
+        json: { moduleCode: "CS4003", yearOfStudy: 1, kind: "CORE" },
+        params: { code: "BSC-CS" },
+      }),
+    ]);
+
+    expect([changed.status, added.status].sort()).toEqual(
+      added.status === 409 ? [200, 409] : [201, 409],
+    );
+  });
 });
 
 describe("academic years", () => {
@@ -470,6 +518,8 @@ describe("academic years", () => {
       ...SEMESTERS,
       studentsChooseModules: true,
     });
+    // Saving the same again changes nothing, so records nothing.
+    await put("2026-27", { ...SEMESTERS, studentsChooseModules: true });
 
     expect(created).toMatchObject({
       status: 200,
@@ -507,6 +557,35 @@ describe("academic years", () => {
     ]);
   });
 
+  it("let students choose, or stop them, leaving the semester dates alone", async () => {
+    const patch = (year: string, json: unknown) =>
+      call(setStudentsChoose, "PATCH", `/api/academic-years/${year}`, {
+        json,
+        params: { year },
+      });
+    await put("2026-27", SEMESTERS);
+
+    expect(
+      await patch("2026-27", { studentsChooseModules: true }),
+    ).toMatchObject({
+      status: 200,
+      body: {
+        academicYear: { ...SEMESTERS, studentsChooseModules: true },
+      },
+    });
+    await patch("2026-27", { studentsChooseModules: true });
+    expect(
+      (await patch("2027-28", { studentsChooseModules: true })).status,
+    ).toBe(404);
+    expect(await actions()).toEqual([
+      expect.objectContaining({ action: "academic_year.saved" }),
+      {
+        action: "academic_year.choosing_changed",
+        details: { year: "2026/27", studentsChooseModules: true },
+      },
+    ]);
+  });
+
   it("refuse semesters out of order or outside the year, and a year that isn't one", async () => {
     expect(
       await put("2026-27", { ...SEMESTERS, semester2Start: "2027-01-10" }),
@@ -519,5 +598,8 @@ describe("academic years", () => {
     expect((await put("2026", SEMESTERS)).status).toBe(404);
     // The right shape, but 2026/28 doesn't follow on from 2026.
     expect((await put("2026-28", SEMESTERS)).status).toBe(404);
+    // Years whose dates can't be written (they once answered 500).
+    expect((await put("9999-00", SEMESTERS)).status).toBe(404);
+    expect((await put("0998-99", SEMESTERS)).status).toBe(404);
   });
 });

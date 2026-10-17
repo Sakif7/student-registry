@@ -1,31 +1,31 @@
 "use client";
 
 // Lets students choose their own optional modules for an academic year, or
-// stops them, with Undo. The calendar's dates go with it unchanged.
+// stops them, with Undo. Only that is sent: the semester dates stay as the
+// server has them, even if a colleague changed them after this page opened.
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { academicYearSlug } from "@/domain/academic-year";
-import type { SemesterDates } from "@/domain/curriculum";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { toastWithUndo } from "@/lib/undo";
 import { refreshAfterWrite } from "@/server/actions";
 
 export function StudentsChooseButton({
   year,
-  calendar,
+  choosing,
 }: {
   year: string;
-  calendar: SemesterDates & { studentsChooseModules: boolean };
+  /** Whether students choose their own options in the year now. */
+  choosing: boolean;
 }) {
   const [saving, setSaving] = useState(false);
   const save = (studentsChooseModules: boolean) =>
-    apiRequest("PUT", `/api/academic-years/${academicYearSlug(year)}`, {
-      ...calendar,
+    apiRequest("PATCH", `/api/academic-years/${academicYearSlug(year)}`, {
       studentsChooseModules,
     });
-  const open = !calendar.studentsChooseModules;
+  const open = !choosing;
   const opened = `Students can now choose their own options for ${year}.`;
   const closed = `Students no longer choose their own options for ${year}.`;
 

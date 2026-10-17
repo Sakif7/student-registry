@@ -26,6 +26,13 @@ describe("academic year format", () => {
     },
   );
 
+  it.each(["9999/00", "0998/99"])(
+    "rejects %j, whose dates have other than four-digit years",
+    (value) => {
+      expect(isAcademicYear(value)).toBe(false);
+    },
+  );
+
   it("writes the start year back, padding the second year", () => {
     expect(formatAcademicYear(2026)).toBe("2026/27");
     expect(formatAcademicYear(2008)).toBe("2008/09");

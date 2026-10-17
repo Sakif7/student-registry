@@ -31,7 +31,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MODULE_KIND_LABELS, SEMESTER_LABELS } from "@/domain/curriculum";
+import {
+  MODULE_KIND_LABELS,
+  optionsCanMakeUp,
+  SEMESTER_LABELS,
+} from "@/domain/curriculum";
 import { formatCount, formatMoney } from "@/lib/format";
 import { orNotFound } from "@/server/pages";
 import {
@@ -155,6 +159,9 @@ function YearCard({
   year: StructureYear;
 }) {
   const optionsNeeded = creditsPerYear - year.coreCredits;
+  const optionCredits = year.modules
+    .filter((module) => module.kind === "OPTIONAL")
+    .map((module) => module.credits);
   return (
     <Card>
       <CardHeader>
@@ -165,8 +172,10 @@ function YearCard({
           Core modules take {year.coreCredits} of the {creditsPerYear} credits.
           {optionsNeeded > 0 &&
             ` Students choose ${optionsNeeded} more from ${year.optionalCredits} credits of options.`}
-          {optionsNeeded > year.optionalCredits &&
-            " There aren't enough options yet."}
+          {optionsNeeded > year.optionalCredits
+            ? " There aren't enough options yet."
+            : !optionsCanMakeUp(optionsNeeded, optionCredits) &&
+              ` No combination of the options makes up ${optionsNeeded} credits yet.`}
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -148,6 +148,16 @@ describe("describeEvent", () => {
       "Changed 2026/27’s semesters; students may choose their optional modules",
     ],
     [
+      "academic_year.choosing_changed",
+      { year: "2026/27", studentsChooseModules: true },
+      "Let students choose their optional modules for 2026/27",
+    ],
+    [
+      "academic_year.choosing_changed",
+      { year: "2026/27", studentsChooseModules: false },
+      "Stopped students choosing their optional modules for 2026/27",
+    ],
+    [
       "registration.added",
       {
         moduleCode: "CS4004",

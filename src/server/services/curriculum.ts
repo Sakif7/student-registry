@@ -15,6 +15,7 @@ import {
   type SemesterDates,
   structureEntryProblem,
   structureEntrySchema,
+  studentsChooseSchema,
   updateModuleSchema,
   updateProgrammeSchema,
 } from "@/domain/curriculum";
@@ -362,8 +363,15 @@ export async function listModuleSummaries(
         programmes: {
           include: { programme: { select: { code: true, title: true } } },
         },
+        // Students studying it now: a deferred or withdrawn student keeps
+        // their registrations, but isn't taking the module, as the
+        // assessments' expected counts also say.
         _count: {
-          select: { registrations: { where: { academicYear } } },
+          select: {
+            registrations: {
+              where: { academicYear, student: { status: "ENROLLED" } },
+            },
+          },
         },
       },
       orderBy: { code: "asc" },
@@ -457,6 +465,14 @@ export async function updateModule(
           "Students are registered on this module, so its credits can't change. Set up a new module instead.",
         );
       }
+      // Lock the programmes it is core in, as adding a core module locks its
+      // programme: a credits change and a new core module can't then both
+      // pass the check at the same moment and overfill a year.
+      await tx.$queryRaw`
+        SELECT id FROM programmes WHERE id IN (
+          SELECT programme_id FROM programme_modules
+          WHERE module_id = ${current.id}::uuid AND kind = 'CORE'
+        ) ORDER BY id FOR UPDATE`;
       await checkCoreCreditsWith(tx, current.id, changes.credits);
     }
 
@@ -519,6 +535,8 @@ export async function saveAcademicYear(
   };
   const saved = await db().$transaction(async (tx) => {
     const existing = await tx.academicYear.findUnique({ where: { year } });
+    // Saving what is already there changes nothing, so records nothing.
+    if (existing && sameCalendar(existing, data)) return existing;
     const row = await tx.academicYear.upsert({
       where: { year },
       create: { year, ...data },
@@ -535,6 +553,65 @@ export async function saveAcademicYear(
     return row;
   });
   return toCalendar(saved);
+}
+
+/**
+ * Lets students choose their own optional modules for an academic year, or
+ * stops them (staff only). Only that changes: semester dates stay as they
+ * are, so a page opened before a colleague changed them can't undo it.
+ *
+ * @throws AppError: NOT_FOUND for a year that isn't one or isn't set up;
+ *   VALIDATION.
+ */
+export async function setStudentsChoose(
+  session: Session | null,
+  year: string,
+  input: unknown,
+): Promise<AcademicYearCalendar> {
+  const staff = requireStaff(session);
+  if (!isAcademicYear(year)) {
+    throw new AppError("NOT_FOUND", `There is no academic year ${year}.`);
+  }
+  const { studentsChooseModules } = parseInput(studentsChooseSchema, input);
+  const saved = await db().$transaction(async (tx) => {
+    const existing = await tx.academicYear.findUnique({ where: { year } });
+    if (!existing) {
+      throw new AppError("NOT_FOUND", `${year} isn't set up yet.`);
+    }
+    if (existing.studentsChooseModules === studentsChooseModules) {
+      return existing;
+    }
+    const row = await tx.academicYear.update({
+      where: { year },
+      data: { studentsChooseModules },
+    });
+    await recordEvent(tx, staff, {
+      action: "academic_year.choosing_changed",
+      details: { year, studentsChooseModules },
+    });
+    return row;
+  });
+  return toCalendar(saved);
+}
+
+/** Whether a saved calendar already says what a save would write. */
+function sameCalendar(
+  existing: {
+    semester1Start: Date;
+    semester1End: Date;
+    semester2Start: Date;
+    semester2End: Date;
+    studentsChooseModules: boolean;
+  },
+  data: typeof existing,
+): boolean {
+  return (
+    existing.semester1Start.getTime() === data.semester1Start.getTime() &&
+    existing.semester1End.getTime() === data.semester1End.getTime() &&
+    existing.semester2Start.getTime() === data.semester2Start.getTime() &&
+    existing.semester2End.getTime() === data.semester2End.getTime() &&
+    existing.studentsChooseModules === data.studentsChooseModules
+  );
 }
 
 /** A programme's structure, with each module's credits. */

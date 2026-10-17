@@ -12,12 +12,15 @@ const ACADEMIC_YEAR_START_MONTH = 9;
 /**
  * The start year of an academic year, e.g. 2026 for "2026/27".
  *
- * @returns null if the value is malformed or the two years aren't consecutive.
+ * @returns null if the value is malformed, the two years aren't consecutive,
+ *   or either year has other than four digits (as "9999/00" and "0998/99"
+ *   would), so that its dates can always be written.
  */
 export function academicYearStart(value: string): number | null {
   const match = ACADEMIC_YEAR.exec(value);
   if (!match) return null;
   const start = Number(match[1]);
+  if (start < 1000 || start > 9998) return null;
   return Number(match[2]) === (start + 1) % 100 ? start : null;
 }
 

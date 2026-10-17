@@ -151,9 +151,10 @@ export function coreCredits(
 
 /**
  * Why a module can't go into a programme's structure, if it can't: a year
- * the programme doesn't have, or core modules adding up to more credits than
- * a year of study carries. Optional modules can offer more than a year
- * carries: students take only some of them.
+ * the programme doesn't have, core modules adding up to more credits than a
+ * year of study carries, or an option worth more than the core modules leave,
+ * which no student could ever take. Together, the options can offer more than
+ * that: students take only some of them.
  *
  * @param structure - The programme's structure without the module.
  */
@@ -167,13 +168,41 @@ export function structureEntryProblem(
       ? "This programme has 1 year of study"
       : `This programme has ${programme.years} years of study`;
   }
+  const core = coreCredits(structure, entry.yearOfStudy);
   if (entry.kind === "CORE") {
-    const total = coreCredits(structure, entry.yearOfStudy) + entry.credits;
+    const total = core + entry.credits;
     if (total > programme.creditsPerYear) {
       return `Core modules in year ${entry.yearOfStudy} would come to ${total} credits, more than the ${programme.creditsPerYear} a year carries`;
     }
+    return null;
+  }
+  const room = programme.creditsPerYear - core;
+  if (room <= 0) {
+    return `Core modules take all ${programme.creditsPerYear} credits of year ${entry.yearOfStudy}, which leaves no room for options`;
+  }
+  if (entry.credits > room) {
+    return `An option in year ${entry.yearOfStudy} can be worth at most ${room} credits: core modules take ${core} of the ${programme.creditsPerYear} a year carries`;
   }
   return null;
+}
+
+/**
+ * Whether some of a year's options add up to exactly the credits its core
+ * modules leave. If none do (too few, or the wrong sizes), every student in
+ * the year stays short, however they choose.
+ */
+export function optionsCanMakeUp(
+  creditsLeft: number,
+  optionCredits: readonly number[],
+): boolean {
+  if (creditsLeft <= 0) return true;
+  const reachable = new Set([0]);
+  for (const credits of optionCredits) {
+    for (const total of [...reachable]) {
+      if (total + credits <= creditsLeft) reachable.add(total + credits);
+    }
+  }
+  return reachable.has(creditsLeft);
 }
 
 /**
@@ -265,6 +294,16 @@ export function academicYearSettingsSchema(year: string) {
 export type AcademicYearSettingsInput = z.infer<
   ReturnType<typeof academicYearSettingsSchema>
 >;
+
+/**
+ * Letting students choose their own options in a year, or stopping them, on
+ * its own: the semester dates stay as they are, whoever changed them last.
+ */
+export const studentsChooseSchema = z.object({
+  studentsChooseModules: z.boolean({
+    error: "Say whether students choose their modules",
+  }),
+});
 
 /** The semester a date falls in: null outside both, e.g. in the summer. */
 export function semesterOn(

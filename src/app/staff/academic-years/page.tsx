@@ -115,7 +115,10 @@ function YearCard({
               ? "Students choose their own optional modules."
               : "Only the Registry changes students' modules."}
           </p>
-          <StudentsChooseButton year={year} calendar={settings} />
+          <StudentsChooseButton
+            year={year}
+            choosing={calendar.studentsChooseModules}
+          />
         </div>
       </CardContent>
     </Card>

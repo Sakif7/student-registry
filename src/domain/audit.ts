@@ -76,6 +76,11 @@ export interface AuditDetails {
     created: boolean;
     studentsChooseModules: boolean;
   };
+  /** Students let choose their own options in a year, or stopped. */
+  "academic_year.choosing_changed": {
+    year: string;
+    studentsChooseModules: boolean;
+  };
   "registration.added": {
     moduleCode: string;
     moduleTitle: string;

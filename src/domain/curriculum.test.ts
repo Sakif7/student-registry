@@ -5,6 +5,7 @@ import {
   coreCredits,
   createModuleSchema,
   createProgrammeSchema,
+  optionsCanMakeUp,
   programmeChangeProblem,
   semesterOn,
   type StructureEntry,
@@ -99,13 +100,36 @@ describe("structureEntryProblem", () => {
         credits: 30,
       }),
     ).toBeNull();
+    // Year 1's options already offer 60 credits for the 30 left: a third
+    // is still welcome, as students take only some of them.
+    expect(
+      structureEntryProblem(programme, structure, {
+        yearOfStudy: 1,
+        kind: "OPTIONAL",
+        credits: 30,
+      }),
+    ).toBeNull();
+  });
+
+  it("refuses an option worth more than the credits core modules leave", () => {
+    expect(
+      structureEntryProblem(programme, structure, {
+        yearOfStudy: 1,
+        kind: "OPTIONAL",
+        credits: 45,
+      }),
+    ).toBe(
+      "An option in year 1 can be worth at most 30 credits: core modules take 90 of the 120 a year carries",
+    );
     expect(
       structureEntryProblem(programme, structure, {
         yearOfStudy: 2,
         kind: "OPTIONAL",
         credits: 30,
       }),
-    ).toBeNull();
+    ).toBe(
+      "Core modules take all 120 credits of year 2, which leaves no room for options",
+    );
   });
 
   it("refuses core modules worth more than a year carries", () => {
@@ -128,6 +152,20 @@ describe("structureEntryProblem", () => {
         credits: 15,
       }),
     ).toBe("This programme has 3 years of study");
+  });
+});
+
+describe("optionsCanMakeUp", () => {
+  it("finds options that add up to exactly the credits left", () => {
+    expect(optionsCanMakeUp(30, [15, 30])).toBe(true);
+    expect(optionsCanMakeUp(45, [15, 15, 30])).toBe(true);
+    expect(optionsCanMakeUp(0, [])).toBe(true);
+  });
+
+  it("knows when no combination does, too few or the wrong sizes", () => {
+    expect(optionsCanMakeUp(30, [15])).toBe(false);
+    expect(optionsCanMakeUp(30, [20, 20])).toBe(false);
+    expect(optionsCanMakeUp(30, [45])).toBe(false);
   });
 });
 

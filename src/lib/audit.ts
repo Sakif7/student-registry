@@ -68,6 +68,10 @@ const DESCRIBE: Describe = {
     `Edited ${code}’s ${list(fields.map((field) => MODULE_FIELD_LABELS[field] ?? field))}`,
   "academic_year.saved": ({ year, created, studentsChooseModules }) =>
     `${created ? "Set up" : "Changed"} ${year}’s semesters; students ${studentsChooseModules ? "may" : "may not"} choose their optional modules`,
+  "academic_year.choosing_changed": ({ year, studentsChooseModules }) =>
+    studentsChooseModules
+      ? `Let students choose their optional modules for ${year}`
+      : `Stopped students choosing their optional modules for ${year}`,
   "registration.added": ({ moduleCode, moduleTitle, academicYear }) =>
     `Registered on ${moduleCode} ${moduleTitle} for ${academicYear}`,
   "registration.dropped": ({ moduleCode, moduleTitle, academicYear }) =>
