@@ -1098,6 +1098,24 @@ nodemailer. In development and CI the SMTP server is Mailpit, a container in
 address. A production deployment sets `SMTP_HOST`, `SMTP_PORT` and
 credentials for a real mail service.
 
+### Setting up
+
+- **One command:** `npm run setup` (`scripts/setup.mjs`) creates `.env`
+  from the example when there is none, starts PostgreSQL and Mailpit with
+  Docker Compose (`compose.yaml`), applies the migrations and loads the demo
+  data. Whatever can be missing (a Node.js too old, dependencies not
+  installed, Docker not installed or not running, a port taken) stops it
+  with a message saying what to do, instead of a raw error.
+- **Docker is optional:** it only runs PostgreSQL and Mailpit.
+  `npm run setup -- --no-docker` uses the PostgreSQL that `DATABASE_URL`
+  names. It must be PostgreSQL 18, because two migrations use its
+  `uuidv7()`.
+- **The app's port is checked before `npm run dev`**
+  (`scripts/check-port.mjs`). Sign-in only accepts requests from the address
+  in `BETTER_AUTH_URL`. If port 3000 were taken, Next.js would start on
+  another port, where every sign-in would be refused, so it stops with a
+  message instead.
+
 ### Environment variables
 
 Next.js loads `.env` for the app. The Prisma, Vitest and Playwright

@@ -20,8 +20,9 @@ Read it before changing behaviour, and add to it when you make a new decision.
 - `npm run check`: format check, type-check (runs `next typegen` first, because
   route types are generated) and lint with zero warnings.
 - `npm run format`: apply Prettier, including Tailwind class order.
-- `npm run db:up`, then `npm run setup`: start PostgreSQL and Mailpit, migrate
-  and seed. Every demo account's password is `demo-password-2026`.
+- `npm run setup`: create `.env` if missing, start PostgreSQL and Mailpit in
+  Docker, migrate and seed (`npm run setup -- --no-docker` uses your own
+  PostgreSQL 18). Every demo account's password is `demo-password-2026`.
 - `npm test`: unit and integration tests with coverage, then the end-to-end
   tests. Use `npm run test:unit`, `npm run test:integration` or
   `npm run test:e2e` for one suite. Integration and end-to-end tests need

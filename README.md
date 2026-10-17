@@ -5,6 +5,45 @@ Student view. It covers four workflows: student enrolment, fees and payments,
 assessment submissions, and marks and results. Built with Next.js 16 (App
 Router), PostgreSQL and Prisma.
 
+## Quick start
+
+You need [Node.js](https://nodejs.org/) 24 (22.12 or later also works) and
+[Docker Desktop](https://www.docker.com/products/docker-desktop/), running.
+
+```bash
+npm install
+npm run setup
+npm run dev
+```
+
+Then open <http://localhost:3000> and pick a demo account on the sign-in
+page. Every demo password is `demo-password-2026`.
+
+`npm run setup` creates `.env` from `.env.example`, starts PostgreSQL 18 and
+Mailpit (an inbox that catches the app's emails) in Docker, as `compose.yaml`
+describes, then applies the migrations and loads the demo data. You never
+need to run Docker yourself, and if something is missing, such as Docker not
+running, it says what to do. No Docker? See [Without Docker](#without-docker).
+
+### A short tour
+
+1. Sign in as **Jane Okafor**, Registry staff. The dashboard shows what needs
+   attention today, overdue fees among it.
+2. Open **Students**, then **Amelia Hart**: fees overdue and results withheld.
+   Each fact in the summary at the top opens the tab that explains it.
+3. Select **Enrol a student**. In the demo, the new student starts with the
+   demo password, so you can sign in as them straight away. Switch on **Send
+   an activation link** to try the email instead: it arrives in Mailpit at
+   <http://localhost:8025>.
+4. Open **Assessments**, then **Algorithms coursework**: a late submission,
+   the marksheet, and the marks as staff enter them.
+5. Sign out and pick **Amelia Hart**, a student, on the sign-in page: their
+   own modules, assessments and fees, and a notice where the withheld results
+   would be. **Mohammed Al-Farsi** shows a student's published results.
+
+The [testing guide](.docs/TESTING.md) walks through every workflow and edge
+case, with exact inputs and expected results.
+
 ## Features
 
 - **Enrolment:**
@@ -84,14 +123,9 @@ PostgreSQL 18 with Prisma 7, and shadcn/ui on Base UI with Tailwind CSS 4.
 Sign-in uses Better Auth. Forms use React Hook Form with Zod, sharing their
 validation schemas with the API. Tests use Vitest and Playwright with axe, and CI runs on GitHub Actions.
 
-## Prerequisites
+## Setup in detail
 
-- Node.js 24 LTS (22.12 or later also works)
-- Docker, for PostgreSQL and Mailpit (Docker Desktop on Windows and macOS)
-
-## Setup
-
-1. Install dependencies:
+1. Install the dependencies:
 
    ```bash
    npm install
@@ -103,31 +137,55 @@ validation schemas with the API. Tests use Vitest and Playwright with axe, and C
    [DECISIONS.md](.docs/DECISIONS.md#dependency-audit), and
    `npm run audit:deps` fails if any new one appears.
 
-2. Create your environment file from the example. The defaults work with the
-   bundled database.
-
-   ```bash
-   cp .env.example .env              # macOS, Linux, Git Bash
-   Copy-Item .env.example .env       # Windows PowerShell
-   ```
-
-3. Start PostgreSQL 18 and Mailpit in Docker, apply the migrations and load
-   the demo data:
+2. Set up the database and the demo data:
 
    ```bash
    npm run setup
    ```
 
-4. Start the app and open <http://localhost:3000>:
+   This creates `.env` from `.env.example` if you have none (the defaults
+   work as they are), starts PostgreSQL 18 and Mailpit in Docker, applies the
+   migrations and loads the demo data. Running it again resets the database
+   to the demo data, as does `npm run db:seed` on its own.
+
+3. Start the app and open <http://localhost:3000>:
 
    ```bash
    npm run dev
    ```
 
-5. Sign in with one of the demo accounts listed on the sign-in page: Registry
+4. Sign in with one of the demo accounts listed on the sign-in page: Registry
    staff, or a fictitious student. Every demo password is
    `demo-password-2026`. The [testing guide](.docs/TESTING.md#demo-data)
    describes the demo data and walks through every workflow.
+
+### Without Docker
+
+Docker only runs PostgreSQL and Mailpit. To use a PostgreSQL 18 of your own
+instead (the migrations use its `uuidv7()`), set `DATABASE_URL` in `.env`
+to it, and `TEST_DATABASE_URL` too if you'll run the tests, then:
+
+```bash
+npm run setup -- --no-docker
+```
+
+Without Mailpit no email can be read, so enrol students with a password
+rather than an activation link, and the forgotten-password emails won't
+arrive.
+
+### If something goes wrong
+
+- **"Docker is installed but not running":** start Docker Desktop, wait until
+  it says it's running, and run `npm run setup` again.
+- **A port is in use:** port 5432 is usually a PostgreSQL installed on the
+  computer. Stop it, or use it as described under
+  [Without Docker](#without-docker).
+- **"Port 3000 is in use":** sign-in only accepts requests from the address
+  in `BETTER_AUTH_URL`, so `npm run dev` stops rather than move to another
+  port. Stop the other program, or set
+  `BETTER_AUTH_URL=http://localhost:3001` in `.env` and run
+  `npm run dev -- -p 3001`.
+- **Start again with fresh demo data:** `npm run db:seed`.
 
 ## Environment variables
 

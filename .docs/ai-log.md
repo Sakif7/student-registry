@@ -1564,3 +1564,27 @@ and that a short one is refused; end-to-end tests of both journeys (the
 email's, which now switches the link on first, and the password's, signing
 in from a second browser); the accessibility and phone-width checks of the
 form; and a look at the form itself.
+
+## Setting up without surprises
+
+**What the AI did:** the owner asked whether Docker was necessary, and how a
+reviewer would know to start it. Docker only runs PostgreSQL and Mailpit,
+from `compose.yaml`, and `npm run setup` already started them. But someone
+whose Docker Desktop wasn't running got only Docker's raw error (it happened
+here the next morning: "The system cannot find the file specified"), and
+`.env` had to be copied by hand first. `npm run setup` is now a script that
+creates `.env` when it is missing, checks Node.js, the dependencies and
+Docker, starts the containers, migrates and seeds, and says what to do
+whenever something is missing or a port is taken. `--no-docker` uses a
+PostgreSQL 18 of one's own (two migrations use its `uuidv7()`).
+
+A check before `npm run dev` stops with a message when port 3000 is taken:
+sign-in only accepts the address in `BETTER_AUTH_URL`, and Next.js would
+otherwise start on another port, where every sign-in would fail. The README
+now opens with a quick start and a five-step tour, and explains setting up
+without Docker and what to do if something goes wrong.
+
+**Checked by:** running the script each way: with Docker; without it, on a
+throwaway database; with Docker missing from the path; with port 5432 taken
+(by starting a second Compose project); and without a `.env`. The port check
+was run with the port free and taken.
