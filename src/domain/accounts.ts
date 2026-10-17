@@ -122,6 +122,15 @@ export function describeDevice(userAgent: string | null): string {
   );
 }
 
+/**
+ * A device's address, if it says anything. Better Auth reads the address from
+ * a proxy's X-Forwarded-For header; without one, as when signing in on the
+ * same computer, it records the unspecified address, all zeros.
+ */
+export function knownIpAddress(address: string | null): string | null {
+  return address && !/^[0.:]*$/.test(address) ? address : null;
+}
+
 function firstMatch(
   value: string,
   patterns: [RegExp, string][],

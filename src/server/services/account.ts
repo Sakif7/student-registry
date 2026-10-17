@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword } from "better-auth/crypto";
 import {
   changePasswordSchema,
   describeDevice,
+  knownIpAddress,
   signInLockedMessage,
 } from "@/domain/accounts";
 
@@ -131,7 +132,7 @@ export async function listDevices(
     .map((row) => ({
       id: row.id,
       device: describeDevice(row.userAgent),
-      ipAddress: row.ipAddress,
+      ipAddress: knownIpAddress(row.ipAddress),
       signedInAt: row.createdAt,
       expiresAt: row.expiresAt,
       current: row.id === sessionId,

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   changePasswordSchema,
   describeDevice,
+  knownIpAddress,
   newPasswordSchema,
   signInAccessSchema,
   signInLockedMessage,
@@ -156,6 +157,24 @@ describe("changePasswordSchema", () => {
       [["currentPassword"], "Enter your current password"],
       [["confirmation"], "The passwords don't match"],
     ]);
+  });
+});
+
+describe("knownIpAddress", () => {
+  it("keeps a real address", () => {
+    expect(knownIpAddress("203.0.113.7")).toBe("203.0.113.7");
+    expect(knownIpAddress("2001:db8::1")).toBe("2001:db8::1");
+    expect(knownIpAddress("::1")).toBe("::1");
+  });
+
+  it("drops the unspecified address, which says nothing", () => {
+    expect(knownIpAddress("0000:0000:0000:0000:0000:0000:0000:0000")).toBe(
+      null,
+    );
+    expect(knownIpAddress("::")).toBe(null);
+    expect(knownIpAddress("0.0.0.0")).toBe(null);
+    expect(knownIpAddress("")).toBe(null);
+    expect(knownIpAddress(null)).toBe(null);
   });
 });
 
