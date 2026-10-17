@@ -425,8 +425,9 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
   It hides all of the student's results, including ones already published, and
   blocks publishing until the hold is lifted. The student sees a notice with the
   reason.
-- The student's fee status is shown next to these controls, but nothing is
-  withheld automatically: withholding is a staff decision.
+- Where the student's account stands (paid, due or overdue) is shown next to
+  these controls, but nothing is withheld automatically: withholding is a
+  staff decision.
 - The server never sends an unpublished or withheld mark to a student. Hiding it
   in the interface alone would not be enough.
 - Publication and holds are independent. A mark is shown to a student only if
@@ -1327,6 +1328,65 @@ unused `mysql2` driver inside the Prisma CLI, so it isn't reachable either.
 - **Search speed:** search scans names, IDs and emails with `ILIKE`, which is
   fine for thousands of records. Beyond that, a trigram index (`pg_trgm`)
   would keep it fast.
+- **Two people editing at once:** a status change made from a stale page is
+  refused, but editing a student's details or correcting a fee saves every
+  field, so it can undo a colleague's change made in between. A version
+  check on each record would refuse it instead.
+- **A new enrolment's year** defaults to the current academic year, so an
+  August enrolment for September needs the year changed by hand.
+
+### Registry practice not modelled yet
+
+An edge-case review against how UK registries work found these. Each is a
+deliberate scope limit, not an oversight:
+
+- **Fee liability on withdrawal:** a status change is dated when staff
+  record it, and can't be backdated to the last day of attendance, and
+  withdrawal leaves the year's fee as it is. Under Student Finance England's
+  rules, a student who leaves in the first term is liable for a quarter of
+  the fee, so staff correct the charge themselves; the status dialog
+  reminds them. An effective date on each status change, with the charge
+  worked out from it, would follow.
+- **Who pays:** a charge has no payer. Student Finance pays tuition loans in
+  three instalments (25%, 25%, 50%), and sponsors pay on invoice, so a
+  loan-funded student's single due date reads as overdue until the last
+  instalment. Funding sources with instalment schedules would fix this.
+- **Refunds:** credit from an overpayment is shown but can't be paid back:
+  a reversal only cancels a payment entered by mistake. A refund entry,
+  capped at the credit, would be next.
+- **Fee status and mode of study:** each programme has one standard fee, so
+  an international or part-time fee is a correction with a note. Registries
+  set fees by fee status (Home or International) and mode of study.
+- **Releasing results:** marks are published one student at a time. A
+  registry usually releases an assessment's or a module's marks to the
+  whole cohort on a set date, after moderation and an exam board.
+  Publishing by assessment would come first (see "With more time").
+- **Module results, progression and awards:** there are no weighted module
+  marks or credits achieved, moving to the next year is an edit, and
+  Completed records no award or classification. The pass mark is 40 at
+  every level, where a master's usually needs 50.
+- **Resits, late penalties and misconduct:** a student has one submission
+  and one mark per assessment, so a resit would replace the first attempt.
+  Late work is flagged, not penalised, and misconduct has no process beyond
+  withholding results.
+- **Interruption and deferral:** Deferred covers both a deferred start and
+  a break in study. The expected return is free text in the reason, and no
+  list shows who is due back.
+- **Holds beyond results:** owing fees can lead staff to withhold results,
+  but blocks nothing else, such as re-admission or completion.
+- **Completed can't be undone:** a completion made by mistake can't be
+  reversed in the app. Allowing it with a reason would be safe once staff
+  roles are narrower.
+- **Records in error and returning students:** a record can't be voided or
+  merged, so a duplicate can only be withdrawn, and a graduate returning
+  for a master's needs a second record with another email address.
+- **Special-category data:** a reason for deferral or withdrawal is free
+  text that may hold health details, and it is copied into the append-only
+  trail, where it can't be corrected or erased. Structured reasons, with any
+  details kept where a retention policy can delete them, would fix this.
+- **What an edit changed:** the trail names the fields an edit changed, not
+  their old and new values, so no history of programmes or years is kept.
+  Recording values would need the same care as the reasons above.
 
 ## With more time
 

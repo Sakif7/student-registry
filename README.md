@@ -369,6 +369,33 @@ brief and from decisions agreed before any code was written.
   options chosen by staff or, while staff allow it, by students, within the
   year's credits. Smaller changes followed the owner's feedback, such as a
   clearer summary at the top of a record.
+- **A fourth round prepared it for review.** Thinking of the person who
+  would try the app, the owner asked for setting up to be one command, and
+  for a way to sign in as a new student without opening the email catcher.
+  `npm run setup` now says what to do when Docker or a port is missing, and
+  staff can give a new student a first password at enrolment. When the owner
+  spotted a file field whose button blended into it, the agent screenshotted
+  every page and dialog at desktop and phone widths, had five reviewer
+  agents go through them, checked each finding itself before fixing it, and
+  had the fixes reviewed again. Asked whether a student could see withheld
+  results, it traced the question through the server, the pages and the
+  development database before answering: nothing leaked, because that
+  student's results had never been withheld.
+- **A final audit looked for the edge cases nobody had named.** Eight
+  reviewer agents each took one area of the finished app: enrolment, fees,
+  assessments and late work, marks and results, the curriculum, the API's
+  edges, concerns that cut across them (races, time, email, sessions), and
+  how UK registries actually work. Each probed a running build and read the
+  code and tests. The agent checked each of about forty findings against
+  the code, wrote a test that failed without each fix, and fixed them in
+  commits by theme. Among them: two of Better Auth's own endpoints bypassed
+  the app's lock on wrong passwords, a burst of simultaneous guesses could
+  beat the lock, a reversed payment's reference couldn't be used for the
+  real transfer, last year's assessments counted nobody as due, and moving
+  a deadline past 31 August handed an assessment to the next year's
+  students. Larger gaps a registry would notice, such as Student Finance
+  instalments, fee liability on withdrawal and exam boards, are listed in
+  [DECISIONS.md](.docs/DECISIONS.md) rather than half-built.
 - **Guardrails were set for the agent.**
   - Dependencies may only be installed through npm, never hand-edited.
   - Destructive database commands are off-limits, and tests may only touch

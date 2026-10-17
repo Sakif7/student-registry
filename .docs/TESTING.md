@@ -293,6 +293,9 @@ scenario 2, or 10 on fresh demo data.
    year stay in name order. Filtering or searching now keeps that order.
 7. Open the **⋯** menu at the end of Kwame Mensah's row and choose **Fees**:
    the record opens on the **Fees** tab.
+8. Search for `O’Connor`, typed with the curly apostrophe a phone or word
+   processor gives: **Liam O'Connor** is found, though the record has a
+   straight one.
 
 ### 4. Editing a record and changing status
 
@@ -304,9 +307,11 @@ again. The summary above the tabs gives Oliver's status, modules, fees,
 results and sign-in: select **Fees** in it and the Fees tab opens, with the
 focus on that tab.
 
-1. Select **Change status**. In the dialog, choose **Deferred** and select
-   **Change status** without a reason. The label reads "Reason (required)" and
-   the error "Give a reason for deferral or withdrawal" appears.
+1. Select **Change status**. Each status says what the change means before
+   it is made: **Completed** that it is final, **Withdrawn** that the fee
+   stays as it is and needs reviewing. Choose **Deferred** and select
+   **Change status** without a reason. The label reads "Reason (required)"
+   and the error "Give a reason for deferral or withdrawal" appears.
 2. Enter the reason `Family circumstances` and select **Change status**. The
    dialog closes, **Status** in the summary becomes **Deferred**, and the
    status history gains "Enrolled → Deferred · Family circumstances". **Change

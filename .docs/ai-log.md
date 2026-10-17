@@ -1644,3 +1644,78 @@ tint behind error notices took their red text below 4.5:1, and the checks
 waited for the new edge fades to finish before scanning, which animations
 tied to scrolling never do. Error notices now use darker reds, and the
 checks wait only for animations that run on the clock.
+
+## Looking for the edge cases
+
+**What the AI did:** the owner asked whether every possible edge case had
+been checked, not only those the brief names, and whether the project would
+pass its assessment. The AI set eight review agents to work in parallel,
+each on one area: enrolment and records; fees and payments; assessments,
+submissions and late work; marks and results; the curriculum and
+registration; the API's edges; concerns that cut across them (the audit
+trail, races, time, email and sessions); and how UK registries work in
+practice. Each probed a production build of the app and read the code and
+tests, then reported bugs with a reproduction, gaps, and what it had
+verified. The AI checked every finding against the code before acting on
+it, and wrote a test that failed without each fix.
+
+**What changed,** in thirteen commits by theme:
+
+- **The API's edges:** Better Auth's own `/change-password` skipped the
+  app's lock after five wrong passwords, and `/list-sessions` returned
+  session tokens; both are switched off, as the app has its own routes. A
+  JSON body is read up to 1 MB as it arrives, a NUL character is a 400
+  rather than a database error, and an `Origin` of `null` is refused.
+- **Marks:** marks can be entered only once the work can't change, saves of
+  one marksheet happen one at a time, and publishing takes the number of
+  marks the publisher saw, so a colleague's later mark isn't released
+  unseen.
+- **Registration and the curriculum:** a module's "has work" flag let a
+  student infer a mark not yet published; an option bigger than the room
+  core modules leave could never be taken; "Let students choose" re-sent
+  the page's stale semester dates; a year moved forward by mistake left
+  registrations behind.
+- **Fees:** a reversed payment's reference couldn't be used for the real
+  transfer; a fee charged ahead for next year fell due before the year
+  began; the fee charged at enrolment was missing from the audit trail, and
+  a correction didn't keep the old amount or its note; a student's own
+  account showed reversed payments, which may be someone else's.
+- **Assessments:** the tracker counted only students enrolled today, so last
+  year's Final year project read "0 of 0 · Nothing submitted yet" beside a
+  submitted file, and a student who joined after a deadline counted as
+  missing work. It now counts the students registered and enrolled at the
+  deadline, from the status history. A deadline moved past 31 August handed
+  the assessment to the next year's students; it now stays in its year.
+- **Submissions:** the upload's confirmation trusted the page's idea of the
+  deadline, a deadline at midnight said "tomorrow" seven hours before, and
+  marks that reorder text could disguise a file's extension.
+- **Sign-in:** resending a link deleted the working one before the email
+  went, so a mail server failure left the student with none; a burst of
+  simultaneous guesses could all pass the lock before any was counted; a
+  password set from one link left older links working; and the mail server
+  had minutes, not seconds, to answer.
+- **The interface:** pages that fail now say so inside the app, with Try
+  again; the status dialog says what each change means, such as Completed
+  being final; a search finds O'Connor typed with either apostrophe.
+
+The larger gaps the registry review found, such as Student Finance paying in
+instalments, fee liability on withdrawal, exam boards and resits, are listed
+in DECISIONS.md under "Registry practice not modelled yet", rather than
+half-built in the time left.
+
+**Checked by:** a test for each fix that fails without it (for the race and
+sign-in fixes, by running the new tests against the old code); the demo data
+compared before and after the change to the tracker's counting, where only
+the Final year project changed, to "1 of 1"; `npm run check`; and the unit,
+integration and end-to-end suites.
+
+**Caught along the way:**
+
+- PostgreSQL's `pg_advisory_xact_lock` returns `void`, which Prisma's
+  `$queryRaw` can't read: the first version of the payment lock failed with
+  a 500 in its own test. The lock is now taken with `$executeRaw`.
+- The AI ran the integration tests while review agents were still probing a
+  build that used the same test database, which the tests empty; one
+  agent's sign-ins then failed. Its findings from before then stood, and
+  like every other finding, each was checked against the code before
+  anything was fixed.
