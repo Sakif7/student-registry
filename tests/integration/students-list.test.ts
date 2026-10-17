@@ -109,6 +109,15 @@ describe("GET /api/students", () => {
     ]);
   });
 
+  it("finds a name whichever apostrophe it holds, or is searched with", async () => {
+    await createStudent({ fullName: "Liam O'Connor" });
+    await createStudent({ fullName: "Siobhán O’Neill" });
+    expect(names((await list("?q=O%E2%80%99Connor")).body)).toEqual([
+      "Liam O'Connor",
+    ]);
+    expect(names((await list("?q=O'Neill")).body)).toEqual(["Siobhán O’Neill"]);
+  });
+
   it("treats % and _ in a search as plain characters", async () => {
     expect((await list("?q=%25")).body.total).toBe(0);
     expect((await list("?q=_")).body.total).toBe(0);

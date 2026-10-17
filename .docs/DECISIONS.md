@@ -96,6 +96,10 @@ and stays on the overdue list.
 - **Search filters** in the URL are lenient: a malformed value, such as an
   unknown status from an old bookmark, is ignored rather than turned into an
   error page.
+- **Names in one form:** accented letters are stored in one Unicode form
+  (NFC), as "é" can be typed as one character or as "e" and an accent, and
+  a search finds a name whichever apostrophe it holds or is searched with
+  (O'Connor, O’Connor).
 
 ## Curriculum and module registration
 

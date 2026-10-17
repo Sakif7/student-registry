@@ -88,6 +88,15 @@ describe("createStudentSchema", () => {
     expect(parsed.email).toBe("amelia.hart@example.ac.uk");
   });
 
+  it("stores accented letters in one form, however they were typed", () => {
+    // "e" followed by a combining acute accent, as some keyboards send it.
+    const parsed = createStudentSchema(TODAY).parse({
+      ...valid,
+      fullName: "Chloé Dubois",
+    });
+    expect(parsed.fullName).toBe("Chloé Dubois");
+  });
+
   it.each([
     "Seán Ó Briain",
     "Mary-Jane O'Neil",

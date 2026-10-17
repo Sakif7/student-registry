@@ -41,7 +41,9 @@ export function ageOn(dateOfBirth: CalendarDate, today: CalendarDate): number {
 const fullNameSchema = z
   .string({ error: "Enter the student's full name" })
   .trim()
-  .transform((value) => value.replace(/\s+/g, " "))
+  // One form for accented letters: "é" can arrive as one character or as
+  // "e" and an accent, and the two must find each other in a search.
+  .transform((value) => value.normalize("NFC").replace(/\s+/g, " "))
   .pipe(
     z
       .string()
@@ -197,7 +199,7 @@ export const studentFiltersSchema = z.object({
     .trim()
     .optional()
     .catch(undefined)
-    .transform((value) => value?.slice(0, 100) || undefined),
+    .transform((value) => value?.normalize("NFC").slice(0, 100) || undefined),
   programme: z
     .string()
     .trim()

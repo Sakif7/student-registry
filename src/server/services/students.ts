@@ -215,9 +215,18 @@ function studentsWhere(filters: StudentFilters): Prisma.StudentWhereInput {
   if (filters.q) {
     // Typed % and _ are literal characters, not ILIKE wildcards.
     const text = filters.q.replace(/[\\%_]/g, "\\$&");
+    // A name may hold either apostrophe, O'Connor or O’Connor, and may be
+    // searched for with the other.
+    const names = new Set([
+      text,
+      text.replaceAll("’", "'"),
+      text.replaceAll("'", "’"),
+    ]);
     conditions.push({
       OR: [
-        { fullName: { contains: text, mode: "insensitive" } },
+        ...[...names].map((name) => ({
+          fullName: { contains: name, mode: "insensitive" as const },
+        })),
         { studentNumber: { contains: text, mode: "insensitive" } },
         { email: { contains: text, mode: "insensitive" } },
       ],
