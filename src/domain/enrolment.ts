@@ -57,3 +57,28 @@ export function statusChangeNeedsReason(to: EnrolmentStatus): boolean {
 export function canSubmitWork(status: EnrolmentStatus): boolean {
   return status === EnrolmentStatus.ENROLLED;
 }
+
+/** One entry in a student's status history. */
+export interface StatusChangeLine {
+  toStatus: EnrolmentStatus;
+  changedAt: Date;
+}
+
+/**
+ * A student's status at a moment: the last change made by then, or null if
+ * the record didn't exist yet.
+ *
+ * @param history - The student's status changes, in any order. The first
+ *   one is the status the record was created with.
+ */
+export function statusAt(
+  history: readonly StatusChangeLine[],
+  at: Date,
+): EnrolmentStatus | null {
+  let latest: StatusChangeLine | null = null;
+  for (const change of history) {
+    if (change.changedAt > at) continue;
+    if (!latest || change.changedAt >= latest.changedAt) latest = change;
+  }
+  return latest?.toStatus ?? null;
+}

@@ -49,7 +49,9 @@ interface Detail extends Summary {
   module: { code: string };
   students: {
     studentNumber: string;
+    fullName: string;
     status: string;
+    expected: boolean;
     submission: { attempt: number; late: boolean } | null;
   }[];
 }
@@ -331,6 +333,62 @@ describe("GET /api/assessments/[assessmentId]", () => {
         submission: { attempt: 1, late: true },
       },
       { studentNumber: "SMS-2026-0001", submission: null },
+    ]);
+  });
+
+  it("counts the students due at the deadline, not those who left before it or joined after it", async () => {
+    const { id } = await insertAssessment({
+      moduleId: computingModuleId,
+      deadline: new Date("2026-10-10T16:00:00Z"),
+    });
+    // Enrolled at the deadline and withdrew two days later: still due.
+    const ava = await createStudent({
+      fullName: "Ava Shah",
+      status: "WITHDRAWN",
+    });
+    await db().enrolmentStatusChange.createMany({
+      data: [
+        {
+          studentId: ava.id,
+          toStatus: "ENROLLED",
+          changedAt: new Date("2026-09-14T09:00:00Z"),
+        },
+        {
+          studentId: ava.id,
+          fromStatus: "ENROLLED",
+          toStatus: "WITHDRAWN",
+          reason: "Personal reasons",
+          changedAt: new Date("2026-10-12T09:00:00Z"),
+        },
+      ],
+    });
+    await registerStudents(computingModuleId, [ava.id]);
+    // Joined the module three days after the deadline, then submitted.
+    const ben = await createStudent({ fullName: "Ben Carter" });
+    await db().moduleRegistration.create({
+      data: {
+        studentId: ben.id,
+        moduleId: computingModuleId,
+        academicYear: "2026/27",
+        registeredAt: new Date("2026-10-13T09:00:00Z"),
+      },
+    });
+    await createSubmission({
+      studentId: ben.id,
+      assessmentId: id,
+      submittedAt: new Date("2026-10-14T09:00:00Z"),
+    });
+
+    const { assessment } = (await detail(id)).body;
+    // Amelia, Ava and Oliver. Hannah had withdrawn before the deadline.
+    expect(assessment).toMatchObject({ expectedCount: 3, submittedCount: 0 });
+    expect(
+      assessment.students.map(({ fullName, expected }) => [fullName, expected]),
+    ).toEqual([
+      ["Amelia Hart", true],
+      ["Ava Shah", true],
+      ["Ben Carter", false],
+      ["Oliver Bennett", true],
     ]);
   });
 

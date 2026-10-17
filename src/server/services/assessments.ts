@@ -2,7 +2,8 @@
 // deadline, close the assessment to submissions or reopen it. An assessment
 // belongs to the academic year of its deadline, and is for the students
 // registered on its module that year. Each assessment has a marksheet: who
-// has submitted (and who late), and their marks.
+// has submitted (and who late), and their marks. Who counts as expected to
+// submit is decided at the deadline (see expectedToSubmit).
 import "server-only";
 
 import {
@@ -23,6 +24,7 @@ import {
   type AssessmentState,
   assessmentState,
   compareAssessments,
+  expectedToSubmit,
   isLate,
 } from "@/domain/submissions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -58,7 +60,7 @@ export interface AssessmentSummary {
   state: AssessmentState;
   /**
    * Students expected to submit: those registered on the module for the
-   * academic year, and now enrolled.
+   * academic year and enrolled, at the deadline once it has passed.
    */
   expectedCount: number;
   /** How many of the expected students have submitted. */
@@ -93,6 +95,8 @@ export interface TrackerRow {
   status: EnrolmentStatus;
   /** Staff have withheld this student's results. */
   resultsWithheld: boolean;
+  /** Counted in "submitted of expected" (see expectedToSubmit). */
+  expected: boolean;
   submission: SubmissionView | null;
   result: ResultView | null;
 }
@@ -137,23 +141,12 @@ export async function listAssessments(
   const assessments = await db().assessment.findMany({
     include: summaryInclude,
   });
-  const expected = await expectedStudents(
-    assessments.map((assessment) => ({
-      moduleId: assessment.moduleId,
-      academicYear: academicYearAt(assessment.deadline, timeZone),
-    })),
-  );
+  const expected = await expectedStudents(assessments, now, timeZone);
 
   return assessments
-    .map((assessment) => {
-      const academicYear = academicYearAt(assessment.deadline, timeZone);
-      return toSummary(
-        assessment,
-        expected.get(cohortKey(assessment.moduleId, academicYear)),
-        now,
-        timeZone,
-      );
-    })
+    .map((assessment) =>
+      toSummary(assessment, expected.get(assessment.id), now, timeZone),
+    )
     .sort(compareAssessments);
 }
 
@@ -175,12 +168,11 @@ export async function getAssessment(
     : null;
   if (!assessment) throw assessmentNotFound();
 
+  const now = new Date();
   const timeZone = collegeTimeZone();
-  const academicYear = academicYearAt(assessment.deadline, timeZone);
   const expected =
-    (
-      await expectedStudents([{ moduleId: assessment.moduleId, academicYear }])
-    ).get(cohortKey(assessment.moduleId, academicYear)) ?? new Set<string>();
+    (await expectedStudents([assessment], now, timeZone)).get(assessment.id) ??
+    new Set<string>();
   const students = await db().student.findMany({
     where: {
       OR: [
@@ -190,6 +182,7 @@ export async function getAssessment(
       ],
     },
     select: {
+      id: true,
       studentNumber: true,
       fullName: true,
       status: true,
@@ -213,10 +206,11 @@ export async function getAssessment(
   });
 
   return {
-    ...toSummary(assessment, expected, new Date(), timeZone),
+    ...toSummary(assessment, expected, now, timeZone),
     createdAt: assessment.createdAt,
     students: students.map(
       ({
+        id,
         submissions: [submission],
         results: [result],
         resultsWithheldAt,
@@ -224,6 +218,7 @@ export async function getAssessment(
       }) => ({
         ...student,
         resultsWithheld: resultsWithheldAt !== null,
+        expected: expected.has(id),
         submission: submission
           ? {
               ...submission,
@@ -479,25 +474,63 @@ function cohortKey(moduleId: string, academicYear: string): string {
 }
 
 /**
- * The students expected to submit for modules in academic years: those
- * registered on the module for the year who are now enrolled, by cohortKey.
+ * The students expected to submit for each assessment, by assessment ID:
+ * those registered on its module for the academic year of its deadline whom
+ * expectedToSubmit counts.
  */
 async function expectedStudents(
-  cohorts: readonly { moduleId: string; academicYear: string }[],
+  assessments: readonly { id: string; moduleId: string; deadline: Date }[],
+  now: Date,
+  timeZone: string,
 ): Promise<Map<string, Set<string>>> {
   const expected = new Map<string, Set<string>>();
-  if (cohorts.length === 0) return expected;
+  if (assessments.length === 0) return expected;
+  const cohorts = assessments.map((assessment) => ({
+    ...assessment,
+    academicYear: academicYearAt(assessment.deadline, timeZone),
+  }));
   const registrations = await db().moduleRegistration.findMany({
     where: {
       moduleId: { in: [...new Set(cohorts.map((c) => c.moduleId))] },
       academicYear: { in: [...new Set(cohorts.map((c) => c.academicYear))] },
-      student: { status: "ENROLLED" },
     },
-    select: { moduleId: true, academicYear: true, studentId: true },
+    select: {
+      moduleId: true,
+      academicYear: true,
+      studentId: true,
+      registeredAt: true,
+      student: {
+        select: {
+          status: true,
+          statusChanges: { select: { toStatus: true, changedAt: true } },
+        },
+      },
+    },
   });
-  for (const { moduleId, academicYear, studentId } of registrations) {
-    const key = cohortKey(moduleId, academicYear);
-    expected.set(key, (expected.get(key) ?? new Set()).add(studentId));
+  const byCohort = Map.groupBy(registrations, (registration) =>
+    cohortKey(registration.moduleId, registration.academicYear),
+  );
+  for (const cohort of cohorts) {
+    const registered =
+      byCohort.get(cohortKey(cohort.moduleId, cohort.academicYear)) ?? [];
+    expected.set(
+      cohort.id,
+      new Set(
+        registered
+          .filter(({ registeredAt, student }) =>
+            expectedToSubmit(
+              {
+                registeredAt,
+                status: student.status,
+                history: student.statusChanges,
+              },
+              cohort.deadline,
+              now,
+            ),
+          )
+          .map(({ studentId }) => studentId),
+      ),
+    );
   }
   return expected;
 }

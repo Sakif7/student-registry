@@ -2,6 +2,8 @@
 // set up exactly the state it needs. Values are valid unless overridden.
 import { hashPassword } from "better-auth/crypto";
 
+import { academicYearSpan } from "@/domain/academic-year";
+import { toDbDate } from "@/domain/college-time";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 
@@ -62,7 +64,8 @@ export async function createModule({
 
 /**
  * Registers students on a module for an academic year: 2026/27 unless
- * given, the year of the factories' default deadline.
+ * given, the year of the factories' default deadline. They are registered as
+ * the year begins, so before any of its deadlines.
  */
 export async function registerStudents(
   moduleId: string,
@@ -74,6 +77,7 @@ export async function registerStudents(
       studentId,
       moduleId,
       academicYear,
+      registeredAt: toDbDate(academicYearSpan(academicYear).first),
     })),
   });
 }

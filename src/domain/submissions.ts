@@ -2,7 +2,12 @@
 // and when work counts as late.
 import { z } from "zod";
 
-import { canSubmitWork, type EnrolmentStatus } from "./enrolment";
+import {
+  canSubmitWork,
+  type EnrolmentStatus,
+  type StatusChangeLine,
+  statusAt,
+} from "./enrolment";
 import { type SortDirection, sortDirectionSchema } from "./sorting";
 
 /** Largest file accepted, in bytes (10 MB). */
@@ -129,6 +134,36 @@ export function assessmentState(
 ): AssessmentState {
   if (assessment.closedAt) return "CLOSED";
   return now > assessment.deadline ? "ACCEPTING_LATE" : "OPEN";
+}
+
+/**
+ * Whether a student registered on an assessment's module is expected to
+ * submit, and so counts in "submitted of expected". Until the deadline: if
+ * they are enrolled now. After it: if they were registered on the module and
+ * enrolled at the deadline. So a past assessment keeps counting the students
+ * who were due, whatever has happened to them since, and a student who joined
+ * the module after the deadline isn't counted as missing work.
+ *
+ * @param student - When they were registered on the module, their status
+ *   now and their status history. A record with no history counts as it is
+ *   now.
+ */
+export function expectedToSubmit(
+  student: {
+    registeredAt: Date;
+    status: EnrolmentStatus;
+    history: readonly StatusChangeLine[];
+  },
+  deadline: Date,
+  now: Date,
+): boolean {
+  if (now <= deadline) return canSubmitWork(student.status);
+  if (student.registeredAt > deadline) return false;
+  const status =
+    student.history.length > 0
+      ? statusAt(student.history, deadline)
+      : student.status;
+  return status !== null && canSubmitWork(status);
 }
 
 const STATE_ORDER: Record<AssessmentState, number> = {

@@ -467,6 +467,8 @@ As staff:
 1. Open **Assessments**. The eleven demo assessments are listed: open ones
    first, soonest deadline first, then the rest, latest deadline first.
    **Algorithms coursework** shows **Closed** and "2 of 2" submitted, "1 late".
+   **Final year project**, from last year, shows "1 of 1": Mohammed has
+   completed since, but was enrolled at the deadline, so still counts.
    Select the **Module** heading: the list goes by module code, with the
    Management essay (BM4001) first. Select it again for the reverse order,
    then **State** to return to the usual one.

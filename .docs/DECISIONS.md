@@ -318,9 +318,17 @@ Staff can reopen an assessment or extend its deadline.
   inside the hour that happens twice in autumn means its first occurrence
   (BST), the earlier and so the safer reading for students.
 - The submission tracker expects work from the students registered on the
-  module that year who are now enrolled. A student who submitted and then
-  withdrew is still listed, with their work, but no longer counts towards
-  "submitted of expected".
+  module that year who are enrolled. Until the deadline that means enrolled
+  now; once it has passed, registered and enrolled at the deadline, from the
+  registration's date and the status history. So a past assessment goes on
+  counting the students who were due, even after they complete or withdraw,
+  and a student who joined the module after the deadline, or had deferred or
+  withdrawn by then, isn't counted as missing work. Anyone else who submitted
+  or has a mark is still listed with it, marked "Not expected to submit".
+- A student who joins a module after a deadline can still submit while the
+  assessment takes late work, and the work is flagged Late, but the tracker
+  lists them as not expected to submit, so staff can judge the flag.
+  Individual deadlines are not modelled yet (see "With more time").
 - Closing asks for confirmation, because it stops students submitting even
   late work. Reopening doesn't, because it only restores what was there.
 

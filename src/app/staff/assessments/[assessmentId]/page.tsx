@@ -116,8 +116,9 @@ async function AssessmentView({ params }: { params: Params }) {
           </h2>
           {assessment.students.length === 0 ? (
             <p className="text-muted-foreground">
-              No enrolled student is registered on {assessment.module.code} for{" "}
-              {assessment.academicYear} yet.
+              {assessment.state === "OPEN"
+                ? `No enrolled student is registered on ${assessment.module.code} for ${assessment.academicYear} yet.`
+                : `No student was registered on ${assessment.module.code} for ${assessment.academicYear}, and enrolled, at the deadline.`}
             </p>
           ) : (
             <Marksheet
@@ -153,6 +154,7 @@ function summaryFacts(
     result ? [result] : [],
   );
   const published = marks.filter(({ publishedAt }) => publishedAt).length;
+  const anyWork = assessment.students.some(({ submission }) => submission);
   return [
     {
       label: "Deadline",
@@ -172,9 +174,10 @@ function summaryFacts(
       icon: FileCheck,
       value: `${submittedCount} of ${formatCount(expectedCount, "student")}`,
       progress: { value: submittedCount, max: expectedCount },
-      detail:
-        submittedCount === 0
-          ? "Nothing submitted yet"
+      detail: !anyWork
+        ? "Nothing submitted yet"
+        : submittedCount === 0
+          ? "None from the students expected"
           : lateCount > 0
             ? `${lateCount} late`
             : "All on time",

@@ -8,6 +8,7 @@ import {
   checkUploadedFile,
   compareAssessments,
   documentKindOf,
+  expectedToSubmit,
   isLate,
   MAX_UPLOAD_BYTES,
   precheckFile,
@@ -71,6 +72,75 @@ describe("assessmentState and isLate", () => {
   it("counts work as late from the first moment after the deadline", () => {
     expect(isLate(deadline, deadline)).toBe(false);
     expect(isLate(after, deadline)).toBe(true);
+  });
+});
+
+describe("expectedToSubmit", () => {
+  const september = new Date("2026-09-14T09:00:00Z");
+  const enrolled = {
+    registeredAt: september,
+    status: "ENROLLED" as const,
+    history: [{ toStatus: "ENROLLED" as const, changedAt: september }],
+  };
+  // Enrolled at the deadline, withdrawn a week later.
+  const withdrewAfter = {
+    ...enrolled,
+    status: "WITHDRAWN" as const,
+    history: [
+      ...enrolled.history,
+      {
+        toStatus: "WITHDRAWN" as const,
+        changedAt: new Date("2026-11-27T12:00:00Z"),
+      },
+    ],
+  };
+
+  it("expects the students enrolled now, until the deadline", () => {
+    expect(expectedToSubmit(enrolled, deadline, before)).toBe(true);
+    expect(expectedToSubmit(withdrewAfter, deadline, before)).toBe(false);
+  });
+
+  it("goes on expecting a student who was due at the deadline, whatever happened since", () => {
+    const later = new Date("2027-07-01T12:00:00Z");
+    expect(expectedToSubmit(withdrewAfter, deadline, later)).toBe(true);
+    expect(
+      expectedToSubmit(
+        { ...withdrewAfter, status: "COMPLETED" as const },
+        deadline,
+        later,
+      ),
+    ).toBe(true);
+  });
+
+  it("doesn't expect a student who joined after the deadline, or wasn't enrolled at it", () => {
+    expect(
+      expectedToSubmit({ ...enrolled, registeredAt: after }, deadline, after),
+    ).toBe(false);
+    const deferredThen = {
+      ...enrolled,
+      history: [
+        ...enrolled.history,
+        {
+          toStatus: "DEFERRED" as const,
+          changedAt: new Date("2026-10-05T10:00:00Z"),
+        },
+        { toStatus: "ENROLLED" as const, changedAt: after },
+      ],
+    };
+    expect(expectedToSubmit(deferredThen, deadline, after)).toBe(false);
+  });
+
+  it("takes a record with no history as it is now", () => {
+    expect(
+      expectedToSubmit({ ...enrolled, history: [] }, deadline, after),
+    ).toBe(true);
+    expect(
+      expectedToSubmit(
+        { ...enrolled, status: "WITHDRAWN" as const, history: [] },
+        deadline,
+        after,
+      ),
+    ).toBe(false);
   });
 });
 

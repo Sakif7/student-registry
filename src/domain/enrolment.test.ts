@@ -6,6 +6,7 @@ import {
   canSubmitWork,
   ENROLMENT_STATUSES,
   EnrolmentStatus,
+  statusAt,
   statusChangeNeedsReason,
 } from "./enrolment";
 
@@ -60,5 +61,26 @@ describe("statusChangeNeedsReason", () => {
 describe("canSubmitWork", () => {
   it("lets only enrolled students submit", () => {
     expect(ENROLMENT_STATUSES.filter(canSubmitWork)).toEqual([ENROLLED]);
+  });
+});
+
+describe("statusAt", () => {
+  const history = [
+    // In any order.
+    { toStatus: DEFERRED, changedAt: new Date("2026-11-02T10:00:00Z") },
+    { toStatus: ENROLLED, changedAt: new Date("2026-09-14T09:00:00Z") },
+    { toStatus: ENROLLED, changedAt: new Date("2027-01-11T09:00:00Z") },
+  ];
+
+  it("gives the status of the last change made by then", () => {
+    expect(statusAt(history, new Date("2026-10-01T00:00:00Z"))).toBe(ENROLLED);
+    expect(statusAt(history, new Date("2026-11-02T10:00:00Z"))).toBe(DEFERRED);
+    expect(statusAt(history, new Date("2026-12-01T00:00:00Z"))).toBe(DEFERRED);
+    expect(statusAt(history, new Date("2027-02-01T00:00:00Z"))).toBe(ENROLLED);
+  });
+
+  it("is null before the record existed", () => {
+    expect(statusAt(history, new Date("2026-09-01T00:00:00Z"))).toBeNull();
+    expect(statusAt([], new Date())).toBeNull();
   });
 });

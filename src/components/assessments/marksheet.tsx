@@ -43,6 +43,8 @@ export interface MarksheetRow {
   fullName: string;
   status: EnrolmentStatus;
   resultsWithheld: boolean;
+  /** Counted in "submitted of expected"; listed anyway for their work. */
+  expected: boolean;
   submission: {
     id: string;
     fileName: string;
@@ -148,6 +150,11 @@ export function Marksheet({
                     </span>
                     {row.status !== "ENROLLED" && (
                       <StatusBadge status={row.status} />
+                    )}
+                    {!row.expected && (
+                      <span className="text-xs text-muted-foreground">
+                        Not expected to submit
+                      </span>
                     )}
                   </div>
                 </TableCell>
