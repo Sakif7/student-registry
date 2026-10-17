@@ -488,6 +488,35 @@ describe("moving a student", () => {
     });
   });
 
+  it("forward a year by mistake and back leaves nothing in the later year", async () => {
+    const { studentNumber } = await enrol();
+    const staff = await sessionFor(STAFF);
+
+    await updateStudent(staff, studentNumber, {
+      academicYear: "2027/28",
+      yearOfStudy: 2,
+    });
+    await updateStudent(staff, studentNumber, {
+      academicYear: YEAR,
+      yearOfStudy: 1,
+    });
+
+    expect(
+      await db().moduleRegistration.count({
+        where: { student: { studentNumber }, academicYear: "2027/28" },
+      }),
+    ).toBe(0);
+    const response = await getModules(
+      await apiRequest("GET", `/api/students/${studentNumber}/modules`, {
+        session: STAFF,
+      }),
+      routeContext({ studentNumber }),
+    );
+    expect(await bodyOf(response)).toMatchObject({
+      modules: { academicYear: YEAR, history: [] },
+    });
+  });
+
   it("is registered for the module's year only, so other years' assessments aren't theirs", async () => {
     const student = await makeStudent({ programmeId });
     await registerStudents(moduleIds.CS4001, [student.id], "2025/26");

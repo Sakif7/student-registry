@@ -439,6 +439,32 @@ export async function syncRegistrations(
       academicYear: student.academicYear,
     });
   }
+
+  // Registrations in a later academic year can only come from moving the
+  // student forward and back again. They go, unless the student has work in
+  // them: otherwise they would show as an earlier year, and make the student
+  // expected for that year's assessments.
+  const later = await tx.moduleRegistration.findMany({
+    // Academic years are written YYYY/YY, so their text sorts in order.
+    where: {
+      studentId: student.id,
+      academicYear: { gt: student.academicYear },
+    },
+    include: { module: true },
+  });
+  for (const year of new Set(later.map(({ academicYear }) => academicYear))) {
+    const withWork = (await modulesWithWork(tx, student, year)).all;
+    for (const registration of later) {
+      if (registration.academicYear !== year) continue;
+      if (withWork.has(registration.moduleId)) continue;
+      await tx.moduleRegistration.delete({ where: { id: registration.id } });
+      await recordRegistrationEvent(tx, actor, "registration.dropped", {
+        studentId: student.id,
+        module: registration.module,
+        academicYear: year,
+      });
+    }
+  }
 }
 
 async function recordRegistrationEvent(
