@@ -38,13 +38,13 @@ export function ChargeFeeDialog({
   academicYears,
   defaultAcademicYear,
   standardFeePence,
-  defaultDueDate,
+  today,
 }: {
   studentNumber: string;
   academicYears: string[];
   defaultAcademicYear: string;
   standardFeePence: number;
-  defaultDueDate: CalendarDate;
+  today: CalendarDate;
 }) {
   return (
     <FormDialog
@@ -58,7 +58,7 @@ export function ChargeFeeDialog({
           academicYears={academicYears}
           defaultAcademicYear={defaultAcademicYear}
           standardFeePence={standardFeePence}
-          defaultDueDate={defaultDueDate}
+          today={today}
           onDone={close}
         />
       )}

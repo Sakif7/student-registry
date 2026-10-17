@@ -244,25 +244,40 @@ fee never rewrites charges already raised. A student has at most one charge per
 academic year (a database unique constraint).
 
 - The charge is created automatically when a student record is created as
-  Enrolled, so a new enrolment can't be left unbilled. In every other case (a
-  deferred student returning, a new academic year) the student's record prompts
-  staff to assign it.
+  Enrolled, so a new enrolment can't be left unbilled, and the audit trail
+  records it like any other charge. In every other case (a deferred student
+  returning, a new academic year) the student's record prompts staff to assign
+  it. Only an Enrolled student is prompted: a deferred, withdrawn or completed
+  student isn't attending, so there is nothing to charge for the year yet.
 - Staff can correct a charge's amount (for example a scholarship) or its due
   date. A charge is the college's own claim, so correcting it is legitimate. A
   payment records money that actually moved, so it is never edited.
-- The default due date is 30 days after the charge is raised, and can be changed.
+- A correction's audit entry keeps the amount and due date before and after,
+  and the note giving the reason, so a scholarship down to £0 still shows what
+  was waived and why. The note can be removed only once the amount is back at
+  the standard fee. Saving a charge unchanged records nothing.
+- A charge corrected to £0 is shown as Waived, not Paid: nothing was paid.
+- The default due date is 30 days after the charge is raised, or after the
+  first day of its academic year if that is later, so a fee charged ahead for
+  next year isn't overdue before the year begins. Staff can change it.
 - The currency is GBP. Money is stored as integer pence everywhere, never as a
   floating-point number.
 
 ### Payments are append-only and corrected by reversal
 
 - A payment needs an amount above zero, a date that is not in the future in the
-  college's time zone, and a reference that is unique across all payments
-  regardless of case. The unique reference catches the same bank transfer being
-  entered twice.
+  college's time zone, and a reference that no other payment still counting
+  has, regardless of case. That catches the same bank transfer being entered
+  twice. A reversed payment's reference can be recorded again, because
+  reversing a payment keyed with the wrong amount, or against the wrong
+  student, is followed by recording the same transfer correctly. A lock on the
+  reference lets only one of two simultaneous entries through.
 - Overpayment is accepted and shown as credit: money arrives when it arrives.
 - Payments are never edited or deleted. A mistake is corrected by one reversal
-  entry with a reason; the reversed payment stays visible but no longer counts.
+  entry with a reason; the reversed payment stays visible to staff but no
+  longer counts. A student's own account leaves reversed payments out: they
+  are the Registry's corrections, not money the student paid or got back, and
+  one keyed against the wrong student is someone else's payment.
 - No single amount may exceed £100,000. This catches a mistyped extra digit
   without getting in the way of any real tuition fee. Amounts are typed in
   pounds and converted to pence with string arithmetic, never floating point.
@@ -274,8 +289,10 @@ academic year (a database unique constraint).
 - The balance is charges minus valid payments. It is computed from the stored
   rows on every request and never stored itself, so it can't drift, and it is
   current the moment a payment is recorded.
-- Payments clear the oldest charge first. The overdue amount is whatever is
-  still unpaid on charges whose due date has passed; a charge due today is not
+- Payments clear the oldest academic year's charge first (then the earliest
+  due date), so moving a charge's due date never moves money between years.
+  The overdue amount is whatever is still unpaid on charges whose due date has
+  passed; a charge due today is not
   yet overdue. Days overdue count from the oldest unpaid due date.
 - Overdue students are flagged on the Registry dashboard, in the student list
   and on the student's record.
@@ -719,8 +736,8 @@ data is always read at request time.
   - money is never negative and payments are positive;
   - marks lie between 0 and 100;
   - student numbers and academic years keep one format;
-  - emails are lower-case and payment references upper-case, so uniqueness
-    can't be dodged;
+  - emails are lower-case and payment references upper-case, so the checks
+    for a duplicate can't be dodged;
   - a results hold has both its date and its reason;
   - a status change actually changes the status.
 

@@ -41,10 +41,11 @@ export function FeesChart({ fees }: { fees: YearFees }) {
     pence: pence[part],
     fill: `var(--color-${part})`,
   }));
-  // Rounded down: 99.6% isn't everything.
+  // Rounded down: 99.6% isn't everything. Multiplied first, so the division
+  // is exact: 29 / 100 * 100 is 28.999… in floating point.
   const collected =
     fees.chargedPence > 0
-      ? Math.floor((fees.paidPence / fees.chargedPence) * 100)
+      ? Math.floor((fees.paidPence * 100) / fees.chargedPence)
       : 0;
 
   return (

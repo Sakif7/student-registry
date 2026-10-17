@@ -232,15 +232,17 @@ model Payment {
   studentId   String   @map("student_id") @db.Uuid
   amountPence Int      @map("amount_pence")
   paidOn      DateTime @map("paid_on") @db.Date
-  /// Bank or receipt reference, stored trimmed and upper-case. Unique, which
-  /// catches the same transfer being entered twice.
-  reference   String   @unique
+  /// Bank or receipt reference, stored trimmed and upper-case. Unique among
+  /// the payments that count, which catches the same transfer being entered
+  /// twice; a reversed payment's reference can be recorded again.
+  reference   String
   recordedAt  DateTime @default(now()) @map("recorded_at") @db.Timestamptz(3)
 
   student  Student          @relation(fields: [studentId], references: [id])
   reversal PaymentReversal?
 
   @@index([studentId])
+  @@index([reference])
   @@map("payments")
 }
 

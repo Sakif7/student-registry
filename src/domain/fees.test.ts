@@ -167,6 +167,12 @@ describe("correctFeeSchema", () => {
       true,
     );
   });
+
+  it("takes an empty note as removing it, and a missing one as keeping it", () => {
+    const dueDate = "2026-11-30";
+    expect(correctFeeSchema.parse({ dueDate, note: "  " }).note).toBeNull();
+    expect(correctFeeSchema.parse({ dueDate }).note).toBeUndefined();
+  });
 });
 
 describe("allocatePayments", () => {
@@ -196,6 +202,37 @@ describe("allocatePayments", () => {
         outstandingPence: 50_000,
         overdue: false,
       },
+    ]);
+  });
+
+  it("clears the oldest year first, whatever the due dates say", () => {
+    // Last year's charge was given a later due date by a correction: the
+    // payment still goes to last year, so nothing moves between years.
+    const lines = allocatePayments(
+      [
+        {
+          academicYear: "2026/27",
+          amountPence: 100_000,
+          dueDate: "2026-10-01",
+        },
+        {
+          academicYear: "2025/26",
+          amountPence: 100_000,
+          dueDate: "2026-12-01",
+        },
+      ],
+      100_000,
+      TODAY,
+    );
+    expect(
+      lines.map(({ academicYear, paidPence, overdue }) => ({
+        academicYear,
+        paidPence,
+        overdue,
+      })),
+    ).toEqual([
+      { academicYear: "2025/26", paidPence: 100_000, overdue: false },
+      { academicYear: "2026/27", paidPence: 0, overdue: true },
     ]);
   });
 

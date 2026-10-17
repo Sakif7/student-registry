@@ -78,7 +78,7 @@ async function enrolledStudent() {
 }
 
 describe("the audit trail records", () => {
-  it("who enrolled a student, and the activation email sent", async () => {
+  it("who enrolled a student, the fee charged with it, and the activation email sent", async () => {
     await createProgramme({ code: "BSC-CS" });
     const staff = await sessionFor(STAFF);
 
@@ -96,6 +96,11 @@ describe("the audit trail records", () => {
         action: "student.enrolled",
         actor: "Rachel Moss",
         details: { studentNumber: student.studentNumber, status: "ENROLLED" },
+      },
+      {
+        action: "fee.charged",
+        actor: "Rachel Moss",
+        details: { academicYear: "2026/27", amountPence: 953_500 },
       },
       {
         action: "sign_in.link_sent",
@@ -176,7 +181,16 @@ describe("the audit trail records", () => {
       ["fee.charged", { academicYear: "2026/27", amountPence: 953_500 }],
       [
         "fee.corrected",
-        { academicYear: "2026/27", amountPence: 0, dueDate: "2026-11-30" },
+        {
+          academicYear: "2026/27",
+          amountPence: 0,
+          dueDate: "2026-11-30",
+          from: {
+            amountPence: 953_500,
+            dueDate: charged.charges[0]?.dueDate,
+          },
+          note: "Scholarship",
+        },
       ],
       ["payment.recorded", { amountPence: 50_000, reference: "BACS 0042" }],
       [

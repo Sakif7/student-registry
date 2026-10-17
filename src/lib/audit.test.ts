@@ -38,6 +38,17 @@ describe("describeEvent", () => {
       "Corrected the 2026/27 fee to £0.00, due 30 Nov 2026",
     ],
     [
+      "fee.corrected",
+      {
+        academicYear: "2026/27",
+        amountPence: 0,
+        dueDate: "2026-11-30",
+        from: { amountPence: 953_500, dueDate: "2026-10-01" },
+        note: "Full scholarship",
+      },
+      "Corrected the 2026/27 fee from £9,535.00, due 1 Oct 2026, to £0.00, due 30 Nov 2026: Full scholarship",
+    ],
+    [
       "payment.recorded",
       { amountPence: 50_000, reference: "BACS 0042" },
       "Recorded a payment of £500.00 (BACS 0042)",

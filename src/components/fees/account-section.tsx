@@ -9,8 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { addDays, type CalendarDate } from "@/domain/college-time";
-import { DEFAULT_FEE_DUE_DAYS } from "@/domain/fees";
+import type { CalendarDate } from "@/domain/college-time";
 import type { Account } from "@/server/services/fees";
 
 import { AccountFigures, ChargesTable, PaymentsTable } from "./account-tables";
@@ -50,7 +49,7 @@ export function AccountSection({
               academicYears={staff.academicYears}
               defaultAcademicYear={account.academicYear}
               standardFeePence={account.standardFeePence}
-              defaultDueDate={addDays(staff.today, DEFAULT_FEE_DUE_DAYS)}
+              today={staff.today}
             />
           </div>
         )}

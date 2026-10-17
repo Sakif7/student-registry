@@ -161,7 +161,9 @@ function feesFact(account: Account): SummaryFact {
         ...fact,
         value: "No fees",
         tone: "neutral",
-        detail: "Nothing charged yet",
+        // A charge corrected to £0, e.g. a full scholarship, is still a charge.
+        detail:
+          account.charges.length > 0 ? "Fees waived" : "Nothing charged yet",
       };
   }
 }

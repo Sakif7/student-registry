@@ -18,8 +18,8 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { calendarDateSchema } from "@/domain/college-time";
-import { assignFeeSchema } from "@/domain/fees";
+import { type CalendarDate, calendarDateSchema } from "@/domain/college-time";
+import { assignFeeSchema, defaultDueDate } from "@/domain/fees";
 import {
   chargeAmountSchema,
   penceToPoundsInput,
@@ -34,14 +34,15 @@ export function AssignFeeForm({
   academicYears,
   defaultAcademicYear,
   standardFeePence,
-  defaultDueDate,
+  today,
   onDone,
 }: {
   studentNumber: string;
   academicYears: string[];
   defaultAcademicYear: string;
   standardFeePence: number;
-  defaultDueDate: string;
+  /** The college's date, from which a new fee's due date is counted. */
+  today: CalendarDate;
   /** Called once the fee is charged, e.g. to close a dialog. */
   onDone?: () => void;
 }) {
@@ -65,7 +66,7 @@ export function AssignFeeForm({
     defaultValues: {
       academicYear: defaultAcademicYear,
       amountPence: penceToPoundsInput(standardFeePence),
-      dueDate: defaultDueDate,
+      dueDate: defaultDueDate(today, defaultAcademicYear),
       note: "",
     },
   });
@@ -104,7 +105,21 @@ export function AssignFeeForm({
           error={errors.academicYear?.message}
         >
           {(control) => (
-            <NativeSelect {...control} {...form.register("academicYear")}>
+            <NativeSelect
+              {...control}
+              {...form.register("academicYear", {
+                // The due date follows the year chosen, until staff set
+                // their own.
+                onChange: (event: { target: { value: string } }) => {
+                  if (!form.getFieldState("dueDate").isDirty) {
+                    form.setValue(
+                      "dueDate",
+                      defaultDueDate(today, event.target.value),
+                    );
+                  }
+                },
+              })}
+            >
               {academicYears.map((year) => (
                 <NativeSelectOption key={year} value={year}>
                   {year}

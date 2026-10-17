@@ -25,8 +25,8 @@ const DESCRIBE: Describe = {
     `Changed the status from ${ENROLMENT_STATUS_LABELS[from]} to ${ENROLMENT_STATUS_LABELS[to]}${reason ? `: ${reason}` : ""}`,
   "fee.charged": ({ academicYear, amountPence }) =>
     `Charged the ${academicYear} fee of ${formatMoney(amountPence)}`,
-  "fee.corrected": ({ academicYear, amountPence, dueDate }) =>
-    `Corrected the ${academicYear} fee to ${formatMoney(amountPence)}, due ${formatDate(dueDate)}`,
+  "fee.corrected": ({ academicYear, amountPence, dueDate, from, note }) =>
+    `Corrected the ${academicYear} fee ${from ? `from ${formatMoney(from.amountPence)}, due ${formatDate(from.dueDate)}, ` : ""}to ${formatMoney(amountPence)}, due ${formatDate(dueDate)}${note ? `: ${note}` : ""}`,
   "payment.recorded": ({ amountPence, reference }) =>
     `Recorded a payment of ${formatMoney(amountPence)} (${reference})`,
   "payment.reversed": ({ amountPence, reference, reason }) =>

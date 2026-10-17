@@ -393,8 +393,16 @@ year's fee is overdue after a £5,000.00 card payment.
 3. Select **Correct** again and change the amount to `4767.50` with the note
    field empty. "Explain why the amount differs from the standard fee of
    £9,535.00" appears.
-4. **Chloé Dubois** shows a payment the seed already reversed ("Payment
-   recalled by the bank"), followed by the payment that replaced it.
+4. Open the **History** tab. The correction reads "Corrected the 2026/27 fee
+   from £9,535.00, due …, to £9,535.00, due …: Payment plan agreed", giving
+   the charge before and after.
+5. **Chloé Dubois** shows a payment the seed already reversed ("Payment
+   recalled by the bank"), followed by the payment that replaced it. Sign in
+   as Chloé: **My fees** lists only the payment that counts, because a
+   reversal is the Registry's correction, not money Chloé paid.
+6. **Sofia Rossi**'s fee, corrected to £0.00 on deferral, is marked
+   **Waived**, and the summary above the tabs reads "No fees · Fees waived".
+   No "No fee charged" warning appears, because Sofia is deferred.
 
 ### 8. The dashboard and overdue fees
 

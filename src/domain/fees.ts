@@ -2,8 +2,9 @@
 // Balances are always computed from the charges and payments, never stored.
 import { z } from "zod";
 
-import { academicYearSchema } from "./academic-year";
+import { academicYearSchema, academicYearSpan } from "./academic-year";
 import {
+  addDays,
   type CalendarDate,
   calendarDateSchema,
   daysBetween,
@@ -13,9 +14,25 @@ import { chargeAmountSchema, paymentAmountSchema } from "./money";
 /** A new fee charge is due this many days after it is raised. */
 export const DEFAULT_FEE_DUE_DAYS = 30;
 
+/**
+ * When a newly charged fee falls due unless staff say otherwise: 30 days
+ * on, counted from today, or from the start of its academic year if that is
+ * later, so a fee charged ahead for next year isn't overdue before the year
+ * begins.
+ */
+export function defaultDueDate(
+  today: CalendarDate,
+  academicYear: string,
+): CalendarDate {
+  const { first } = academicYearSpan(academicYear);
+  return addDays(today > first ? today : first, DEFAULT_FEE_DUE_DAYS);
+}
+
 export interface ChargeLine {
   amountPence: number;
   dueDate: CalendarDate;
+  /** The year it is for, e.g. "2026/27": payments clear the oldest first. */
+  academicYear?: string;
 }
 
 export interface PaymentLine {
@@ -45,8 +62,9 @@ export type AllocatedCharge<Charge extends ChargeLine> = Charge & {
 };
 
 /**
- * Applies payments to charges, oldest due date first, so whatever is still
- * outstanding is the newest debt. A charge due today is not yet overdue.
+ * Applies payments to charges, oldest academic year first, so whatever is
+ * still outstanding is the newest debt. A charge due today is not yet
+ * overdue.
  *
  * @param charges - The student's fee charges, in any order.
  * @param paidPence - The total of the student's valid payments.
@@ -59,8 +77,15 @@ export function allocatePayments<Charge extends ChargeLine>(
   today: CalendarDate,
 ): AllocatedCharge<Charge>[] {
   let unallocated = paidPence;
+  // The oldest academic year first, then the earliest due date. By year,
+  // because correcting a charge's due date mustn't move payments between
+  // years; a student has one charge a year, so the order is always the same.
   return [...charges]
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .sort(
+      (a, b) =>
+        (a.academicYear ?? "").localeCompare(b.academicYear ?? "") ||
+        a.dueDate.localeCompare(b.dueDate),
+    )
     .map((charge) => {
       const covered = Math.max(0, Math.min(unallocated, charge.amountPence));
       unallocated -= covered;
@@ -245,7 +270,10 @@ export const assignFeeSchema = z.object({
     .transform((value) => value || undefined),
 });
 
-/** Input for correcting a fee charge's amount and/or due date. */
+/**
+ * Input for correcting a fee charge's amount and/or due date. An empty note
+ * removes the one on record (null); leaving the note out keeps it.
+ */
 export const correctFeeSchema = z
   .object({
     amountPence: chargeAmountSchema.optional(),
@@ -255,7 +283,7 @@ export const correctFeeSchema = z
       .trim()
       .max(200, "Use 200 characters or fewer")
       .optional()
-      .transform((value) => value || undefined),
+      .transform((value) => (value === undefined ? undefined : value || null)),
   })
   .refine(
     (input) => input.amountPence !== undefined || input.dueDate !== undefined,

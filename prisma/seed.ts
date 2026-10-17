@@ -1351,6 +1351,11 @@ async function seedAuditTrail(prisma: PrismaClient): Promise<number> {
               academicYear: charge.academicYear,
               amountPence: charge.amountPence,
               dueDate: fromDbDate(charge.dueDate),
+              from: {
+                amountPence: standardFee,
+                dueDate: fromDbDate(charge.dueDate),
+              },
+              note: charge.note,
             },
           },
         );

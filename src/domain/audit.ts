@@ -18,11 +18,14 @@ export interface AuditDetails {
     reason: string | null;
   };
   "fee.charged": { academicYear: string; amountPence: number };
-  /** The charge as corrected. */
+  /** The charge as corrected, what it was before, and the note on it. */
   "fee.corrected": {
     academicYear: string;
     amountPence: number;
     dueDate: CalendarDate;
+    /** Missing from events recorded before it was kept. */
+    from?: { amountPence: number; dueDate: CalendarDate };
+    note?: string | null;
   };
   "payment.recorded": { amountPence: number; reference: string };
   "payment.reversed": {

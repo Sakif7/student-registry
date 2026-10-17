@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PATCH as correctFee } from "@/app/api/fees/[feeId]/route";
 import { POST as reversePayment } from "@/app/api/payments/[paymentId]/reversal/route";
+import { GET as getAccount } from "@/app/api/students/[studentNumber]/account/route";
+import { POST as recordPayment } from "@/app/api/students/[studentNumber]/payments/route";
 import { toDbDate } from "@/domain/college-time";
 import { db } from "@/server/db";
 
@@ -136,6 +138,31 @@ describe("PATCH /api/fees/[feeId]", () => {
     });
   });
 
+  it("removes the note with the amount back at the standard fee, but not before", async () => {
+    await correct({ amountPence: 476_750, note: "Half scholarship" });
+    // Still a non-standard amount, so the note stays needed.
+    expect((await correct({ amountPence: 476_750, note: "" })).status).toBe(
+      400,
+    );
+
+    const { account } = await bodyOf<AccountBody>(
+      await correct({ amountPence: 953_500, note: "" }),
+    );
+    expect(account.charges[0]?.note).toBeNull();
+  });
+
+  it("records nothing when the charge is saved unchanged", async () => {
+    const response = await correct({
+      amountPence: 953_500,
+      dueDate: "2026-10-01",
+      note: "",
+    });
+    expect(response.status).toBe(200);
+    expect(
+      await db().auditEvent.count({ where: { action: "fee.corrected" } }),
+    ).toBe(0);
+  });
+
   it("404s for a malformed or unknown ID, and is for staff only", async () => {
     expect((await correct({ dueDate: "2026-11-30" }, "not-an-id")).status).toBe(
       404,
@@ -171,6 +198,52 @@ describe("POST /api/payments/[paymentId]/reversal", () => {
       paidPence: 0,
       overduePence: 953_500,
     });
+  });
+
+  it("shows staff the reversed payment, but leaves it out of the student's own account", async () => {
+    await reverse({ reason: "Keyed against the wrong student" });
+    const view = async (session: Viewer) =>
+      bodyOf<AccountBody>(
+        await getAccount(
+          await apiRequest("GET", "/api/students/SMS-2025-0001/account", {
+            session,
+          }),
+          routeContext({ studentNumber: "SMS-2025-0001" }),
+        ),
+      );
+
+    expect((await view(STAFF)).account.payments).toMatchObject([
+      {
+        reference: "BACS 1",
+        reversal: { reason: "Keyed against the wrong student" },
+      },
+    ]);
+    const own = (await view(asStudent("SMS-2025-0001"))).account;
+    expect(own.payments).toEqual([]);
+    expect(own.summary.paidPence).toBe(0);
+  });
+
+  it("lets a reversed payment's reference be recorded again, as the transfer is real", async () => {
+    const record = async () =>
+      recordPayment(
+        await apiRequest("POST", "/api/students/SMS-2025-0001/payments", {
+          session: STAFF,
+          json: {
+            amountPence: 500_000,
+            paidOn: "2026-10-05",
+            reference: "BACS 1",
+          },
+        }),
+        routeContext({ studentNumber: "SMS-2025-0001" }),
+      );
+    // While the payment counts, its reference can't be recorded twice.
+    expect((await record()).status).toBe(409);
+
+    await reverse({ reason: "Keyed with the wrong amount" });
+    expect((await record()).status).toBe(201);
+    expect(await db().payment.count({ where: { reference: "BACS 1" } })).toBe(
+      2,
+    );
   });
 
   it("refuses to reverse a payment twice", async () => {

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as getAccount } from "@/app/api/students/[studentNumber]/account/route";
 import { POST as assignFee } from "@/app/api/students/[studentNumber]/fees/route";
 import { POST as recordPayment } from "@/app/api/students/[studentNumber]/payments/route";
+import { POST as changeStatus } from "@/app/api/students/[studentNumber]/status/route";
 import { POST as enrolStudent } from "@/app/api/students/route";
 import { db } from "@/server/db";
 
@@ -130,11 +131,24 @@ describe("fees charged at enrolment", () => {
     expect(body.account.standing).toBe("DUE");
   });
 
-  it("charges nothing for a deferred entry", async () => {
+  it("charges nothing for a deferred entry, and asks for the fee once the student returns", async () => {
     const number = await enrol("DEFERRED", "grace@student.example");
-    const { body } = await account(STAFF, number);
-    expect(body.account.charges).toEqual([]);
-    expect(body.account.currentYearUncharged).toBe(true);
+    const deferred = (await account(STAFF, number)).body.account;
+    expect(deferred.charges).toEqual([]);
+    // Not attending, so there is nothing to charge yet.
+    expect(deferred.currentYearUncharged).toBe(false);
+
+    const returned = await changeStatus(
+      await apiRequest("POST", `/api/students/${number}/status`, {
+        session: STAFF,
+        json: { status: "ENROLLED" },
+      }),
+      routeContext({ studentNumber: number }),
+    );
+    expect(returned.status).toBe(200);
+    expect(
+      (await account(STAFF, number)).body.account.currentYearUncharged,
+    ).toBe(true);
   });
 });
 

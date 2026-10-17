@@ -151,6 +151,10 @@ export function ChargesTable({
                 <Badge className="border-transparent bg-amber-100 text-amber-900">
                   Due
                 </Badge>
+              ) : charge.amountPence === 0 ? (
+                <Badge className="border-transparent bg-neutral-200 text-neutral-800">
+                  Waived
+                </Badge>
               ) : (
                 <Badge className="border-transparent bg-emerald-100 text-emerald-900">
                   Paid

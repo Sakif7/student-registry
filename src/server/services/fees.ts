@@ -4,12 +4,7 @@
 // and can never drift.
 import "server-only";
 
-import {
-  addDays,
-  type CalendarDate,
-  fromDbDate,
-  toDbDate,
-} from "@/domain/college-time";
+import { type CalendarDate, fromDbDate, toDbDate } from "@/domain/college-time";
 import {
   type AccountStanding,
   accountStanding,
@@ -18,7 +13,7 @@ import {
   allocatePayments,
   assignFeeSchema,
   correctFeeSchema,
-  DEFAULT_FEE_DUE_DAYS,
+  defaultDueDate,
   feeDescription,
   recordPaymentSchema,
   reversePaymentSchema,
@@ -93,13 +88,13 @@ export async function getAccount(
   studentNumber: string,
 ): Promise<Account> {
   const number = studentNumber.toUpperCase();
-  requireStaffOrSelf(session, number);
+  const viewer = requireStaffOrSelf(session, number);
   const student = await db().student.findUnique({
     where: { studentNumber: number },
     include: accountInclude,
   });
   if (!student) throw studentNotFound(number);
-  return toAccount(student, collegeToday());
+  return toAccount(student, collegeToday(), viewer.role === "student");
 }
 
 /**
@@ -140,7 +135,7 @@ export async function assignFee(
           ),
           amountPence,
           dueDate: toDbDate(
-            fee.dueDate ?? addDays(collegeToday(), DEFAULT_FEE_DUE_DAYS),
+            fee.dueDate ?? defaultDueDate(collegeToday(), fee.academicYear),
           ),
           note: fee.note,
         },
@@ -182,35 +177,42 @@ export async function recordPayment(
   const payment = parseInput(recordPaymentSchema(collegeToday()), input);
   const student = await findStudent(studentNumber);
 
-  try {
-    await db().$transaction(async (tx) => {
-      await tx.payment.create({
-        data: {
-          studentId: student.id,
-          amountPence: payment.amountPence,
-          paidOn: toDbDate(payment.paidOn),
-          reference: payment.reference,
-        },
-      });
-      await recordEvent(tx, staff, {
-        action: "payment.recorded",
-        studentId: student.id,
-        details: {
-          amountPence: payment.amountPence,
-          reference: payment.reference,
-        },
-      });
+  await db().$transaction(async (tx) => {
+    // One payment with a reference at a time, so two entries of the same
+    // transfer can't both pass the check below.
+    // ($executeRaw, as the lock returns void, which the adapter can't read.)
+    await tx.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${`payment:${payment.reference}`}))`;
+    // A reversed payment no longer counts, so its reference can be recorded
+    // again: typically for the right student, after it was keyed against
+    // the wrong one.
+    const counted = await tx.payment.count({
+      where: { reference: payment.reference, reversal: null },
     });
-  } catch (error) {
-    if (violatedUniqueConstraint(error) === "payments_reference_key") {
+    if (counted > 0) {
       throw new AppError("CONFLICT", "Some fields need correcting.", {
         reference: [
           `A payment with reference ${payment.reference} is already recorded`,
         ],
       });
     }
-    throw error;
-  }
+    await tx.payment.create({
+      data: {
+        studentId: student.id,
+        amountPence: payment.amountPence,
+        paidOn: toDbDate(payment.paidOn),
+        reference: payment.reference,
+      },
+    });
+    await recordEvent(tx, staff, {
+      action: "payment.recorded",
+      studentId: student.id,
+      details: {
+        amountPence: payment.amountPence,
+        reference: payment.reference,
+      },
+    });
+  });
   return getAccount(session, studentNumber);
 }
 
@@ -238,23 +240,28 @@ export async function correctFee(
 
   const standardFee = charge.student.programme.annualFeePence;
   const amountPence = changes.amountPence ?? charge.amountPence;
-  if (amountPence !== standardFee && !(changes.note ?? charge.note)) {
+  const dueDate = changes.dueDate ?? fromDbDate(charge.dueDate);
+  const note = changes.note === undefined ? charge.note : changes.note;
+  if (amountPence !== standardFee && !note) {
     throw new AppError("VALIDATION", "Some fields need correcting.", {
       note: [
         `Explain why the amount differs from the standard fee of ${formatMoney(standardFee)}`,
       ],
     });
   }
+  // Saving the form unchanged corrects nothing, so the trail records nothing.
+  if (
+    amountPence === charge.amountPence &&
+    dueDate === fromDbDate(charge.dueDate) &&
+    note === charge.note
+  ) {
+    return getAccount(session, charge.student.studentNumber);
+  }
 
   await db().$transaction(async (tx) => {
     const corrected = await tx.feeCharge.update({
       where: { id: charge.id },
-      data: {
-        amountPence: changes.amountPence,
-        dueDate:
-          changes.dueDate === undefined ? undefined : toDbDate(changes.dueDate),
-        note: changes.note,
-      },
+      data: { amountPence, dueDate: toDbDate(dueDate), note },
     });
     await recordEvent(tx, staff, {
       action: "fee.corrected",
@@ -263,6 +270,11 @@ export async function correctFee(
         academicYear: corrected.academicYear,
         amountPence: corrected.amountPence,
         dueDate: fromDbDate(corrected.dueDate),
+        from: {
+          amountPence: charge.amountPence,
+          dueDate: fromDbDate(charge.dueDate),
+        },
+        note: corrected.note,
       },
     });
   });
@@ -348,7 +360,12 @@ export async function summariseAccounts(
   const [charges, payments] = await Promise.all([
     db().feeCharge.findMany({
       where: { studentId: { in: ids } },
-      select: { studentId: true, amountPence: true, dueDate: true },
+      select: {
+        studentId: true,
+        academicYear: true,
+        amountPence: true,
+        dueDate: true,
+      },
     }),
     db().payment.findMany({
       where: { studentId: { in: ids } },
@@ -366,6 +383,7 @@ export async function summariseAccounts(
       charges
         .filter((charge) => charge.studentId === id)
         .map((charge) => ({
+          academicYear: charge.academicYear,
           amountPence: charge.amountPence,
           dueDate: fromDbDate(charge.dueDate),
         })),
@@ -399,7 +417,16 @@ function studentNotFound(studentNumber: string): AppError {
   );
 }
 
-function toAccount(student: StudentWithAccount, today: CalendarDate): Account {
+/**
+ * @param own - Whether the student is looking at their own account. They
+ *   see only the payments that count: a reversed one may be another payer's
+ *   transfer, keyed against them by mistake, with staff's reason.
+ */
+function toAccount(
+  student: StudentWithAccount,
+  today: CalendarDate,
+  own: boolean,
+): Account {
   const charges: FeeChargeView[] = student.feeCharges.map((charge) => ({
     id: charge.id,
     academicYear: charge.academicYear,
@@ -423,6 +450,9 @@ function toAccount(student: StudentWithAccount, today: CalendarDate): Account {
     amountPence: payment.amountPence,
     reversed: payment.reversal !== null,
   }));
+  const shownPayments = own
+    ? payments.filter((payment) => payment.reversal === null)
+    : payments;
   const summary = summariseAccount(charges, paymentLines, today);
 
   return {
@@ -430,11 +460,13 @@ function toAccount(student: StudentWithAccount, today: CalendarDate): Account {
     academicYear: student.academicYear,
     standardFeePence: student.programme.annualFeePence,
     charges: allocatePayments(charges, totalPaid(paymentLines), today),
-    payments,
+    payments: shownPayments,
     summary,
     standing: accountStanding(summary),
-    currentYearUncharged: !charges.some(
-      (charge) => charge.academicYear === student.academicYear,
-    ),
+    // Only an enrolled student is charged for their year: a deferred entry
+    // or a withdrawn student isn't owed a prompt to bill them.
+    currentYearUncharged:
+      student.status === "ENROLLED" &&
+      !charges.some((charge) => charge.academicYear === student.academicYear),
   };
 }

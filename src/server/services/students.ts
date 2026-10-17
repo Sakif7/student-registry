@@ -7,12 +7,7 @@ import "server-only";
 import { hashPassword } from "better-auth/crypto";
 
 import { startYearOf } from "@/domain/academic-year";
-import {
-  addDays,
-  type CalendarDate,
-  fromDbDate,
-  toDbDate,
-} from "@/domain/college-time";
+import { type CalendarDate, fromDbDate, toDbDate } from "@/domain/college-time";
 import {
   allowedStatusChanges,
   canChangeStatus,
@@ -21,7 +16,7 @@ import {
 } from "@/domain/enrolment";
 import {
   type AccountStanding,
-  DEFAULT_FEE_DUE_DAYS,
+  defaultDueDate,
   feeDescription,
 } from "@/domain/fees";
 import type { SortDirection } from "@/domain/sorting";
@@ -344,7 +339,9 @@ async function insertStudent(
                       programme.title,
                     ),
                     amountPence: programme.annualFeePence,
-                    dueDate: toDbDate(addDays(today, DEFAULT_FEE_DUE_DAYS)),
+                    dueDate: toDbDate(
+                      defaultDueDate(today, details.academicYear),
+                    ),
                   },
                 }
               : undefined,
@@ -370,6 +367,17 @@ async function insertStudent(
           status: created.status,
         },
       });
+      // The fee charged with the enrolment is a change of its own.
+      if (details.status === "ENROLLED") {
+        await recordEvent(tx, staff, {
+          action: "fee.charged",
+          studentId: created.id,
+          details: {
+            academicYear: details.academicYear,
+            amountPence: programme.annualFeePence,
+          },
+        });
+      }
       if (passwordHash !== null) {
         // Stored as Better Auth stores a password: in a credential account
         // whose ID is the user's.
