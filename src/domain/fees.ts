@@ -142,7 +142,12 @@ export function summariseAccount(
   const overdue = allocatePayments(charges, paidPence, today).filter(
     (charge) => charge.overdue,
   );
-  const overdueSince = overdue[0]?.dueDate ?? null;
+  // The earliest due date, whatever order the years' charges fall due in.
+  const overdueSince =
+    overdue
+      .map((charge) => charge.dueDate)
+      .sort()
+      .at(0) ?? null;
 
   return {
     chargedPence,

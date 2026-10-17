@@ -4,6 +4,7 @@ import {
   accountStanding,
   allocatePayments,
   correctFeeSchema,
+  defaultDueDate,
   nextChargeDue,
   normalisePaymentReference,
   recordPaymentSchema,
@@ -13,6 +14,20 @@ import {
 
 const TODAY = "2026-10-15";
 const paid = (amountPence: number) => ({ amountPence, reversed: false });
+
+describe("defaultDueDate", () => {
+  it("is 30 days on during the fee's academic year", () => {
+    expect(defaultDueDate(TODAY, "2026/27")).toBe("2026-11-14");
+  });
+
+  it("counts from the start of a year that hasn't begun, so it isn't overdue before then", () => {
+    expect(defaultDueDate("2026-07-20", "2026/27")).toBe("2026-10-01");
+  });
+
+  it("counts from today for a past year's fee charged late", () => {
+    expect(defaultDueDate(TODAY, "2025/26")).toBe("2026-11-14");
+  });
+});
 
 describe("summariseAccount", () => {
   it("is empty with no charges or payments", () => {
@@ -35,6 +50,31 @@ describe("summariseAccount", () => {
       overduePence: 953_500,
       overdueSince: TODAY,
       daysOverdue: 1,
+    });
+  });
+
+  it("counts days overdue from the earliest due date, whatever the years' order", () => {
+    // Last year's fee was moved to a payment plan due after this year's.
+    const summary = summariseAccount(
+      [
+        {
+          amountPence: 100_000,
+          dueDate: "2026-10-10",
+          academicYear: "2025/26",
+        },
+        {
+          amountPence: 100_000,
+          dueDate: "2026-10-01",
+          academicYear: "2026/27",
+        },
+      ],
+      [],
+      TODAY,
+    );
+    expect(summary).toMatchObject({
+      overduePence: 200_000,
+      overdueSince: "2026-10-01",
+      daysOverdue: 14,
     });
   });
 
