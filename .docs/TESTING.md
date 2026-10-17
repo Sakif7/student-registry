@@ -542,7 +542,9 @@ Continue from scenario 11, as staff.
 1. Open **Amelia Hart**'s record, then the **Results** tab. In the summary,
    **Fees** reads "£9,535.00 overdue", and a notice reads "Results withheld
    since …" with the reason "Outstanding tuition fees". **Software design
-   report** shows 66, **Merit**, published.
+   report** shows 66, **Merit**, published: staff always see every mark, and
+   the **Marks** card says what Amelia sees. Staff placed this hold; fees,
+   even overdue ones, never withhold results on their own.
 2. As **Amelia Hart**, open **Results**. "Your results are being withheld"
    gives the reason, and no marks are shown.
 3. As staff, select **Lift the hold** on Amelia's **Results** tab. As Amelia,
@@ -657,6 +659,19 @@ As Priya:
    CS4005: it joins Priya's modules. Select **Drop** beside AI4001: it
    goes back to the options. Core modules have no **Drop** button.
 7. As staff, select **Stop students choosing** on the current year.
+
+### 17. Addresses that lead nowhere
+
+1. As staff, open <http://localhost:3000/staff/students/SMS-1999-9999>.
+   **Not found** appears inside the staff pages, with **Go to the
+   dashboard** and **Find a student**.
+2. As a student, open
+   <http://localhost:3000/student/assessments/00000000-0000-0000-0000-000000000000>.
+   **Not found** appears inside the student's pages, with **Go to your home
+   page**.
+3. Open <http://localhost:3000/no-such-page>, signed in or not. **Page not
+   found** appears in the look of the sign-in page, with **Go to the Student
+   Registry**, which leads to your own pages, or to sign in.
 
 ## Trying the API with curl
 

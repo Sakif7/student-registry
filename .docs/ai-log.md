@@ -1588,3 +1588,59 @@ without Docker and what to do if something goes wrong.
 throwaway database; with Docker missing from the path; with port 5432 taken
 (by starting a second Compose project); and without a `.env`. The port check
 was run with the port free and taken.
+
+## Controls that look like what they are
+
+**What the AI did:** the owner noticed that the submission page's file field
+showed "Choose File" in the same colour as the field, and asked for a sweep
+of styling problems like it. The AI screenshotted every page, tab and dialog
+of the production build, at desktop and phone widths, on the test database.
+Five reviewers each went through a share of the screenshots, and the AI
+checked each finding against the screenshots and the code before changing
+anything. Most findings came from a few root causes:
+
+- Links styled as outline buttons had lost their outline, because the
+  button classes weren't merged and the base's transparent border could
+  win. `buttonVariants()` now merges them, which fixed every Cancel link,
+  "Back to sign in" and the page links at once.
+- Several controls blended into the page: the file field's button, a
+  switch's "off" track, a checkbox's border, and borderless buttons in table
+  rows, which read as bold text. Notices were drawn like empty fields, and
+  field borders matched table rules.
+- Phones hid things: the record's last tabs ran off the edge, tables
+  squeezed long file names into fragments or gave no sign they scroll, and
+  a device's address widened its box.
+- Dialogs ended three different ways. Every one now ends with Cancel and its
+  action on a footer band.
+
+Smaller fixes covered alignment (status dots on wrapped values, columns of
+stacked tables, figures in a row), the sidebar marking the wrong page on the
+account page, a field with an error scrolling under the sticky top bar,
+dates and lone words breaking lines, codes in monospace, and Next.js's
+unstyled 404, now replaced by "Not found" pages inside the app. The devices
+list no longer shows the all-zero address Better Auth records without a
+proxy header. DECISIONS.md lists the conventions that came out of it.
+
+A second round of review on the new screenshots found what the first round
+of fixes had made worse, and those were fixed too: the new fixed column
+widths left a module's name too little room on a phone, and the tabs, at
+first wrapped onto two rows, now scroll in one row with an edge fade.
+
+The owner also asked whether a student could see results withheld for
+unpaid fees. The AI found no way they could: the server sends a student no
+mark while results are withheld, and the student's pages, their data and the
+API answers (checked after a fresh sign-in, after moving around in the
+sidebar, and after going back and forward in the browser) held no mark. The
+development database showed why it seemed so: that student's results had
+been published, but never withheld. Fees never withhold results on their
+own; withholding is a staff decision. The staff Results tab now says what
+the student sees, and the testing guide says so too.
+
+**Checked by:** screenshots before and after, and a second review of the
+after screenshots for anything made worse; the format, type and lint checks;
+the unit, integration and end-to-end tests. The first end-to-end run failed
+the accessibility checks for two reasons, both from this change: the red
+tint behind error notices took their red text below 4.5:1, and the checks
+waited for the new edge fades to finish before scanning, which animations
+tied to scrolling never do. Error notices now use darker reds, and the
+checks wait only for animations that run on the clock.

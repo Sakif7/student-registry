@@ -512,6 +512,10 @@ services already used. No service changed.
   agent), address and sign-in time, and can be signed out, one at a time or
   all but this one. Sessions are signed out by their ID, so their tokens
   never reach the browser.
+- The address shows only when it says something. Better Auth reads it from
+  a proxy's X-Forwarded-For header. Without one, as when signing in on the
+  same computer, it records the unspecified address (all zeros), which the
+  list leaves out.
 
 ### Sessions and cookies
 
@@ -749,6 +753,70 @@ data is always read at request time.
   also passes a value formatter the whole payload, as Recharts' type says,
   rather than one data point.
 
+### Controls that look like what they are
+
+A review of every page and dialog, at desktop and phone widths, found
+controls that didn't look like controls, starting with a file field whose
+"Choose File" button was the colour of the field. These conventions came
+out of it:
+
+- **Buttons:** `buttonVariants()` merges its classes. A link styled as an
+  outline button (Cancel, "Back to sign in", the page links) had lost its
+  outline, because unmerged, the base's transparent border could win.
+- **Row actions** in a table (Correct, Reverse, Add, Drop, Remove, Edit) are
+  small outline buttons. As borderless ghost buttons, they read as bold
+  text, and mixed sizes made some rows taller.
+- **A confirmation that can't be undone** ("Reverse payment") is solid red
+  with white text: red text on a red tint fell below 4.5:1.
+- **Every dialog ends the same way:** Cancel, then the action, on a footer
+  band. A form in a dialog ends with `FormDialogFooter`.
+- **Fields:**
+  - Field borders (`--input`) are a step darker than table rules and card
+    edges, so an empty field never reads as a blank table cell. Outline
+    buttons share them, so a button beside a field isn't the fainter.
+  - A file field's button is a grey button inside the field.
+  - A switch's "off" track and a checkbox's border are dark enough to see on
+    white.
+  - A select's placeholder ("Choose a programme", a disabled empty option)
+    is muted like a text field's. "All programmes" in a filter is a real
+    choice, and isn't.
+- **Notices** are tinted, so one never looks like an empty field: grey to
+  inform, amber (`warning`) for something to act on or work around (a late
+  submission, withheld results, a deferral, an uncharged fee), red for
+  errors. Each tint has text dark enough for 4.5:1 on it.
+- **Badges:** neutral states (Withdrawn, Closed, Reversed, No fees,
+  Optional, Current) share one grey, from the theme's neutral greys rather
+  than Tailwind's bluish zinc.
+- **Links:**
+  - A row's title (a student's name, an assessment) is a medium-weight link,
+    underlined on hover, in every table.
+  - A number or code that is a link, such as an enrolled count or a
+    programme code, is underlined at rest, since nothing else marks it.
+  - A card's "see all" link ends with an arrow.
+- **Tables:**
+  - A table wider than its box fades out at the side it scrolls towards, so
+    a phone shows there is more. The fade follows the scroll position, and
+    browsers that can't animate with scrolling show none.
+  - Tables stacked on one page with the same columns (a programme's years, a
+    student's modules and options) share fixed column widths, so the columns
+    line up.
+- **The sidebar** marks the current page in a darker grey than shadcn's. The
+  home item marks only itself, not pages outside the menu such as the
+  account page.
+- **Not found:** a page that can't find a record shows "Not found" inside
+  the staff or student pages, with a way back. An unknown address gets a
+  page in the look of the signed-out pages, instead of Next.js's unstyled
+  default.
+- **Errors in a form:** the page's scroll padding is the height of the
+  sticky top bar, so the first field with an error scrolls into view below
+  it, not under it.
+- **Text** wraps with `text-wrap: pretty`, set once on the body, so a
+  paragraph or a help line doesn't end on a lone word. A date, "(in 3
+  days)" or "105 of 120" stays on one line.
+- **Codes and IDs** (student IDs, module and programme codes) are in
+  monospace wherever they stand on their own. In running text, such as the
+  audit trail's sentences, they stay in the text's font.
+
 ### The app shell
 
 The first version had a header with links. Signed-in pages now sit in an app
@@ -771,7 +839,12 @@ shell, as in most business applications:
   open a student who didn't match. Like a form, the button is
   `aria-disabled` until React has hydrated it and can hear the shortcut.
 - **On a phone,** every page fits the screen's width: a wide table scrolls
-  inside its own box, and the rest wraps or stacks. A grid that holds a
+  inside its own box, and the rest wraps or stacks. A record's tabs scroll
+  sideways in one row, fading at an edge with more beyond it, and the open
+  tab is scrolled into view. Filters take the full width, each label stays
+  with its value, and a long value (a file name, an address) breaks rather
+  than widening its box. The search button hides its keyboard shortcut,
+  which means nothing on a touch screen. A grid that holds a
   table has `minmax(0, 1fr)` columns (`grid-cols-1`), because a grid's
   default column grows to fit its widest content and would widen the page.
   An end-to-end test checks every page at 390 pixels wide.
