@@ -108,7 +108,7 @@ export function RecordPaymentForm({
         <FormField
           id="reference"
           label="Reference"
-          description="The bank or receipt reference. Each can be recorded only once."
+          description="The bank or receipt reference. A reference can't be recorded twice, unless the first was reversed."
           error={errors.reference?.message}
         >
           {(control) => (

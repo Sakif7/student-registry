@@ -214,23 +214,23 @@ address.
 
 ## Scripts
 
-| Command                    | What it does                                                                |
-| -------------------------- | --------------------------------------------------------------------------- |
-| `npm run dev`              | Start the development server                                                |
-| `npm run build`, `start`   | Build and serve the production app                                          |
-| `npm run check`            | Format check, type-check and lint, all with zero warnings                   |
-| `npm run format`           | Apply Prettier, including Tailwind class order                              |
-| `npm test`                 | Unit and integration tests with coverage, then end-to-end tests             |
-| `npm run test:unit`        | Unit tests only (no database needed)                                        |
-| `npm run test:integration` | Integration tests against the test database                                 |
-| `npm run test:e2e`         | End-to-end and accessibility tests in Chromium                              |
-| `npm run audit:deps`       | Fail on any high or critical advisory not on the reviewed allowlist         |
-| `npm run setup`            | Start PostgreSQL and Mailpit, apply migrations and load the demo data       |
-| `npm run db:up`, `db:down` | Start or stop PostgreSQL and Mailpit in Docker (the data stays in a volume) |
-| `npm run db:deploy`        | Apply any pending migrations                                                |
-| `npm run db:seed`          | Replace all data, uploaded files included, with the demo data               |
-| `npm run db:migrate`       | Create a migration after editing `prisma/schema.prisma`                     |
-| `npm run db:studio`        | Browse the data in Prisma Studio                                            |
+| Command                    | What it does                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| `npm run dev`              | Start the development server                                                        |
+| `npm run build`, `start`   | Build and serve the production app                                                  |
+| `npm run check`            | Format check, type-check and lint, all with zero warnings                           |
+| `npm run format`           | Apply Prettier, including Tailwind class order                                      |
+| `npm test`                 | Unit and integration tests with coverage, then end-to-end tests                     |
+| `npm run test:unit`        | Unit tests only (no database needed)                                                |
+| `npm run test:integration` | Integration tests against the test database                                         |
+| `npm run test:e2e`         | End-to-end and accessibility tests in Chromium                                      |
+| `npm run audit:deps`       | Fail on any high or critical advisory not on the reviewed allowlist                 |
+| `npm run setup`            | Create `.env`, start PostgreSQL and Mailpit, migrate and seed (or `-- --no-docker`) |
+| `npm run db:up`, `db:down` | Start or stop PostgreSQL and Mailpit in Docker (the data stays in a volume)         |
+| `npm run db:deploy`        | Apply any pending migrations                                                        |
+| `npm run db:seed`          | Replace all data, uploaded files included, with the demo data                       |
+| `npm run db:migrate`       | Create a migration after editing `prisma/schema.prisma`                             |
+| `npm run db:studio`        | Browse the data in Prisma Studio                                                    |
 
 ## Tests
 
@@ -289,6 +289,7 @@ means the student whose record it is.
 | PATCH       | `/api/modules/{code}`                        | Staff         | Change a module's title, credits or semester                        |
 | GET         | `/api/academic-years`                        | Staff         | Every academic year's calendar                                      |
 | PUT         | `/api/academic-years/{year}`                 | Staff         | Set an academic year's semesters, and whether students choose       |
+| PATCH       | `/api/academic-years/{year}`                 | Staff         | Change only whether students choose their options                   |
 | GET, POST   | `/api/students/{number}/modules`             | Staff or self | A student's modules and options; register on one                    |
 | DELETE      | `/api/students/{number}/modules/{module}`    | Staff or self | Drop a module                                                       |
 | GET, POST   | `/api/students`                              | Staff         | Search and filter students; enrol one (activation link or password) |
@@ -388,12 +389,12 @@ brief and from decisions agreed before any code was written.
   how UK registries actually work. Each probed a running build and read the
   code and tests. The agent checked each of about forty findings against
   the code, wrote a test that failed without each fix, and fixed them in
-  commits by theme. Among them: two of Better Auth's own endpoints bypassed
-  the app's lock on wrong passwords, a burst of simultaneous guesses could
-  beat the lock, a reversed payment's reference couldn't be used for the
-  real transfer, last year's assessments counted nobody as due, and moving
-  a deadline past 31 August handed an assessment to the next year's
-  students. Larger gaps a registry would notice, such as Student Finance
+  commits by theme. Among them: Better Auth's own password-change endpoint
+  bypassed the app's lock on wrong passwords, and its session list returned
+  session tokens; a burst of simultaneous guesses could beat the lock; a
+  reversed payment's reference couldn't be used for the real transfer;
+  last year's assessments counted nobody as due; and moving a deadline past
+  31 August handed an assessment to the next year's students. Larger gaps a registry would notice, such as Student Finance
   instalments, fee liability on withdrawal and exam boards, are listed in
   [DECISIONS.md](.docs/DECISIONS.md) rather than half-built.
 - **Guardrails were set for the agent.**

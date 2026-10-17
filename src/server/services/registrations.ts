@@ -609,10 +609,6 @@ async function findStudent(client: Client, studentNumber: string) {
 }
 
 /**
- * Finds a student and locks their record for the rest of the transaction,
- * so that two registrations at once can't both fit the year's credits.
- */
-/**
  * Why a drop is refused, in words the viewer may read: a student refused
  * because of a mark they can't see yet isn't told about the mark.
  */
@@ -627,6 +623,10 @@ function dropRefusal(
     : DROP_REFUSAL_MESSAGES[reason];
 }
 
+/**
+ * Finds a student and locks their record for the rest of the transaction,
+ * so that two registrations at once can't both fit the year's credits.
+ */
 async function lockStudent(
   tx: Prisma.TransactionClient,
   studentNumber: string,

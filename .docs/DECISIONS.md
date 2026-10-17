@@ -169,7 +169,11 @@ That isn't how a registry works, so the curriculum is now modelled.
   - modules from outside the year are dropped, unless the student has
     submitted work or has a mark for them that year, which keeps them;
   - options in the year stay as they are;
-  - registrations of other academic years stay, as the student's history.
+  - registrations of earlier academic years stay, as the student's history;
+  - registrations of a later academic year, which only moving a student
+    forward and back again leaves behind, go unless the student has work
+    in them, as they would otherwise make the student expected for that
+    year's assessments.
 - **Options are added by staff,** within the year's credits: a registration
   that would take the year past them is refused. A row lock on the student
   serialises registrations, so two made at once can't both fit; a test
@@ -414,6 +418,13 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
 - Clearing a mark removes it, for a mark entered against the wrong student.
 - A student keeps their place on the marksheet once they have a mark, even
   after withdrawing.
+- Marks can be entered once the deadline has passed, or once staff close the
+  assessment. Until then students can still submit or replace their work, so
+  a mark could describe a file since replaced, or sit beside "Not submitted
+  yet". The marksheet says so, with its fields disabled.
+- Saves of one assessment's marks happen one at a time, each reading the
+  marks as the last one left them, so two at once can't trip over each
+  other, and the audit trail's "from" is always the mark that was there.
 
 ### Publishing and withholding, per student
 
@@ -435,7 +446,10 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
   results are read. Even a hold placed at the same moment as publishing still
   hides everything.
 - Publishing asks for confirmation, because there is no "unpublish": a mark
-  can only be hidden again by changing it, or by withholding.
+  can only be hidden again by changing it, or by withholding. The request
+  carries the number of marks the confirmation showed; if a colleague has
+  saved another since, nothing is published, and staff are asked to look
+  again, so no mark is released unseen.
 - Withholding again changes the reason but keeps the original date. Lifting a
   hold shows previously published marks again; unpublished marks still need
   publishing.
@@ -807,7 +821,11 @@ data is always read at request time.
   package, a CLI with its own dependency tree, from the runtime dependencies.
 - The app has one light theme; dark mode is out of scope. The toast component
   therefore fixes its theme instead of depending on `next-themes`.
-- Three generated files were changed to fit the app's rules: `use-mobile.ts`
+- Generated files were changed where the app needed it, so re-adding one
+  with the CLI would undo the change. The button, alert, badge, checkbox,
+  input, native select, switch and table follow the styling conventions
+  below ("Controls that look like what they are"). Three more were changed
+  to fit the app's rules: `use-mobile.ts`
   reads the screen width through `useSyncExternalStore` rather than setting
   state in an effect, which the React lint rules refuse; the sidebar's user
   menu uses a fixed-size placeholder, because shadcn's menu skeleton picks a
@@ -870,6 +888,7 @@ out of it:
 - **Not found:** a page that can't find a record shows "Not found" inside
   the staff or student pages, with a way back. An unknown address gets a
   page in the look of the signed-out pages, instead of Next.js's unstyled
+  default.
 - **Something went wrong:** a page that fails unexpectedly, say with the
   database out of reach, shows "Something went wrong" in its place, with
   **Try again** and the error's reference for matching a report to the
@@ -878,7 +897,6 @@ out of it:
   the root layout itself gets a page of its own.
 - **Long names:** a page title breaks a long word rather than widen the
   page on a phone.
-  default.
 - **Errors in a form:** the page's scroll padding is the height of the
   sticky top bar, so the first field with an error scrolls into view below
   it, not under it.
@@ -1334,6 +1352,13 @@ unused `mysql2` driver inside the Prisma CLI, so it isn't reachable either.
   check on each record would refuse it instead.
 - **A new enrolment's year** defaults to the current academic year, so an
   August enrolment for September needs the year changed by hand.
+- **Registrations dated by the curriculum migration:** on a database that
+  already held students when the curriculum was modelled, the migration
+  registered them on their modules dated the moment it ran. Expected
+  students are decided from registration dates, so an assessment whose
+  deadline came before then counts none of them. Re-dating those
+  registrations from the start of their academic year would fix it. New
+  databases and the demo data aren't affected.
 
 ### Registry practice not modelled yet
 

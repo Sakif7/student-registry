@@ -1719,3 +1719,24 @@ integration and end-to-end suites.
   agent's sign-ins then failed. Its findings from before then stood, and
   like every other finding, each was checked against the code before
   anything was fixed.
+
+**A second look, from the walkthrough:** the owner's interview guide walks
+through every file, so after the audit, seven agents brought it up to date,
+each re-reading its share of the code against the changes. Reading closely,
+they found what the fixes themselves had got wrong:
+
+- a race test written in the audit expected 200 from a route that answers
+  204, so it passed only while one side of the race won;
+- since payments now clear the oldest academic year first, "overdue since"
+  could name a later due date than the oldest unpaid one;
+- a marks test relied on the test data's 20 November deadline still being
+  ahead, so it would have started failing on that day. A run of every unit
+  and integration test with the clock moved 400 days ahead, the test
+  database's clock included, found no other;
+- the README said two Better Auth endpoints bypassed the sign-in lock,
+  where one did and the other leaked session tokens; a bullet in
+  DECISIONS.md had been split in two while it was being edited; and the
+  marking rules were missing from it.
+
+Each was fixed, the first two with tests, and the payment-reference lock got
+the race test it had lacked.

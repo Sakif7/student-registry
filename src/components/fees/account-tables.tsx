@@ -93,7 +93,10 @@ export function AccountFigures({ account }: { account: Account }) {
   );
 }
 
-/** Fee charges, oldest due date first, with what is paid of each. */
+/**
+ * Fee charges in the order payments clear them (oldest academic year first),
+ * with what is paid of each.
+ */
 export function ChargesTable({
   account,
   actions,
