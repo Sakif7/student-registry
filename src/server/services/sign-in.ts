@@ -122,7 +122,14 @@ export async function sendSignInLink(
   const account = student.user ?? (await createAccount(student));
   const kind = account.emailVerified ? "reset" : "activation";
 
-  await db().verification.deleteMany({ where: passwordLinksOf(account.id) });
+  // Earlier links keep working until the new one has gone: if the email
+  // fails, the student can still use the link they already have.
+  const earlier = (
+    await db().verification.findMany({
+      where: passwordLinksOf(account.id),
+      select: { id: true },
+    })
+  ).map(({ id }) => id);
   const url = await createPasswordLink(
     account.email,
     kind === "activation" ? "/activate" : "/reset-password",
@@ -142,9 +149,13 @@ export async function sendSignInLink(
   } catch (error) {
     console.error(`Couldn't email ${kind} link for ${studentNumber}:`, error);
     // Nobody received it, so it shouldn't count as sent.
-    await db().verification.deleteMany({ where: passwordLinksOf(account.id) });
+    await db().verification.deleteMany({
+      where: { ...passwordLinksOf(account.id), id: { notIn: earlier } },
+    });
     return { kind, to: account.email, sent: false };
   }
+  // The new link replaces any the student was sent before.
+  await db().verification.deleteMany({ where: { id: { in: earlier } } });
   await db().auditEvent.create({
     data: auditEvent(staff, {
       action: "sign_in.link_sent",

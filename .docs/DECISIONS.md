@@ -505,13 +505,15 @@ services already used. No service changed.
   registry would use it.
 - **If the email fails:** the enrolment still stands, as the record matters
   more than the email. Staff see a warning that stays until dismissed, and
-  can send the email again from the record.
+  can send the email again from the record. The mail server gets seconds,
+  not minutes, to answer, so staff aren't left waiting on one that is down.
 - **Staff controls,** on the student's record:
   - the account's state: waiting for activation, active or turned off, with
     when the latest link went and until when it works;
   - emailing a link: an activation link until the student has activated the
     account, a password reset link after. A new link replaces any earlier
-    one, so only the latest email works;
+    one once it has been emailed, so only the latest email works; if the
+    email fails, the link the student already has keeps working;
   - turning sign-in off, after a confirmation. This signs the student out on
     every device at once and cancels any emailed link. A message offers to
     undo it, which turns sign-in back on but can't restore the sessions
@@ -613,6 +615,11 @@ site.
     across many machines doesn't help.
   - Failures are recorded for addresses with no account too, so a lock
     doesn't reveal whether an account exists.
+  - Each attempt is counted as a failure before its password is checked,
+    one at a time per address (a database lock), and forgotten if it
+    succeeds. Otherwise a burst of simultaneous guesses would all pass the
+    check before any was counted. Confirming the current password to change
+    it counts the same way.
   - A successful sign-in, or choosing a new password with a reset link,
     clears the address's failures.
   - The cost: someone who knows a person's address can lock them out for 15
@@ -632,7 +639,9 @@ site.
 ### Password-reset links
 
 - "Forgot password" uses Better Auth's reset link: a random token, stored in
-  `verifications`, that works once and for 72 hours.
+  `verifications`, that works once and for 72 hours. Setting a password
+  with one link cancels every other link the account was sent, so an older
+  email can't be used to set the password again.
 - Asking for a link gets the same answer whether or not the address has an
   account, and an account with sign-in turned off gets no email. The email
   goes out after the response, with Next.js `after()`, so the time the

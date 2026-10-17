@@ -12,7 +12,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 
 import {
   LINK_HOURS,
@@ -29,10 +29,9 @@ import { env } from "./env";
 import { sendEmailLater } from "./mail";
 import { passwordLinksOf } from "./password-links";
 import {
+  claimSignInAttempt,
   forgetFailedSignIns,
   normaliseEmail,
-  recordFailedSignIn,
-  signInLockedFor,
 } from "./sign-in-failures";
 
 const HOUR_SECONDS = 60 * 60;
@@ -144,11 +143,16 @@ function createAuth() {
         );
       },
       // Setting a password from an emailed link proves the address works,
-      // and lifts any lock from failed sign-ins.
+      // and lifts any lock from failed sign-ins. Any other link the account
+      // was sent stops working: whoever holds an old email can't use it to
+      // set the password again.
       onPasswordReset: async ({ user }) => {
         await db().user.update({
           where: { id: user.id },
           data: { emailVerified: true },
+        });
+        await db().verification.deleteMany({
+          where: passwordLinksOf(user.id),
         });
         await forgetFailedSignIns(user.email);
       },
@@ -169,14 +173,16 @@ function createAuth() {
     },
     // Failed sign-ins also count against the email address they used,
     // wherever they come from (see src/domain/accounts.ts). A locked address
-    // is refused before its password is checked.
+    // is refused before its password is checked. Each attempt counts as a
+    // failure before the password is checked, and is forgotten if it
+    // succeeds (see claimSignInAttempt).
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== "/sign-in/email") return;
         const email = normaliseEmail((ctx.body as { email?: unknown }).email);
         if (!email) return;
         const now = new Date();
-        const until = await signInLockedFor(email, now);
+        const until = await claimSignInAttempt(email, now);
         if (until) {
           throw new APIError("TOO_MANY_REQUESTS", {
             message: signInLockedMessage(until, now),
@@ -188,12 +194,8 @@ function createAuth() {
         if (ctx.path !== "/sign-in/email") return;
         const email = normaliseEmail((ctx.body as { email?: unknown }).email);
         if (!email) return;
-        const { returned, newSession } = ctx.context;
-        if (isAPIError(returned) && returned.statusCode === 401) {
-          await recordFailedSignIn(email);
-        } else if (newSession) {
-          await forgetFailedSignIns(email);
-        }
+        // A failed attempt was counted when it was claimed.
+        if (ctx.context.newSession) await forgetFailedSignIns(email);
       }),
     },
     databaseHooks: {

@@ -336,6 +336,21 @@ describe("a student's sign-in, for staff", () => {
     expect((await readSignIn("SMS-2026-0001")).body.signIn.link).toBeNull();
   });
 
+  it("leaves the link sent before working when a new one can't be emailed", async () => {
+    await activeStudent();
+    await emailLink("SMS-2026-0001");
+    const token = newestToken();
+    vi.mocked(sendEmail).mockRejectedValueOnce(new Error("SMTP is down"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect((await emailLink("SMS-2026-0001")).status).toBe(503);
+
+    expect((await readSignIn("SMS-2026-0001")).body.signIn.link).not.toBeNull();
+    expect((await setPassword(token, "a-brand-new-passphrase")).status).toBe(
+      200,
+    );
+  });
+
   it("turns sign-in off, signing the student out everywhere and cancelling links", async () => {
     await activeStudent();
     const { cookie } = await signIn(asStudent("SMS-2026-0001"));

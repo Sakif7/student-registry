@@ -15,11 +15,7 @@ import { db } from "../db";
 import { AppError, parseInput } from "../errors";
 import { isId } from "../ids";
 import { requireSession, type Session } from "../session";
-import {
-  forgetFailedSignIns,
-  recordFailedSignIn,
-  signInLockedFor,
-} from "../sign-in-failures";
+import { claimSignInAttempt, forgetFailedSignIns } from "../sign-in-failures";
 
 /** The user's own details, as the Registry holds them. */
 export interface AccountDetails {
@@ -79,7 +75,8 @@ export async function changePassword(
   });
 
   const now = new Date();
-  const lockedUntil = await signInLockedFor(user.email, now);
+  // Counted as a failed attempt until the password proves right.
+  const lockedUntil = await claimSignInAttempt(user.email, now);
   if (lockedUntil) {
     throw new AppError(
       "TOO_MANY_REQUESTS",
@@ -94,7 +91,6 @@ export async function changePassword(
       password: currentPassword,
     }));
   if (!account || !correct) {
-    await recordFailedSignIn(user.email);
     throw new AppError("VALIDATION", "Some fields need correcting.", {
       currentPassword: ["That isn't your current password"],
     });

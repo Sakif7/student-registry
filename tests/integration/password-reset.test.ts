@@ -246,6 +246,19 @@ describe("choosing a new password", () => {
     expect(await signInStatus(EMAIL, NEW_PASSWORD)).toBe(200);
   });
 
+  it("stops the account's other links working once a password is set", async () => {
+    await createUser({ email: EMAIL, password: OLD_PASSWORD });
+    const older = await emailedToken(EMAIL);
+    const newer = await emailedToken(EMAIL);
+
+    expect((await resetPassword(newer, NEW_PASSWORD)).status).toBe(200);
+
+    const stale = await resetPassword(older, "yet-another-passphrase");
+    expect(stale.status).toBe(400);
+    expect(await bodyOf(stale)).toMatchObject({ code: "INVALID_TOKEN" });
+    expect(await signInStatus(EMAIL, NEW_PASSWORD)).toBe(200);
+  });
+
   it("refuses a password under 12 characters, leaving the link usable", async () => {
     await createUser({ email: EMAIL, password: OLD_PASSWORD });
     const token = await emailedToken(EMAIL);

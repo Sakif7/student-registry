@@ -56,6 +56,10 @@ describe("mail", () => {
       port: 587,
       secure: false,
       auth: undefined,
+      // Seconds, not nodemailer's minutes: staff wait for enrolment emails.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     });
     expect(sendMail).toHaveBeenCalledWith({
       from: "Registry <registry@college.example>",

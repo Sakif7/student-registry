@@ -251,6 +251,21 @@ describe("failed sign-ins with one email address", () => {
     expect((await signInWith(EMAIL, PASSWORD)).status).toBe(429);
   });
 
+  it("can't be outrun by trying many at once", async () => {
+    await createUser({ email: EMAIL, password: PASSWORD });
+
+    const responses = await Promise.all(
+      Array.from({ length: 8 }, (_, attempt) =>
+        signInWith(EMAIL, "not-the-password", `198.51.100.${attempt + 1}`),
+      ),
+    );
+
+    // Five guesses, however they arrive; the rest find the address locked.
+    expect(responses.map(({ status }) => status).sort()).toEqual([
+      401, 401, 401, 401, 401, 429, 429, 429,
+    ]);
+  });
+
   it("lock an address that has no account in the same way, revealing nothing", async () => {
     await failFiveTimes("nobody@college.example");
 

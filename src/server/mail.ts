@@ -28,6 +28,12 @@ function transport(): Transporter {
       // when the server offers it.
       secure: SMTP_PORT === 465,
       auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASSWORD } : undefined,
+      // Give up within seconds rather than nodemailer's minutes: staff
+      // enrolling a student wait for the activation email, and a mail server
+      // that is down should say so while they are still there.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     });
   }
   return transporter;
