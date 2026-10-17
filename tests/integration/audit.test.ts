@@ -49,6 +49,9 @@ import {
   type Viewer,
 } from "../helpers/requests";
 
+/** Past, so its assessments can be marked; in 2026/27, like the students. */
+const PAST_DEADLINE = new Date("2026-10-08T16:00:00.000Z");
+
 /** The events recorded so far, oldest first, as tests compare them. */
 async function events() {
   const rows = await db().auditEvent.findMany({
@@ -228,7 +231,10 @@ describe("the audit trail records", () => {
 
   it("each mark entered, changed or removed", async () => {
     const { student } = await enrolledStudent();
-    const assessment = await makeAssessment({ title: "Essay" });
+    const assessment = await makeAssessment({
+      title: "Essay",
+      deadline: PAST_DEADLINE,
+    });
     await registerStudents(assessment.moduleId, [student.id]);
     const staff = await sessionFor(STAFF);
     const marks = (mark: number | null) => ({
@@ -253,7 +259,7 @@ describe("the audit trail records", () => {
 
   it("publications, holds and lifted holds, but not publishing nothing", async () => {
     const { student } = await enrolledStudent();
-    const assessment = await makeAssessment();
+    const assessment = await makeAssessment({ deadline: PAST_DEADLINE });
     await registerStudents(assessment.moduleId, [student.id]);
     const staff = await sessionFor(STAFF);
     await saveMarks(staff, assessment.id, {
@@ -387,6 +393,12 @@ describe("the audit trail", () => {
     expect(page.items[0]).toMatchObject({
       actor: { name: "Rachel Moss", role: "staff" },
       student: { studentNumber: "SMS-2026-0001", fullName: "Oliver Bennett" },
+    });
+    // A page past the end shows the last one, not an empty table.
+    expect(await listActivity(staff, { page: "999" })).toMatchObject({
+      page: 1,
+      pageCount: 1,
+      total: 4,
     });
     const asTheStudent = await getActivity(
       await apiRequest("GET", "/api/activity", {

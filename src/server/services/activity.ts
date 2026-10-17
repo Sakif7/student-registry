@@ -48,23 +48,19 @@ export async function listActivity(
   query: unknown,
 ): Promise<ActivityPage> {
   requireStaff(session);
-  const { page } = parseInput(activityQuerySchema, query);
-  const [rows, total] = await Promise.all([
-    db().auditEvent.findMany({
-      select: entrySelect,
-      // Events recorded together keep the order they were written in.
-      orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-      skip: (page - 1) * ACTIVITY_PAGE_SIZE,
-      take: ACTIVITY_PAGE_SIZE,
-    }),
-    db().auditEvent.count(),
-  ]);
-  return {
-    items: rows.map(toEntry),
-    total,
-    page,
-    pageCount: Math.max(1, Math.ceil(total / ACTIVITY_PAGE_SIZE)),
-  };
+  const { page: asked } = parseInput(activityQuerySchema, query);
+  const total = await db().auditEvent.count();
+  const pageCount = Math.max(1, Math.ceil(total / ACTIVITY_PAGE_SIZE));
+  // A page past the end (an old link, a typed number) shows the last one.
+  const page = Math.min(asked, pageCount);
+  const rows = await db().auditEvent.findMany({
+    select: entrySelect,
+    // Events recorded together keep the order they were written in.
+    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    skip: (page - 1) * ACTIVITY_PAGE_SIZE,
+    take: ACTIVITY_PAGE_SIZE,
+  });
+  return { items: rows.map(toEntry), total, page, pageCount };
 }
 
 /**

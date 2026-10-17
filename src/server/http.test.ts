@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppError } from "./errors";
-import { handle, readJson } from "./http";
+import { handle, json, readJson } from "./http";
 import { sessionFromRequest } from "./session";
 
 // The session lookup needs the database; the integration tests cover it.
@@ -105,6 +105,32 @@ describe("handle", () => {
     ).toBe(204);
     expect((await route(post(), {})).status).toBe(204);
   });
+
+  it("treats an Origin that isn't an address, such as null, as another site", async () => {
+    const route = handle(() => new Response(null, { status: 204 }));
+    expect((await route(post({ origin: "null" }), {})).status).toBe(403);
+    expect((await route(post({ origin: "::nonsense" }), {})).status).toBe(403);
+  });
+
+  it("refuses an address with a NUL character, which the database can't store", async () => {
+    const route = handle(() => new Response(null, { status: 204 }));
+    const response = await route(
+      new NextRequest("http://localhost:3000/api/students?q=%00"),
+      {},
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      detail: "The request contains a character that isn't allowed.",
+    });
+  });
+});
+
+describe("json", () => {
+  it("tells browsers and proxies not to keep the response", () => {
+    expect(json({ a: 1 }).headers.get("cache-control")).toBe(
+      "private, no-store",
+    );
+  });
 });
 
 describe("readJson", () => {
@@ -127,5 +153,41 @@ describe("readJson", () => {
       kind: "VALIDATION",
       message: "The request body isn't valid JSON.",
     });
+  });
+
+  it("reads the content type in any case", async () => {
+    await expect(
+      readJson(post({ "content-type": "Application/JSON" }, '{"a":1}')),
+    ).resolves.toEqual({ a: 1 });
+  });
+
+  it("refuses a body over 1 MB, declared or not", async () => {
+    const big = `{"a":"${"x".repeat(1024 * 1024)}"}`;
+    await expect(
+      readJson(post({ "content-type": "application/json" }, big)),
+    ).rejects.toMatchObject({ kind: "PAYLOAD_TOO_LARGE" });
+    await expect(
+      readJson(
+        post(
+          { "content-type": "application/json", "content-length": "2000000" },
+          "{}",
+        ),
+      ),
+    ).rejects.toMatchObject({ kind: "PAYLOAD_TOO_LARGE" });
+  });
+
+  it("refuses a NUL character in any string or key", async () => {
+    for (const body of [
+      '{"reference":"A\\u0000B"}',
+      '{"list":["ok","\\u0000"]}',
+      '{"\\u0000":1}',
+    ]) {
+      await expect(
+        readJson(post({ "content-type": "application/json" }, body)),
+      ).rejects.toMatchObject({
+        kind: "VALIDATION",
+        message: "The request contains a character that isn't allowed.",
+      });
+    }
   });
 });

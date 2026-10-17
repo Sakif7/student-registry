@@ -228,4 +228,13 @@ describe("studentFiltersSchema", () => {
       page: 1,
     });
   });
+
+  it("cuts an over-long search short rather than listing everyone", () => {
+    const parsed = studentFiltersSchema.parse({
+      q: "a".repeat(150),
+      programme: "B".repeat(40),
+    });
+    expect(parsed.q).toBe("a".repeat(100));
+    expect(parsed.programme).toBe("B".repeat(32));
+  });
 });

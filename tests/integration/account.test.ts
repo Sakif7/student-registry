@@ -241,14 +241,16 @@ describe("the devices one is signed in on", () => {
     const laptop = await signInFrom(CHROME_ON_WINDOWS);
     const [current] = (await devices(laptop)).devices;
 
-    const response = await signOutDeviceRoute(
-      await apiRequest("DELETE", `/api/account/sessions/${current?.id ?? ""}`, {
-        headers: { cookie: laptop },
-      }),
-      routeContext({ sessionId: current?.id ?? "" }),
-    );
-
-    expect(response.status).toBe(409);
+    // Written in capitals too: the ID is a UUID, matched in any case.
+    for (const id of [current?.id ?? "", (current?.id ?? "").toUpperCase()]) {
+      const response = await signOutDeviceRoute(
+        await apiRequest("DELETE", `/api/account/sessions/${id}`, {
+          headers: { cookie: laptop },
+        }),
+        routeContext({ sessionId: id }),
+      );
+      expect(response.status).toBe(409);
+    }
     expect(await stillSignedIn(laptop)).toBe(true);
   });
 });

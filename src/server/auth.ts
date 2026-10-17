@@ -71,6 +71,14 @@ function createAuth() {
       "/account-info",
       "/refresh-token",
       "/get-access-token",
+      // The app's own routes do these (/api/account/password and
+      // /api/account/sessions): Better Auth's versions would skip the lock
+      // after five wrong passwords, and list sessions' tokens.
+      "/change-password",
+      "/list-sessions",
+      "/revoke-session",
+      "/revoke-sessions",
+      "/revoke-other-sessions",
     ],
     advanced: {
       // Prisma assigns the same UUIDv7 primary keys as every other table.

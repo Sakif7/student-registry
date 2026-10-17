@@ -25,6 +25,20 @@ const TITLES: Record<number, string> = {
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+/**
+ * The largest JSON body read. The biggest real one, a marksheet for a few
+ * hundred students, is a few kilobytes; anything near this is a mistake or
+ * an attack, and is refused before it is held in memory.
+ */
+const MAX_JSON_BYTES = 1024 * 1024;
+
+/**
+ * PostgreSQL can't store U+0000 in text, so a NUL anywhere in an address or
+ * a body is refused here, as a bad request, rather than failing in the
+ * database as a server error.
+ */
+const NUL_REFUSED = "The request contains a character that isn't allowed.";
+
 type Handler<Context> = (
   request: NextRequest,
   context: Context,
@@ -43,6 +57,9 @@ export function handle<Context>(handler: Handler<Context>) {
     request.headers.get("cookie");
     try {
       assertSameOrigin(request);
+      if (/%00/i.test(request.url)) {
+        throw new AppError("VALIDATION", NUL_REFUSED);
+      }
       const session = await sessionFromRequest(request);
       return await handler(request, context, session);
     } catch (error) {
@@ -54,33 +71,75 @@ export function handle<Context>(handler: Handler<Context>) {
   };
 }
 
-/** A JSON success response. */
+/**
+ * A JSON success response. Never stored by a browser or a proxy: it holds
+ * someone's record, fees or marks.
+ */
 export function json(data: unknown, status = 200): NextResponse {
-  return NextResponse.json(data, { status });
+  return NextResponse.json(data, {
+    status,
+    headers: { "cache-control": "private, no-store" },
+  });
 }
 
 /**
- * Reads a JSON request body.
+ * Reads a JSON request body of at most 1 MB, counting the bytes as they
+ * arrive.
  *
  * @throws AppError: UNSUPPORTED_MEDIA_TYPE unless the body is declared as
- *   JSON, VALIDATION if it isn't valid JSON.
+ *   JSON, PAYLOAD_TOO_LARGE, VALIDATION if it isn't valid JSON or holds a
+ *   NUL character.
  */
 export async function readJson(request: Request): Promise<unknown> {
   const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
+  if (!contentType.toLowerCase().includes("application/json")) {
     throw new AppError(
       "UNSUPPORTED_MEDIA_TYPE",
       "Send the request body as JSON, with Content-Type: application/json.",
     );
   }
+  const tooLarge = "The request body is too large.";
+  if (Number(request.headers.get("content-length")) > MAX_JSON_BYTES) {
+    throw new AppError("PAYLOAD_TOO_LARGE", tooLarge);
+  }
+  let text = "";
+  const decoder = new TextDecoder();
+  let received = 0;
+  const reader = request.body?.getReader();
+  for (;;) {
+    const chunk = await reader?.read();
+    if (!chunk || chunk.done) break;
+    received += chunk.value.byteLength;
+    if (received > MAX_JSON_BYTES) {
+      await reader?.cancel();
+      throw new AppError("PAYLOAD_TOO_LARGE", tooLarge);
+    }
+    text += decoder.decode(chunk.value, { stream: true });
+  }
+  text += decoder.decode();
+  let body: unknown;
   try {
-    return await request.json();
+    body = JSON.parse(text);
   } catch (error) {
     if (error instanceof SyntaxError) {
       throw new AppError("VALIDATION", "The request body isn't valid JSON.");
     }
     throw error;
   }
+  if (holdsNul(body)) throw new AppError("VALIDATION", NUL_REFUSED);
+  return body;
+}
+
+/** Whether a NUL character appears in any string or key of a JSON value. */
+function holdsNul(value: unknown): boolean {
+  if (typeof value === "string") return value.includes("\u0000");
+  if (Array.isArray(value)) return value.some(holdsNul);
+  if (value !== null && typeof value === "object") {
+    return Object.entries(value).some(
+      ([key, entry]) => key.includes("\u0000") || holdsNul(entry),
+    );
+  }
+  return false;
 }
 
 /**
@@ -98,7 +157,7 @@ export async function readFormData(
   tooLarge: string,
 ): Promise<FormData> {
   const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.startsWith("multipart/form-data")) {
+  if (!contentType.toLowerCase().startsWith("multipart/form-data")) {
     throw new AppError(
       "UNSUPPORTED_MEDIA_TYPE",
       "Send the file as multipart/form-data.",
@@ -205,7 +264,17 @@ function errorResponse(error: unknown, request: NextRequest): NextResponse {
 function assertSameOrigin(request: NextRequest): void {
   if (SAFE_METHODS.has(request.method)) return;
   const origin = request.headers.get("origin");
-  if (origin && new URL(origin).host !== request.nextUrl.host) {
+  // "null" (a sandboxed frame, a file) or anything else that isn't an
+  // address is another site too.
+  if (origin && originHost(origin) !== request.nextUrl.host) {
     throw new AppError("FORBIDDEN", "Cross-site requests aren't allowed.");
+  }
+}
+
+function originHost(origin: string): string | null {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return null;
   }
 }

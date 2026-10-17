@@ -151,7 +151,8 @@ export async function signOutDevice(
   deviceId: string,
 ): Promise<void> {
   const { userId, sessionId } = requireSession(session);
-  if (deviceId === sessionId) {
+  // IDs are UUIDs, which PostgreSQL matches in any case, so compare them so.
+  if (deviceId.toLowerCase() === sessionId.toLowerCase()) {
     throw new AppError("CONFLICT", "To sign out of this device, use Sign out.");
   }
   const { count } = isId(deviceId)

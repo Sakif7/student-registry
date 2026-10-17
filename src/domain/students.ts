@@ -190,20 +190,20 @@ export type StudentSort = (typeof STUDENT_SORTS)[number];
  * are ignored rather than rejected, so a stale link still opens.
  */
 export const studentFiltersSchema = z.object({
+  // Too long a search or programme is cut short, not dropped: dropping it
+  // would list every student, the opposite of what was asked.
   q: z
     .string()
     .trim()
-    .max(100)
     .optional()
     .catch(undefined)
-    .transform((value) => value || undefined),
+    .transform((value) => value?.slice(0, 100) || undefined),
   programme: z
     .string()
     .trim()
-    .max(32)
     .optional()
     .catch(undefined)
-    .transform((value) => value || undefined),
+    .transform((value) => value?.slice(0, 32) || undefined),
   status: z.enum(ENROLMENT_STATUSES).optional().catch(undefined),
   year: academicYearSchema.optional().catch(undefined),
   page: z.coerce.number().int().min(1).max(10_000).default(1).catch(1),

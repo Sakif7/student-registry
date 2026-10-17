@@ -57,6 +57,7 @@ export function StudentFilterBar({
             id={`${id}q`}
             name="q"
             type="search"
+            maxLength={100}
             defaultValue={filters.q}
             placeholder="Name, student ID or email"
             className="min-w-0 flex-1 sm:w-64 sm:flex-none"

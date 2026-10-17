@@ -182,6 +182,35 @@ describe("signing in", () => {
     expect(rename.status).toBe(404);
     expect(await db().user.count()).toBe(1);
   });
+
+  it("leaves passwords and sessions to the app's own routes, which apply its rules", async () => {
+    await createStudent({ studentNumber: "SMS-2026-0001" });
+    const { cookie } = await signIn(asStudent("SMS-2026-0001"));
+
+    // Better Auth's own versions would skip the lock after five wrong
+    // passwords, and hand out sessions' tokens.
+    const changePassword = await authPost(
+      await apiRequest("POST", "/api/auth/change-password", {
+        json: { currentPassword: "a-wrong-guess-1", newPassword: PASSWORD },
+        headers: { cookie },
+      }),
+    );
+    const listSessions = await authGet(
+      await apiRequest("GET", "/api/auth/list-sessions", {
+        headers: { cookie },
+      }),
+    );
+    const revokeOthers = await authPost(
+      await apiRequest("POST", "/api/auth/revoke-other-sessions", {
+        json: {},
+        headers: { cookie },
+      }),
+    );
+
+    expect(changePassword.status).toBe(404);
+    expect(listSessions.status).toBe(404);
+    expect(revokeOthers.status).toBe(404);
+  });
 });
 
 describe("failed sign-ins with one email address", () => {
