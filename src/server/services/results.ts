@@ -10,6 +10,7 @@ import {
   type Classification,
   classify,
   isVisibleToStudent,
+  publishResultsSchema,
   withholdResultsSchema,
 } from "@/domain/results";
 
@@ -109,16 +110,20 @@ export async function getResults(
 
 /**
  * Publishes all of a student's unpublished marks at once (staff only), each
- * stamped with the time it was published.
+ * stamped with the time it was published. Given the number the publisher
+ * saw waiting, it publishes nothing if that number has changed.
  *
  * @returns How many marks were published, and the student's results.
- * @throws AppError: NOT_FOUND; CONFLICT while results are withheld.
+ * @throws AppError: NOT_FOUND; CONFLICT while results are withheld, or if
+ *   the marks waiting aren't the ones the publisher saw.
  */
 export async function publishResults(
   session: Session | null,
   studentNumber: string,
+  input: unknown = {},
 ): Promise<{ published: number; results: StudentResults }> {
   const staff = requireStaff(session);
+  const { expected } = parseInput(publishResultsSchema, input);
   const student = await findStudent(studentNumber);
   const hold = holdOf(student);
   if (hold) {
@@ -128,6 +133,17 @@ export async function publishResults(
     );
   }
   const count = await db().$transaction(async (tx) => {
+    if (expected !== undefined) {
+      const waiting = await tx.assessmentResult.count({
+        where: { studentId: student.id, publishedAt: null },
+      });
+      if (waiting !== expected) {
+        throw new AppError(
+          "CONFLICT",
+          `The marks waiting to be published have changed since you looked: there ${waiting === 1 ? "is now 1" : `are now ${waiting}`}. Reload the page to check them, then publish again.`,
+        );
+      }
+    }
     const published = await tx.assessmentResult.updateMany({
       where: { studentId: student.id, publishedAt: null },
       data: { publishedAt: new Date() },
@@ -162,6 +178,11 @@ export async function withholdResults(
   const staff = requireStaff(session);
   const { reason } = parseInput(withholdResultsSchema, input);
   const student = await findStudent(studentNumber);
+  // Withholding again for the same reason changes nothing, so records
+  // nothing.
+  if (student.resultsWithheldAt && student.resultsWithheldReason === reason) {
+    return getResults(session, student.studentNumber);
+  }
   await db().$transaction(async (tx) => {
     await tx.student.update({
       where: { id: student.id },

@@ -13,8 +13,10 @@ import { academicYearAt } from "@/domain/academic-year";
 import type { Semester } from "@/domain/curriculum";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
+  canEnterMarks,
   type Classification,
   classify,
+  MARKS_NOT_YET_MESSAGE,
   marksheetSchema,
 } from "@/domain/results";
 import {
@@ -356,10 +358,19 @@ export async function saveMarks(
   const assessment = isId(assessmentId)
     ? await db().assessment.findUnique({
         where: { id: assessmentId },
-        select: { id: true, title: true, moduleId: true, deadline: true },
+        select: {
+          id: true,
+          title: true,
+          moduleId: true,
+          deadline: true,
+          closedAt: true,
+        },
       })
     : null;
   if (!assessment) throw assessmentNotFound();
+  if (!canEnterMarks(assessment, new Date())) {
+    throw new AppError("CONFLICT", MARKS_NOT_YET_MESSAGE);
+  }
   const academicYear = academicYearAt(assessment.deadline, collegeTimeZone());
 
   const students = await db().student.findMany({
@@ -396,9 +407,26 @@ export async function saveMarks(
 
   try {
     await db().$transaction(async (tx) => {
+      // One marksheet save at a time for an assessment: each then reads the
+      // marks as the last one left them, so it never updates or removes a
+      // mark that has just gone, and its audit trail says what really
+      // changed.
+      await tx.$queryRaw`
+        SELECT id FROM assessments WHERE id = ${assessment.id}::uuid FOR UPDATE`;
+      const current = new Map(
+        (
+          await tx.assessmentResult.findMany({
+            where: {
+              assessmentId,
+              studentId: { in: students.map(({ id }) => id) },
+            },
+            select: { id: true, studentId: true, mark: true },
+          })
+        ).map((result) => [result.studentId, result]),
+      );
       for (const student of students) {
         const mark = marks[student.studentNumber] ?? null;
-        const [existing] = student.results;
+        const existing = current.get(student.id);
         if (mark === null) {
           if (!existing) continue;
           await tx.assessmentResult.delete({ where: { id: existing.id } });

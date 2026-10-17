@@ -37,9 +37,12 @@ export function PublishResultsButton({
   async function publish() {
     setPublishing(true);
     try {
+      // The marks this dialog counted: if a colleague has saved another
+      // since, nothing is published unseen.
       const { published } = await apiRequest<{ published: number }>(
         "POST",
         `/api/students/${studentNumber}/results/publication`,
+        { expected: unpublishedCount },
       );
       toast.success(
         `Published ${published} ${published === 1 ? "mark" : "marks"} to ${fullName}.`,

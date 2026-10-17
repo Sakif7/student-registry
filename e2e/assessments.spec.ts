@@ -120,6 +120,16 @@ test("staff see the submission and enter marks", async ({ page }) => {
   await expect(page.getByText("1 of 2 students")).toBeVisible();
   await expect(page.getByText("Replaced 1 time")).toBeVisible();
 
+  // Before the deadline, work can still change, so marking waits until the
+  // assessment is closed.
+  await expect(page.getByLabel("Mark for Priya Natarajan")).toBeDisabled();
+  await page.getByRole("button", { name: "Close to submissions" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Close to submissions" })
+    .click();
+  await expect(page.getByLabel("Mark for Priya Natarajan")).toBeEnabled();
+
   await page.getByLabel("Mark for Priya Natarajan").fill("64");
   await expect(
     page.getByRole("row", { name: /Priya Natarajan/ }),

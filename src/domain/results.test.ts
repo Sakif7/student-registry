@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canEnterMarks,
   classify,
   countByClassification,
   isVisibleToStudent,
@@ -63,6 +64,25 @@ describe("withholdResultsSchema", () => {
       withholdResultsSchema.safeParse({ reason: " " }).error?.issues[0]
         ?.message,
     ).toBe("Give a reason");
+  });
+});
+
+describe("canEnterMarks", () => {
+  const deadline = new Date("2026-11-20T17:00:00.000Z");
+
+  it("waits for the deadline, while work can still change", () => {
+    expect(canEnterMarks({ deadline, closedAt: null }, deadline)).toBe(false);
+    expect(
+      canEnterMarks(
+        { deadline, closedAt: null },
+        new Date("2026-11-20T17:00:01.000Z"),
+      ),
+    ).toBe(true);
+  });
+
+  it("allows marking once staff close the assessment, deadline or not", () => {
+    const closedAt = new Date("2026-11-01T09:00:00.000Z");
+    expect(canEnterMarks({ deadline, closedAt }, closedAt)).toBe(true);
   });
 });
 

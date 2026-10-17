@@ -521,7 +521,10 @@ own, plus any other file, such as a text file.
 
 Continue from scenario 10, as staff, on **SQL lab test**.
 
-1. Under **Submissions and marks**, type `72` as Priya Natarajan's mark.
+1. The marks can't be typed yet: "Marks can be entered once the deadline has
+   passed, or once the assessment is closed to submissions…", as work can
+   still change until then. Select **Close to submissions** and confirm.
+   Under **Submissions and marks**, type `72` as Priya Natarajan's mark.
    The result reads **Distinction**, with "Not saved yet".
 2. Type `3.8` for Oliver Bennett and select **Save marks**. "Enter a whole
    number from 0 to 100" appears beside Oliver's mark, focus moves to it, and

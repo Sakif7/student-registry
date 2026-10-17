@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { PUT as putMarks } from "@/app/api/assessments/[assessmentId]/marks/route";
+import { MARKS_NOT_YET_MESSAGE } from "@/domain/results";
 import { db } from "@/server/db";
 
 import {
@@ -22,6 +23,8 @@ import {
 } from "../helpers/requests";
 
 const PUBLISHED_AT = new Date("2026-10-01T09:00:00.000Z");
+/** Past, so the assessment can be marked, and in 2026/27 like its students. */
+const PAST_DEADLINE = new Date("2026-10-08T16:00:00.000Z");
 
 interface MarksheetBody {
   assessment: {
@@ -51,7 +54,8 @@ beforeEach(async () => {
       programmeId: computing.id,
     })
   ).id;
-  assessmentId = (await createAssessment({ moduleId })).id;
+  assessmentId = (await createAssessment({ moduleId, deadline: PAST_DEADLINE }))
+    .id;
   amelia = await createStudent({
     studentNumber: "SMS-2025-0001",
     fullName: "Amelia Hart",
@@ -119,6 +123,56 @@ describe("PUT /api/assessments/[assessmentId]/marks", () => {
       },
       "SMS-2026-0001": { mark: 38, classification: "FAIL", publishedAt: null },
     });
+  });
+
+  it("waits for the deadline, or for the assessment to close", async () => {
+    // Due on 20 November: students can still submit or replace their work.
+    const open = await createAssessment({
+      moduleId: (
+        await db().assessment.findUniqueOrThrow({
+          where: { id: assessmentId },
+        })
+      ).moduleId,
+    });
+
+    expect(await save({ "SMS-2025-0001": 72 }, { id: open.id })).toMatchObject({
+      status: 409,
+      body: { detail: MARKS_NOT_YET_MESSAGE },
+    });
+    expect(await db().assessmentResult.count()).toBe(0);
+
+    await db().assessment.update({
+      where: { id: open.id },
+      data: { closedAt: new Date() },
+    });
+    expect((await save({ "SMS-2025-0001": 72 }, { id: open.id })).status).toBe(
+      200,
+    );
+  });
+
+  it("saves marks sent at the same moment one after the other, recording what changed", async () => {
+    await save({ "SMS-2025-0001": 52 });
+
+    const responses = await Promise.all([
+      save({ "SMS-2025-0001": null }),
+      save({ "SMS-2025-0001": 61 }),
+      save({ "SMS-2025-0001": 61 }),
+    ]);
+
+    // None fails: each save reads the mark the one before it left.
+    expect(responses.map(({ status }) => status)).toEqual([200, 200, 200]);
+    const events = await db().auditEvent.findMany({
+      where: { action: "mark.saved" },
+      orderBy: { occurredAt: "asc" },
+      select: { details: true },
+    });
+    // Every change starts from the mark that was really there.
+    const steps = events.map(
+      ({ details }) => details as { from: number | null; to: number | null },
+    );
+    for (let i = 1; i < steps.length; i += 1) {
+      expect(steps[i]?.from).toBe(steps[i - 1]?.to);
+    }
   });
 
   it("unpublishes a changed mark, but not one saved unchanged", async () => {

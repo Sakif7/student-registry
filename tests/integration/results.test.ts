@@ -105,13 +105,14 @@ async function read(session: Viewer | null = STAFF) {
   return { status: response.status, body: await bodyOf<ResultsBody>(response) };
 }
 
-async function publishAll(session: Viewer | null = STAFF) {
+async function publishAll(session: Viewer | null = STAFF, expected?: number) {
   const response = await publish(
     await apiRequest(
       "POST",
       "/api/students/SMS-2025-0001/results/publication",
       {
         session,
+        ...(expected === undefined ? {} : { json: { expected } }),
       },
     ),
     context,
@@ -200,6 +201,27 @@ describe("POST /api/students/[studentNumber]/results/publication", () => {
     expect((await publishAll()).body).toMatchObject({ published: 0 });
   });
 
+  it("publishes nothing if the marks waiting aren't the ones the publisher saw", async () => {
+    // One mark is waiting. A dialog that counted none, or two, was opened
+    // before a colleague's change, and must not publish what it didn't show.
+    for (const expected of [0, 2]) {
+      expect(await publishAll(STAFF, expected)).toMatchObject({
+        status: 409,
+        body: {
+          detail:
+            "The marks waiting to be published have changed since you looked: there is now 1. Reload the page to check them, then publish again.",
+        },
+      });
+    }
+    expect(
+      await db().assessmentResult.count({ where: { publishedAt: null } }),
+    ).toBe(1);
+    expect(await publishAll(STAFF, 1)).toMatchObject({
+      status: 200,
+      body: { published: 1 },
+    });
+  });
+
   it("refuses while results are withheld", async () => {
     await withhold(FEES);
     expect(await publishAll()).toMatchObject({
@@ -229,6 +251,14 @@ describe("PUT and DELETE /api/students/[studentNumber]/results/hold", () => {
     });
     // Staff still see everything.
     expect((await read()).body.results).toHaveLength(2);
+  });
+
+  it("records nothing when withheld again for the same reason", async () => {
+    await withhold(FEES);
+    expect((await withhold(FEES)).status).toBe(200);
+    expect(
+      await db().auditEvent.count({ where: { action: "results.withheld" } }),
+    ).toBe(1);
   });
 
   it("keeps the original date when the reason changes", async () => {

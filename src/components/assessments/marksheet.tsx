@@ -29,6 +29,7 @@ import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   CLASSIFICATION_LABELS,
   classify,
+  MARKS_NOT_YET_MESSAGE,
   markFieldSchema,
 } from "@/domain/results";
 import { ApiError, apiRequest } from "@/lib/api-client";
@@ -63,10 +64,13 @@ export function Marksheet({
   assessmentId,
   title,
   rows,
+  marksOpen,
 }: {
   assessmentId: string;
   title: string;
   rows: MarksheetRow[];
+  /** False until the deadline passes or the assessment closes. */
+  marksOpen: boolean;
 }) {
   const saved = new Map(rows.map((row) => [row.studentNumber, row.mark]));
   // Unique to this marksheet, as a hidden page's marksheet stays in the
@@ -177,6 +181,7 @@ export function Marksheet({
                     inputMode="numeric"
                     autoComplete="off"
                     className="w-20"
+                    disabled={!marksOpen}
                     aria-label={`Mark for ${row.fullName}`}
                     aria-invalid={error ? true : undefined}
                     aria-describedby={error ? errorId : undefined}
@@ -211,16 +216,22 @@ export function Marksheet({
           })}
         </TableBody>
       </Table>
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving…" : "Save marks"}
-        </Button>
-        <p className="max-w-prose text-sm text-muted-foreground">
-          Marks are whole numbers from 0 to 100: Pass from 40, Merit from 60,
-          Distinction from 70. Clear a mark to remove it. Students see marks
-          only once you publish them, from their record.
+      {marksOpen ? (
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : "Save marks"}
+          </Button>
+          <p className="max-w-prose text-sm text-muted-foreground">
+            Marks are whole numbers from 0 to 100: Pass from 40, Merit from 60,
+            Distinction from 70. Clear a mark to remove it. Students see marks
+            only once you publish them.
+          </p>
+        </div>
+      ) : (
+        <p className="mt-4 max-w-prose text-sm text-muted-foreground">
+          {MARKS_NOT_YET_MESSAGE}
         </p>
-      </div>
+      )}
     </Form>
   );
 }

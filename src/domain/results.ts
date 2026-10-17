@@ -94,6 +94,15 @@ export const markFieldSchema = z
 /** The usual reason for withholding results, offered as a preset. */
 export const OUTSTANDING_FEES_REASON = "Outstanding tuition fees";
 
+/**
+ * Input for publishing a student's marks: how many the person publishing
+ * saw waiting. If that has changed (a colleague saved another), nothing is
+ * published, as a published mark can't be taken back.
+ */
+export const publishResultsSchema = z.object({
+  expected: z.number().int().min(0).optional(),
+});
+
 /** Input for withholding a student's results. */
 export const withholdResultsSchema = z.object({
   reason: z
@@ -102,6 +111,25 @@ export const withholdResultsSchema = z.object({
     .min(3, "Give a reason")
     .max(200, "Use 200 characters or fewer"),
 });
+
+/**
+ * Whether an assessment can be marked yet: once its deadline has passed, or
+ * once staff close it. Before then, students can still submit or replace
+ * their work, so a mark (and a published one above all) could describe work
+ * that is about to change.
+ */
+export function canEnterMarks(
+  assessment: {
+    deadline: Date;
+    closedAt: Date | null;
+  },
+  now: Date,
+): boolean {
+  return assessment.closedAt !== null || now > assessment.deadline;
+}
+
+export const MARKS_NOT_YET_MESSAGE =
+  "Marks can be entered once the deadline has passed, or once the assessment is closed to submissions: until then, students can still submit or replace their work.";
 
 /**
  * A student sees a result only once it is published, and only while their

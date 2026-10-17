@@ -128,6 +128,7 @@ async function AssessmentView({ params }: { params: Params }) {
               assessmentId={assessment.id}
               title={assessment.title}
               rows={marksheetRows(assessment, timeZone)}
+              marksOpen={assessment.state !== "OPEN"}
             />
           )}
         </section>
