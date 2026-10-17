@@ -55,17 +55,22 @@ export function SummaryStrip({ facts }: { facts: readonly SummaryFact[] }) {
             )}
           </dt>
           <dd className="grid gap-2">
-            <span className="flex items-center gap-2 font-semibold">
+            <span className="flex items-start gap-2 font-semibold">
+              {/* A line high, so the dot stays by a value's first line when it
+                  wraps. */}
               {fact.tone && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "size-2 shrink-0 rounded-full",
-                    TONE_COLOURS[fact.tone],
-                  )}
-                />
+                <span aria-hidden className="flex h-lh shrink-0 items-center">
+                  <span
+                    className={cn(
+                      "size-2 rounded-full",
+                      TONE_COLOURS[fact.tone],
+                    )}
+                  />
+                </span>
               )}
-              <span className="min-w-0 tabular-nums">{fact.value}</span>
+              <span className="min-w-0 text-balance tabular-nums">
+                {fact.value}
+              </span>
             </span>
             {fact.progress && (
               <Meter

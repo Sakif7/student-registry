@@ -36,7 +36,13 @@ export function StudentDetailsCard({
       "Date of birth",
       `${formatDate(student.dateOfBirth)} (age ${ageOn(student.dateOfBirth, today)})`,
     ],
-    ["Programme", `${student.programme.title} (${student.programme.code})`],
+    [
+      "Programme",
+      <span key="programme">
+        {student.programme.title} (
+        <span className="font-mono">{student.programme.code}</span>)
+      </span>,
+    ],
     ["Academic year", student.academicYear],
     ["Status", <StatusBadge key="status" status={student.status} />],
     ["Record created", formatDateTime(student.enrolledAt, timeZone)],
@@ -51,7 +57,9 @@ export function StudentDetailsCard({
       <CardContent>
         <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-[max-content_1fr]">
           {rows.map(([label, value]) => (
-            <div key={label} className="contents">
+            // A pair stays together on a phone; beside each other, the pairs
+            // share the list's two columns.
+            <div key={label} className="grid gap-0.5 sm:contents">
               <dt className="text-muted-foreground">{label}</dt>
               <dd>{value}</dd>
             </div>

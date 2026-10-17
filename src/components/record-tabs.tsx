@@ -7,7 +7,7 @@
 // back through its tabs. A summary above the tabs can open them too, through
 // RecordTabLink.
 import type { MouseEvent, ReactNode } from "react";
-import { createContext, use, useRef, useState } from "react";
+import { createContext, use, useEffect, useRef, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -55,11 +55,29 @@ export function RecordTabs({
       ?.focus();
   }
 
+  // On a phone the tabs scroll sideways. The open one is brought into view,
+  // as when the page opens on ?tab=history; only the tabs scroll, not the
+  // page.
+  useEffect(() => {
+    const list = tabList.current;
+    const trigger = list?.querySelector<HTMLElement>(`[data-tab="${tab}"]`);
+    if (!list || !trigger) return;
+    const start =
+      trigger.getBoundingClientRect().left -
+      list.getBoundingClientRect().left +
+      list.scrollLeft;
+    list.scrollLeft = start - (list.clientWidth - trigger.offsetWidth) / 2;
+  }, [tab]);
+
   return (
     <OpenTab value={open}>
       {header && <div className="mb-6">{header}</div>}
       <Tabs value={tab} onValueChange={(value: string) => choose(value)}>
-        <div ref={tabList} className="-mx-1 overflow-x-auto px-1 pb-1">
+        {/* Fades at an edge with more tabs beyond it, as a table does. */}
+        <div
+          ref={tabList}
+          className="-mx-1 scroll-fade-x overflow-x-auto px-1 pb-1 not-supports-[animation-timeline:scroll()]:scroll-fade-none"
+        >
           <TabsList>
             {tabs.map(({ value, label }) => (
               <TabsTrigger key={value} value={value} data-tab={value}>

@@ -76,7 +76,16 @@ async function AssessmentView({ params }: { params: Params }) {
     <>
       <PageHeader
         breadcrumbs={[{ label: "Assessments", href: "/staff/assessments" }]}
-        eyebrow={`${assessment.module.code} ${assessment.module.title} · ${assessment.academicYear}, ${SEMESTER_LABELS[assessment.module.semester]}`}
+        eyebrow={
+          <>
+            <span className="font-mono">{assessment.module.code}</span>{" "}
+            {assessment.module.title} ·{" "}
+            <span className="whitespace-nowrap">
+              {assessment.academicYear} ·{" "}
+              {SEMESTER_LABELS[assessment.module.semester]}
+            </span>
+          </>
+        }
         title={assessment.title}
         actions={
           <>

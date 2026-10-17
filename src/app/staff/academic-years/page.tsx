@@ -37,6 +37,11 @@ export default function AcademicYearsPage() {
       <PageHeader
         title="Academic years"
         description="Each year's semester dates, and whether students choose their own optional modules. A year runs from 1 September to 31 August."
+        actions={
+          <Suspense fallback={<Skeleton className="h-8 w-36" />}>
+            <SetUpNextYear />
+          </Suspense>
+        }
       />
       <Suspense fallback={<Skeleton className="h-64" />}>
         <AcademicYears />
@@ -45,23 +50,31 @@ export default function AcademicYearsPage() {
   );
 }
 
-async function AcademicYears() {
+/** Sets up the next academic year, in the header as other pages' actions are. */
+async function SetUpNextYear() {
   const session = await requirePageRole("staff");
   const years = await listAcademicYears(session);
+  return <AcademicYearDialog year={nextToSetUp(years)} />;
+}
+
+/** This year if it isn't set up yet, or else the year after the latest. */
+function nextToSetUp(years: readonly AcademicYearCalendar[]): string {
   const current = academicYearOn(collegeToday());
-  const setUp = new Set(years.map(({ year }) => year));
-  // This year if it isn't set up yet, or else the year after the latest.
+  if (!years.some(({ year }) => year === current)) return current;
   const latest = Math.max(
     startYearOf(current) - 1,
     ...years.map(({ year }) => startYearOf(year)),
   );
-  const next = setUp.has(current) ? formatAcademicYear(latest + 1) : current;
+  return formatAcademicYear(latest + 1);
+}
+
+async function AcademicYears() {
+  const session = await requirePageRole("staff");
+  const years = await listAcademicYears(session);
+  const current = academicYearOn(collegeToday());
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div>
-        <AcademicYearDialog year={next} />
-      </div>
       {years.map((calendar) => (
         <YearCard
           key={calendar.year}
@@ -83,12 +96,14 @@ function YearCard({
   const { year, ...settings } = calendar;
   return (
     <Card>
-      <CardHeader>
+      {/* Centred, so the year and its Edit button share a midline. */}
+      <CardHeader className="items-center">
         <CardTitle className="flex items-center gap-2">
           <h2>{year}</h2>
           {current && <Badge variant="secondary">Current</Badge>}
         </CardTitle>
-        <CardAction>
+        {/* One row, not shadcn's two, which set the button below centre. */}
+        <CardAction className="row-span-1 self-center">
           <AcademicYearDialog year={year} calendar={settings} />
         </CardAction>
       </CardHeader>

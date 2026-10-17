@@ -20,7 +20,13 @@ export default function NewStudentPage() {
       <PageHeader
         breadcrumbs={[{ label: "Students", href: "/staff/students" }]}
         title="Enrol a student"
-        description="Create a student record. The student ID is allocated when you save, in the form SMS-year-number."
+        description={
+          <>
+            Create a student record. The student ID is allocated when you save,
+            in the form{" "}
+            <span className="whitespace-nowrap">SMS-year-number</span>.
+          </>
+        }
       />
       <Suspense fallback={<Skeleton className="h-96 max-w-xl" />}>
         <NewStudentForm />

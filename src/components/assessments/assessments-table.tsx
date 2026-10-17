@@ -72,7 +72,7 @@ export function AssessmentsTable({
                 {SEMESTER_LABELS[assessment.module.semester]}
               </div>
             </TableCell>
-            <TableCell className="min-w-36 whitespace-normal">
+            <TableCell className="min-w-48 whitespace-normal">
               <span className="font-mono text-xs">
                 {assessment.module.code}
               </span>{" "}

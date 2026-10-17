@@ -66,7 +66,8 @@ export function StudentAssessmentsTable({
                 {assessment.title}
               </Link>
               <div className="text-xs text-muted-foreground">
-                {assessment.module.code} {assessment.module.title}
+                <span className="font-mono">{assessment.module.code}</span>{" "}
+                {assessment.module.title}
               </div>
             </TableCell>
             <TableCell>

@@ -93,7 +93,7 @@ async function Modules() {
                     <li key={programme.code}>
                       <Link
                         href={`/staff/programmes/${programme.code}`}
-                        className="underline-offset-4 hover:underline"
+                        className="font-mono text-xs underline underline-offset-4"
                       >
                         {programme.code}
                       </Link>{" "}

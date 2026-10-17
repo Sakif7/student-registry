@@ -38,8 +38,8 @@ export function OpenAssessments({
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              {assessment.module.code} · {submittedCount} of {expectedCount}{" "}
-              submitted
+              <span className="font-mono">{assessment.module.code}</span> ·{" "}
+              {submittedCount} of {expectedCount} submitted
             </p>
           </li>
         );

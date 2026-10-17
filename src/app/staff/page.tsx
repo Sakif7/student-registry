@@ -195,7 +195,12 @@ async function Dashboard() {
                 key: assessment.assessmentId,
                 href: `/staff/assessments/${assessment.assessmentId}`,
                 label: assessment.title,
-                detail: `${assessment.moduleCode} · ${formatCount(assessment.unmarked, "submission")} to mark`,
+                detail: (
+                  <>
+                    <span className="font-mono">{assessment.moduleCode}</span> ·{" "}
+                    {formatCount(assessment.unmarked, "submission")} to mark
+                  </>
+                ),
               }))}
             />
           </DashboardCard>
@@ -212,7 +217,12 @@ async function Dashboard() {
                 key: assessment.id,
                 href: `/staff/assessments/${assessment.id}`,
                 label: assessment.title,
-                detail: `${assessment.module.code} · deadline ${formatDateOf(assessment.deadline, timeZone)}`,
+                detail: (
+                  <>
+                    <span className="font-mono">{assessment.module.code}</span>{" "}
+                    · deadline {formatDateOf(assessment.deadline, timeZone)}
+                  </>
+                ),
               }))}
             />
           </DashboardCard>

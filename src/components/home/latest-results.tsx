@@ -1,6 +1,7 @@
 // The student's latest published marks, newest first, or why there are none
 // to show. The server has already left out anything unpublished or withheld.
 import { EmptyNote } from "@/components/dashboard/dashboard-card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CLASSIFICATION_LABELS } from "@/domain/results";
 import { formatDateOf } from "@/lib/format";
 import type { StudentResults } from "@/server/services/results";
@@ -16,11 +17,14 @@ export function LatestResults({
   timeZone: string;
 }) {
   if (results.withheld) {
+    // The same notice as on the Results page.
     return (
-      <p className="text-sm">
-        Your results are being withheld: {results.withheld.reason}. Contact the
-        Registry to resolve this.
-      </p>
+      <Alert variant="warning">
+        <AlertDescription>
+          Your results are being withheld: {results.withheld.reason}. Contact
+          the Registry to resolve this.
+        </AlertDescription>
+      </Alert>
     );
   }
   const latest = results.results
@@ -46,8 +50,8 @@ export function LatestResults({
           <div className="min-w-0">
             <p className="text-sm font-medium">{result.assessment.title}</p>
             <p className="text-xs text-muted-foreground">
-              {result.module.code} · published{" "}
-              {formatDateOf(result.publishedAt, timeZone)}
+              <span className="font-mono">{result.module.code}</span> ·
+              published {formatDateOf(result.publishedAt, timeZone)}
             </p>
           </div>
           <div className="text-right">

@@ -29,6 +29,7 @@ import {
   type Semester,
   SEMESTER_LABELS,
 } from "@/domain/curriculum";
+import type { CalendarDate } from "@/domain/college-time";
 import { creditStanding } from "@/domain/registration";
 import { formatCount, formatDate } from "@/lib/format";
 import type { StudentModules } from "@/server/services/registrations";
@@ -77,7 +78,11 @@ function yearFacts(modules: StudentModules): SummaryFact[] {
   const credits: SummaryFact = {
     label: "Credits",
     icon: Layers,
-    value: `${modules.registeredCredits} of ${modules.creditsPerYear}`,
+    value: (
+      <span className="whitespace-nowrap">
+        {modules.registeredCredits} of {modules.creditsPerYear}
+      </span>
+    ),
     tone: !enrolled
       ? "neutral"
       : standing.kind === "full"
@@ -118,13 +123,17 @@ function yearFacts(modules: StudentModules): SummaryFact[] {
     {
       label: "Semester 1",
       icon: CalendarDays,
-      value: `${formatDate(calendar.semester1Start)} to ${formatDate(calendar.semester1End)}`,
+      value: (
+        <DateRange from={calendar.semester1Start} to={calendar.semester1End} />
+      ),
       detail: `${taught("FIRST")} taught`,
     },
     {
       label: "Semester 2",
       icon: CalendarDays,
-      value: `${formatDate(calendar.semester2Start)} to ${formatDate(calendar.semester2End)}`,
+      value: (
+        <DateRange from={calendar.semester2Start} to={calendar.semester2End} />
+      ),
       detail: `${taught("SECOND")} taught`,
     },
   ];
@@ -155,18 +164,20 @@ function RegisteredCard({
             modules in {modules.academicYear}.
           </p>
         ) : (
-          <Table>
+          // Fixed column widths, shared with the options table below so its
+          // columns sit under these ones.
+          <Table className="min-w-2xl table-fixed">
             <TableCaption className="sr-only">
               Modules registered for {modules.academicYear}, by semester
             </TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead>Module</TableHead>
-                <TableHead className="text-right">Credits</TableHead>
-                <TableHead>Taught in</TableHead>
-                <TableHead>Core or optional</TableHead>
+                <TableHead className="w-20 text-right">Credits</TableHead>
+                <TableHead className="w-32">Taught in</TableHead>
+                <TableHead className="w-36">Core or optional</TableHead>
                 {changing && (
-                  <TableHead>
+                  <TableHead className="w-24">
                     <span className="sr-only">Actions</span>
                   </TableHead>
                 )}
@@ -260,17 +271,21 @@ function OptionsCard({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
+        {/* The registered table's widths. With no "Core or optional" column,
+            the last column here also takes that one's width. */}
+        <Table className="min-w-2xl table-fixed">
           <TableCaption className="sr-only">
             Options of year {modules.yearOfStudy} not yet taken
           </TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Module</TableHead>
-              <TableHead className="text-right">Credits</TableHead>
-              <TableHead>Taught in</TableHead>
+              <TableHead className="w-20 text-right">Credits</TableHead>
+              <TableHead className={changes.allowed ? "w-32" : "w-68"}>
+                Taught in
+              </TableHead>
               {changes.allowed && (
-                <TableHead>
+                <TableHead className="w-60">
                   <span className="sr-only">Actions</span>
                 </TableHead>
               )}
@@ -320,7 +335,7 @@ function EarlierYearsCard({ history }: { history: StudentModules["history"] }) {
         {history.map((year) => (
           <div key={year.academicYear} className="grid gap-2">
             <h3 className="font-medium">{year.academicYear}</h3>
-            <ul className="grid gap-1 text-sm">
+            <ul className="grid gap-1 px-2 text-sm">
               {year.modules.map((module) => (
                 <li key={module.code} className="flex justify-between gap-4">
                   <span>
@@ -337,6 +352,16 @@ function EarlierYearsCard({ history }: { history: StudentModules["history"] }) {
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+/** Two dates, each kept on one line. */
+function DateRange({ from, to }: { from: CalendarDate; to: CalendarDate }) {
+  return (
+    <>
+      <span className="whitespace-nowrap">{formatDate(from)}</span> to{" "}
+      <span className="whitespace-nowrap">{formatDate(to)}</span>
+    </>
   );
 }
 

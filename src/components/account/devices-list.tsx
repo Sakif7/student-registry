@@ -52,13 +52,13 @@ export function DevicesList({ devices }: { devices: DeviceRow[] }) {
 
   return (
     <div className="grid gap-4">
-      <ul className="grid divide-y rounded-lg border">
+      <ul className="grid grid-cols-1 divide-y rounded-lg border">
         {devices.map((row) => (
           <li
             key={row.id}
             className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 text-sm"
           >
-            <div className="grid gap-0.5">
+            <div className="grid min-w-0 gap-0.5">
               <p className="flex items-center gap-2 font-medium">
                 {row.device}
                 {row.current && (
@@ -67,7 +67,7 @@ export function DevicesList({ devices }: { devices: DeviceRow[] }) {
                   </Badge>
                 )}
               </p>
-              <p className="text-muted-foreground">
+              <p className="wrap-anywhere text-muted-foreground">
                 Signed in {row.signedInAt}
                 {row.ipAddress && ` · ${row.ipAddress}`}
               </p>

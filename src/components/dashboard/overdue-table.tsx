@@ -51,7 +51,8 @@ export function OverdueTable({
             <TableHead>Programme</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Overdue</TableHead>
-            <TableHead>Overdue since</TableHead>
+            {/* Set apart from the amount, which ends against it. */}
+            <TableHead className="pl-8">Overdue since</TableHead>
             <TableHead className="text-right">Balance</TableHead>
           </TableRow>
         </TableHeader>
@@ -78,7 +79,7 @@ export function OverdueTable({
               <TableCell className="text-right font-medium text-red-900 tabular-nums">
                 {formatMoney(account.overduePence)}
               </TableCell>
-              <TableCell>
+              <TableCell className="pl-8">
                 {formatDate(account.overdueSince)}
                 <div className="text-xs text-muted-foreground">
                   {formatDays(account.daysOverdue)} overdue

@@ -12,7 +12,11 @@ export async function UserMenu() {
     <UserMenuButton
       name={session.name}
       detail={
-        session.role === "staff" ? "Registry staff" : session.studentNumber
+        session.role === "staff" ? (
+          "Registry staff"
+        ) : (
+          <span className="font-mono">{session.studentNumber}</span>
+        )
       }
       accountHref={`/${session.role}/account`}
     />

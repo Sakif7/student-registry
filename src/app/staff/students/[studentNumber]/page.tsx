@@ -22,6 +22,13 @@ import {
   StudentDetailsCard,
 } from "@/components/students/student-details";
 import { StudentAssessmentsTable } from "@/components/submissions/student-assessments-table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
 import { formatDateOf, formatDateTime } from "@/lib/format";
@@ -174,11 +181,24 @@ async function StudentRecordView({ params, searchParams }: Props) {
             value: "assessments",
             label: "Assessments",
             content: (
-              <StudentAssessmentsTable
-                assessments={assessments}
-                timeZone={timeZone}
-                viewer="staff"
-              />
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    <h2>Assessments</h2>
+                  </CardTitle>
+                  <CardDescription>
+                    Work set for the student&apos;s modules, and what they have
+                    submitted.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <StudentAssessmentsTable
+                    assessments={assessments}
+                    timeZone={timeZone}
+                    viewer="staff"
+                  />
+                </CardContent>
+              </Card>
             ),
           },
           {

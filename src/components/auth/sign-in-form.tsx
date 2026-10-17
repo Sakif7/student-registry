@@ -114,7 +114,7 @@ export function SignInForm({
             </CardTitle>
             <CardDescription>
               Every demo account&apos;s password is{" "}
-              <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+              <code className="rounded bg-muted px-1 py-0.5 font-mono whitespace-nowrap text-foreground">
                 {demo.password}
               </code>
               . Choose one to fill in the form.

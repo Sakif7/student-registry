@@ -22,15 +22,25 @@ export function SemesterCalendar({
       <div>
         <dt className="text-muted-foreground">Semester 1</dt>
         <dd>
-          {formatDate(calendar.semester1Start)} to{" "}
-          {formatDate(calendar.semester1End)}
+          <span className="whitespace-nowrap">
+            {formatDate(calendar.semester1Start)}
+          </span>{" "}
+          to{" "}
+          <span className="whitespace-nowrap">
+            {formatDate(calendar.semester1End)}
+          </span>
         </dd>
       </div>
       <div>
         <dt className="text-muted-foreground">Semester 2</dt>
         <dd>
-          {formatDate(calendar.semester2Start)} to{" "}
-          {formatDate(calendar.semester2End)}
+          <span className="whitespace-nowrap">
+            {formatDate(calendar.semester2Start)}
+          </span>{" "}
+          to{" "}
+          <span className="whitespace-nowrap">
+            {formatDate(calendar.semester2End)}
+          </span>
         </dd>
       </div>
     </dl>

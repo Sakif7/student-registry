@@ -60,7 +60,12 @@ async function AssessmentView({ params }: { params: Params }) {
     <>
       <PageHeader
         breadcrumbs={[{ label: "Assessments", href: "/student/assessments" }]}
-        eyebrow={`${assessment.module.code} ${assessment.module.title}`}
+        eyebrow={
+          <>
+            <span className="font-mono">{assessment.module.code}</span>{" "}
+            {assessment.module.title}
+          </>
+        }
         title={assessment.title}
       />
       <div className="grid gap-6 lg:grid-cols-2">
@@ -90,7 +95,7 @@ async function AssessmentView({ params }: { params: Params }) {
               <div className="grid gap-1">
                 <a
                   href={`/api/submissions/${submission.id}/file`}
-                  className="w-fit font-medium break-all underline underline-offset-4"
+                  className="w-fit font-medium wrap-anywhere underline underline-offset-4"
                 >
                   <span className="sr-only">Download </span>
                   {submission.fileName}
@@ -119,7 +124,8 @@ async function AssessmentView({ params }: { params: Params }) {
       </div>
 
       {upload.allowed ? (
-        <Card className="mt-6 max-w-xl">
+        // As wide as a column of the grid above, so its edges line up.
+        <Card className="mt-6 lg:w-[calc(50%-0.75rem)]">
           <CardHeader>
             <CardTitle>
               <h2>
@@ -134,7 +140,7 @@ async function AssessmentView({ params }: { params: Params }) {
           </CardHeader>
           <CardContent className="grid gap-4">
             {upload.late && (
-              <Alert>
+              <Alert variant="warning">
                 <AlertTitle>The deadline has passed</AlertTitle>
                 <AlertDescription>
                   You can still submit, but your work will be marked late, and
@@ -153,7 +159,7 @@ async function AssessmentView({ params }: { params: Params }) {
         // Closed and past-deadline assessments are explained under Deadline.
         upload.reason !== "CLOSED" &&
         upload.reason !== "DEADLINE_PASSED" && (
-          <Alert className="mt-6 max-w-xl">
+          <Alert className="mt-6 lg:w-[calc(50%-0.75rem)]">
             <AlertDescription>{upload.message}</AlertDescription>
           </Alert>
         )

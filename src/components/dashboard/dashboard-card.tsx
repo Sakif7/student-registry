@@ -1,5 +1,6 @@
 // A card on the dashboard: a section named by its heading, with an optional
 // count beside the heading, a description, and a link to the full list.
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useId } from "react";
 
@@ -38,8 +39,10 @@ export function DashboardCard({
   return (
     <section aria-labelledby={headingId} className={className}>
       <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        {/* Space between the heading's count and the link. */}
+        <CardHeader className="gap-x-4">
+          {/* On the heading's first line, even when the heading wraps. */}
+          <CardTitle className="flex items-baseline gap-2">
             <Heading id={headingId}>{title}</Heading>
             {count !== undefined && (
               <Badge variant="secondary" className="tabular-nums">
@@ -47,14 +50,21 @@ export function DashboardCard({
               </Badge>
             )}
           </CardTitle>
-          {description && <CardDescription>{description}</CardDescription>}
+          {/* Under the link as well as the heading, rather than squeezed
+              beside the link. */}
+          {description && (
+            <CardDescription className={link ? "col-span-2" : undefined}>
+              {description}
+            </CardDescription>
+          )}
           {link && (
-            <CardAction>
+            <CardAction className="row-span-1">
               <Link
                 href={link.href}
-                className="text-sm font-medium whitespace-nowrap underline-offset-4 hover:underline"
+                className="inline-flex items-center gap-1 text-sm font-medium whitespace-nowrap underline-offset-4 hover:underline"
               >
                 {link.label}
+                <ArrowRight aria-hidden className="size-3.5" />
               </Link>
             </CardAction>
           )}

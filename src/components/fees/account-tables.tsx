@@ -69,7 +69,19 @@ export function AccountFigures({ account }: { account: Account }) {
               icon: TriangleAlert,
               value: formatMoney(summary.overduePence),
               tone: "negative",
-              detail: `Since ${summary.overdueSince ? formatDate(summary.overdueSince) : ""} (${formatDays(summary.daysOverdue)})`,
+              detail: (
+                <>
+                  Since{" "}
+                  <span className="whitespace-nowrap">
+                    {summary.overdueSince
+                      ? formatDate(summary.overdueSince)
+                      : ""}
+                  </span>{" "}
+                  <span className="whitespace-nowrap">
+                    ({formatDays(summary.daysOverdue)})
+                  </span>
+                </>
+              ),
             }
           : {
               label: "Overdue",
@@ -115,7 +127,7 @@ export function ChargesTable({
         {account.charges.map((charge) => (
           <TableRow key={charge.id}>
             <TableCell>{charge.academicYear}</TableCell>
-            <TableCell className="whitespace-normal">
+            <TableCell className="min-w-56 whitespace-normal">
               {charge.description}
               {charge.note && (
                 <div className="text-xs text-muted-foreground">
@@ -145,7 +157,9 @@ export function ChargesTable({
                 </Badge>
               )}
             </TableCell>
-            {actions && <TableCell>{actions(charge)}</TableCell>}
+            {actions && (
+              <TableCell className="text-right">{actions(charge)}</TableCell>
+            )}
           </TableRow>
         ))}
       </TableBody>
@@ -199,13 +213,13 @@ export function PaymentsTable({
             >
               {formatMoney(payment.amountPence)}
             </TableCell>
-            <TableCell className="text-xs text-muted-foreground">
+            <TableCell className="text-muted-foreground">
               {formatDateTime(payment.recordedAt, timeZone)}
             </TableCell>
-            <TableCell className="whitespace-normal">
+            <TableCell className="min-w-40 whitespace-normal">
               {payment.reversal ? (
                 <>
-                  <Badge className="border-transparent bg-zinc-200 text-zinc-800">
+                  <Badge className="border-transparent bg-neutral-200 text-neutral-800">
                     Reversed
                   </Badge>
                   <div className="text-xs text-muted-foreground">
@@ -218,7 +232,9 @@ export function PaymentsTable({
                 </Badge>
               )}
             </TableCell>
-            {actions && <TableCell>{actions(payment)}</TableCell>}
+            {actions && (
+              <TableCell className="text-right">{actions(payment)}</TableCell>
+            )}
           </TableRow>
         ))}
       </TableBody>

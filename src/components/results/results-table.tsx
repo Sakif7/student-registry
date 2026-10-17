@@ -53,7 +53,8 @@ export function ResultsTable({
                 <span className="font-medium">{result.assessment.title}</span>
               )}
               <div className="text-xs text-muted-foreground">
-                {result.module.code} {result.module.title}
+                <span className="font-mono">{result.module.code}</span>{" "}
+                {result.module.title}
               </div>
             </TableCell>
             <TableCell className="text-right tabular-nums">

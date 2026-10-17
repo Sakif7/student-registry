@@ -80,7 +80,7 @@ export function ResultsWorklist({ items }: { items: ResultsWorklistItem[] }) {
                 </div>
               )}
             </TableCell>
-            <TableCell className="whitespace-normal">
+            <TableCell className="min-w-40 whitespace-normal">
               {item.withheld ? (
                 <>
                   <Badge className="border-transparent bg-amber-100 text-amber-900">

@@ -17,7 +17,9 @@ export function Figures({ figures }: { figures: readonly Figure[] }) {
       {figures.map(({ label, value, detail, icon: Icon }) => (
         <div
           key={label}
-          className="flex flex-col gap-1 rounded-xl bg-card p-4 text-card-foreground ring-1 ring-foreground/10"
+          // Each figure spans three of the list's rows (label, value,
+          // detail), so a label that wraps lowers its whole row of figures.
+          className="row-span-3 grid grid-rows-subgrid gap-1 rounded-xl bg-card p-4 text-card-foreground ring-1 ring-foreground/10"
         >
           <dt className="flex items-start justify-between gap-2 text-sm text-muted-foreground">
             {label}

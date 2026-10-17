@@ -36,11 +36,14 @@ export function NextDeadline({
         {assessment.title}
       </Link>
       <p className="text-sm text-muted-foreground">
-        {assessment.module.code} {assessment.module.title}
+        <span className="font-mono">{assessment.module.code}</span>{" "}
+        {assessment.module.title}
       </p>
       <p className="text-sm">
-        Due {formatDateTime(assessment.deadline, timeZone)} (
-        {formatDaysAway(daysBetween(today, dueOn))})
+        Due {formatDateTime(assessment.deadline, timeZone)}{" "}
+        <span className="whitespace-nowrap">
+          ({formatDaysAway(daysBetween(today, dueOn))})
+        </span>
       </p>
       <p className="mt-1 text-sm">
         {submission ? (

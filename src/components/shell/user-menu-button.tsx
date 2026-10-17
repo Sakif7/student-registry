@@ -4,7 +4,7 @@
 // page, and signing out.
 import { ChevronsUpDown, LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -31,7 +31,7 @@ export function UserMenuButton({
 }: {
   name: string;
   /** What they are: "Registry staff", or the student's ID. */
-  detail: string;
+  detail: ReactNode;
   accountHref: string;
 }) {
   const { isMobile } = useSidebar();

@@ -157,7 +157,8 @@ function PageLink({
   disabled: boolean;
   children: string;
 }) {
-  const style = buttonVariants({ variant: "outline", size: "sm" });
+  // The size of the page count between the links (text-sm).
+  const style = buttonVariants({ variant: "outline" });
   if (disabled) {
     return (
       <span aria-disabled="true" className={`${style} opacity-50`}>

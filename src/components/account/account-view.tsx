@@ -36,16 +36,29 @@ export async function AccountView({ session }: { session: Session }) {
         </CardHeader>
         <CardContent>
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
-            <dt className="text-muted-foreground">Name</dt>
-            <dd>{details.name}</dd>
-            <dt className="text-muted-foreground">Email</dt>
-            <dd className="break-all">{details.email}</dd>
-            <dt className="text-muted-foreground">Account</dt>
-            <dd>
-              {details.studentNumber
-                ? `Student · ${details.studentNumber}`
-                : "Registry staff"}
-            </dd>
+            {/* A pair stays together on a phone; beside each other, the
+                pairs share the list's two columns. */}
+            <div className="grid gap-0.5 sm:contents">
+              <dt className="text-muted-foreground">Name</dt>
+              <dd>{details.name}</dd>
+            </div>
+            <div className="grid gap-0.5 sm:contents">
+              <dt className="text-muted-foreground">Email</dt>
+              <dd className="break-all">{details.email}</dd>
+            </div>
+            <div className="grid gap-0.5 sm:contents">
+              <dt className="text-muted-foreground">Account</dt>
+              <dd>
+                {details.studentNumber ? (
+                  <>
+                    Student ·{" "}
+                    <span className="font-mono">{details.studentNumber}</span>
+                  </>
+                ) : (
+                  "Registry staff"
+                )}
+              </dd>
+            </div>
           </dl>
         </CardContent>
       </Card>

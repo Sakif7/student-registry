@@ -97,7 +97,14 @@ function modulesFact(
   return {
     label: "Modules",
     icon: BookOpen,
-    value: `${modules.registeredCredits} of ${modules.creditsPerYear} credits`,
+    value: (
+      <>
+        <span className="whitespace-nowrap">
+          {modules.registeredCredits} of {modules.creditsPerYear}
+        </span>{" "}
+        credits
+      </>
+    ),
     tone: !enrolled
       ? "neutral"
       : standing.kind === "full"

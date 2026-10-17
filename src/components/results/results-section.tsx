@@ -4,6 +4,13 @@
 // reason to withhold results; withholding is still a decision staff make.
 import { StandingBadge } from "@/components/fees/standing-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ACCOUNT_STANDING_LABELS } from "@/domain/fees";
 import { formatDateOf, formatMoney } from "@/lib/format";
 import type { Account } from "@/server/services/fees";
@@ -74,7 +81,7 @@ export function ResultsSection({
       </div>
 
       {withheld && (
-        <Alert>
+        <Alert variant="warning">
           <AlertTitle>
             Results withheld since {formatDateOf(withheld.since, timeZone)}
           </AlertTitle>
@@ -85,18 +92,35 @@ export function ResultsSection({
         </Alert>
       )}
 
-      {results.results.length === 0 ? (
-        <p className="text-muted-foreground">No marks yet.</p>
-      ) : (
-        <>
-          <ResultsTable results={results.results} timeZone={timeZone} staff />
-          {!withheld && unpublished === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Every mark is published.
-            </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h3>Marks</h3>
+          </CardTitle>
+          <CardDescription>
+            Latest assessment first. {fullName} sees a mark once it is
+            published, unless their results are withheld.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {results.results.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No marks yet.</p>
+          ) : (
+            <>
+              <ResultsTable
+                results={results.results}
+                timeZone={timeZone}
+                staff
+              />
+              {!withheld && unpublished === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Every mark is published.
+                </p>
+              )}
+            </>
           )}
-        </>
-      )}
+        </CardContent>
+      </Card>
     </section>
   );
 }

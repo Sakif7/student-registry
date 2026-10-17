@@ -147,12 +147,12 @@ export function Marksheet({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-72 whitespace-normal">
+                <TableCell className="max-w-72 min-w-56 whitespace-normal">
                   {submission ? (
                     <>
                       <a
                         href={`/api/submissions/${submission.id}/file`}
-                        className="break-all underline underline-offset-4"
+                        className="wrap-anywhere underline underline-offset-4"
                       >
                         <span className="sr-only">Download </span>
                         {submission.fileName}
@@ -215,7 +215,7 @@ export function Marksheet({
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving…" : "Save marks"}
         </Button>
-        <p className="text-sm text-muted-foreground">
+        <p className="max-w-prose text-sm text-muted-foreground">
           Marks are whole numbers from 0 to 100: Pass from 40, Merit from 60,
           Distinction from 70. Clear a mark to remove it. Students see marks
           only once you publish them, from their record.

@@ -50,7 +50,7 @@ export function StudentFilterBar({
       {/* Searching and filtering keep the list's order. */}
       {filters.sort && <input type="hidden" name="sort" value={filters.sort} />}
       {filters.dir && <input type="hidden" name="dir" value={filters.dir} />}
-      <div className="grid gap-1.5">
+      <div className="grid w-full gap-1.5 sm:w-auto">
         <Label htmlFor={`${id}q`}>Search</Label>
         <div className="flex gap-2">
           <Input
@@ -59,7 +59,7 @@ export function StudentFilterBar({
             type="search"
             defaultValue={filters.q}
             placeholder="Name, student ID or email"
-            className="w-64"
+            className="min-w-0 flex-1 sm:w-64 sm:flex-none"
           />
           <Button type="submit" variant="outline">
             Search
@@ -67,9 +67,10 @@ export function StudentFilterBar({
         </div>
       </div>
 
-      <div className="grid gap-1.5">
+      <div className="grid w-full gap-1.5 sm:w-auto">
         <Label htmlFor={`${id}programme`}>Programme</Label>
         <NativeSelect
+          className="w-full sm:w-fit"
           id={`${id}programme`}
           name="programme"
           defaultValue={filters.programme ?? ""}
@@ -84,9 +85,10 @@ export function StudentFilterBar({
         </NativeSelect>
       </div>
 
-      <div className="grid gap-1.5">
+      <div className="grid w-full gap-1.5 sm:w-auto">
         <Label htmlFor={`${id}status`}>Status</Label>
         <NativeSelect
+          className="w-full sm:w-fit"
           id={`${id}status`}
           name="status"
           defaultValue={filters.status ?? ""}
@@ -101,9 +103,10 @@ export function StudentFilterBar({
         </NativeSelect>
       </div>
 
-      <div className="grid gap-1.5">
+      <div className="grid w-full gap-1.5 sm:w-auto">
         <Label htmlFor={`${id}year`}>Academic year</Label>
         <NativeSelect
+          className="w-full sm:w-fit"
           id={`${id}year`}
           name="year"
           defaultValue={filters.year ?? ""}
@@ -122,7 +125,7 @@ export function StudentFilterBar({
         <Link
           href="/staff/students"
           scroll={false}
-          className={buttonVariants({ variant: "ghost" })}
+          className={buttonVariants({ variant: "outline" })}
         >
           Clear filters
         </Link>

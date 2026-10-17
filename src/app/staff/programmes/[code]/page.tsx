@@ -175,17 +175,19 @@ function YearCard({
             No modules in year {year.yearOfStudy} yet.
           </p>
         ) : (
-          <Table>
+          // Fixed column widths, the same in every year, so the years'
+          // columns line up one above the other.
+          <Table className="min-w-2xl table-fixed">
             <TableCaption className="sr-only">
               Modules in year {year.yearOfStudy}, core first
             </TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead>Module</TableHead>
-                <TableHead className="text-right">Credits</TableHead>
-                <TableHead>Taught in</TableHead>
-                <TableHead>Core or optional</TableHead>
-                <TableHead>
+                <TableHead className="w-20 text-right">Credits</TableHead>
+                <TableHead className="w-32">Taught in</TableHead>
+                <TableHead className="w-36">Core or optional</TableHead>
+                <TableHead className="w-24">
                   <span className="sr-only">Actions</span>
                 </TableHead>
               </TableRow>

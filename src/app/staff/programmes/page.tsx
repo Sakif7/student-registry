@@ -90,7 +90,7 @@ async function Programmes() {
             <TableCell className="text-right tabular-nums">
               <Link
                 href={`/staff/students?programme=${encodeURIComponent(programme.code)}&status=ENROLLED`}
-                className="underline-offset-4 hover:underline"
+                className="underline underline-offset-4"
               >
                 {programme.enrolledCount}
                 <span className="sr-only"> enrolled on {programme.title}</span>
