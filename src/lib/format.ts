@@ -3,7 +3,11 @@
 // date styles, whose punctuation and abbreviations vary between ICU versions
 // (e.g. "Sep" or "Sept"); Node and each browser ship their own, and text that
 // differed between server and browser would break hydration.
-import { type CalendarDate, instantToWallTime } from "@/domain/college-time";
+import {
+  type CalendarDate,
+  daysBetween,
+  instantToWallTime,
+} from "@/domain/college-time";
 
 const MONTHS = [
   "Jan",
@@ -44,14 +48,23 @@ export function formatDateOf(instant: Date, timeZone: string): string {
 
 /**
  * An instant shown in a time zone, with the zone's abbreviation, e.g.
- * "Fri 20 Nov 2026, 17:00 GMT".
+ * "Fri 20 Nov 2026, 17:00 GMT", or with seconds, "17:00:03 GMT". Seconds
+ * suit a submission time: work at 17:00:03 is late for a 17:00 deadline.
  */
-export function formatDateTime(instant: Date, timeZone: string): string {
+export function formatDateTime(
+  instant: Date,
+  timeZone: string,
+  { seconds = false }: { seconds?: boolean } = {},
+): string {
   const wallTime = instantToWallTime(instant, timeZone);
   const [year, month, day] = wallTime.slice(0, 10).split("-").map(Number);
   const weekday =
     WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
-  return `${weekday} ${day} ${MONTHS[month - 1]} ${year}, ${wallTime.slice(11)} ${zoneAbbreviation(instant, timeZone)}`;
+  // Zone offsets are whole minutes, so the seconds are the same in UTC.
+  const time = seconds
+    ? `${wallTime.slice(11)}:${String(instant.getUTCSeconds()).padStart(2, "0")}`
+    : wallTime.slice(11);
+  return `${weekday} ${day} ${MONTHS[month - 1]} ${year}, ${time} ${zoneAbbreviation(instant, timeZone)}`;
 }
 
 /** A file size in bytes, e.g. 2048 → "2 KB" and 1572864 → "1.5 MB". */
@@ -75,6 +88,30 @@ export function formatDaysAway(days: number): string {
   if (days === 1) return "tomorrow";
   if (days === -1) return "yesterday";
   return days > 0 ? `in ${formatDays(days)}` : `${formatDays(-days)} ago`;
+}
+
+/**
+ * How far away a deadline is. Less than a day ahead, in hours or minutes: a
+ * deadline at midnight is "tomorrow" by the calendar, but only hours away.
+ * Otherwise in days by the college's calendar, as formatDaysAway.
+ */
+export function formatDeadlineAway(
+  deadline: Date,
+  now: Date,
+  timeZone: string,
+): string {
+  const left = deadline.getTime() - now.getTime();
+  if (left > 0 && left < 24 * 60 * 60 * 1000) {
+    // Rounded down, so a student is never told they have longer than they do.
+    const minutes = Math.floor(left / 60_000);
+    if (minutes < 1) return "in less than a minute";
+    return minutes < 60
+      ? `in ${formatCount(minutes, "minute")}`
+      : `in ${formatCount(Math.floor(minutes / 60), "hour")}`;
+  }
+  const dateOf = (instant: Date) =>
+    instantToWallTime(instant, timeZone).slice(0, 10);
+  return formatDaysAway(daysBetween(dateOf(now), dateOf(deadline)));
 }
 
 /** A count and its noun, e.g. "1 student", "3 students", "2 people". */

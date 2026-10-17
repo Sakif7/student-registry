@@ -42,9 +42,11 @@ export function documentKindOf(fileName: string): DocumentKind | null {
  */
 export function safeFileName(fileName: string): string {
   const base = fileName.split(/[\\/]/).pop() ?? "";
-  // Control characters, quotes and other characters unsafe in file names.
+  // Control characters, quotes and other characters unsafe in file names,
+  // and the marks that reorder text: with them, "essay‮xcod.pdf" would
+  // show on the marksheet as "essayfdp.docx".
   const cleaned = base
-    .replace(/[\p{Cc}"*:<>?|]/gu, "")
+    .replace(/[\p{Cc}؜‎‏‪-‮⁦-⁩"*:<>?|]/gu, "")
     .replace(/\s+/g, " ")
     .trim();
   if (cleaned.length <= 120) return cleaned || "submission";
@@ -70,8 +72,10 @@ export const FILE_PROBLEM_MESSAGES: Record<FileProblem, string> = {
     "This file isn't a valid PDF or Word document, whatever its name says",
 };
 
-// What browsers declare when they don't know a file's type.
-const UNKNOWN_TYPES = new Set(["", "application/octet-stream"]);
+// What browsers declare when they don't know a file's type. A part of a
+// form upload sent with no type at all is text/plain by definition (RFC 7578),
+// as API clients send it; the file's content is checked either way.
+const UNKNOWN_TYPES = new Set(["", "application/octet-stream", "text/plain"]);
 
 /**
  * The checks that need only the file's name and size, so the upload form

@@ -17,6 +17,7 @@ import {
 } from "@/domain/submissions";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { refreshAfterWrite } from "@/server/actions";
+import type { OwnSubmission } from "@/server/services/submissions";
 
 const ACCEPT = Object.values(ACCEPTED_DOCUMENTS)
   .flatMap((document) => [document.extension, document.mimeType])
@@ -25,13 +26,10 @@ const ACCEPT = Object.values(ACCEPTED_DOCUMENTS)
 export function UploadForm({
   assessmentId,
   resubmission,
-  late,
 }: {
   assessmentId: string;
   /** The upload replaces work already submitted. */
   resubmission: boolean;
-  /** The deadline has passed, so the work will be marked late. */
-  late: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string>();
@@ -60,15 +58,15 @@ export function UploadForm({
     const body = new FormData();
     body.append("file", file);
     try {
-      await apiRequest(
-        "PUT",
-        `/api/assessments/${assessmentId}/submission`,
-        body,
-      );
+      // The server's verdict, not the page's: the deadline may have passed
+      // since the page was opened.
+      const { submission } = await apiRequest<{
+        submission: Pick<OwnSubmission, "attempt" | "late">;
+      }>("PUT", `/api/assessments/${assessmentId}/submission`, body);
       toast.success(
-        resubmission
+        submission.attempt > 1
           ? "Your work has been replaced."
-          : late
+          : submission.late
             ? "Your work has been submitted, marked late."
             : "Your work has been submitted.",
       );

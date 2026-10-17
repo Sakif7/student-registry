@@ -39,7 +39,7 @@ export function AssessmentsTable({
           >
             Set an assessment
           </Link>{" "}
-          for a module, and students on its programme can submit work.
+          for a module, and the students registered on it can submit work.
         </p>
       </div>
     );

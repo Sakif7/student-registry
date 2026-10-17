@@ -45,6 +45,11 @@ describe("safeFileName", () => {
     );
   });
 
+  it("drops the marks that would make a name read backwards", () => {
+    expect(safeFileName("essay‮xcod.pdf")).toBe("essayxcod.pdf");
+    expect(safeFileName("⁧report⁩.docx")).toBe("report.docx");
+  });
+
   it("falls back to a generic name when nothing is left", () => {
     expect(safeFileName("\u0007")).toBe("submission");
   });
@@ -242,8 +247,8 @@ describe("checkUploadedFile", () => {
     expect(checkUploadedFile(docx, { ext: "docx" })).toEqual({ kind: "docx" });
   });
 
-  it("accepts a declared type the browser didn't know", () => {
-    for (const type of ["", "application/octet-stream"]) {
+  it("accepts a declared type the browser didn't know, or none", () => {
+    for (const type of ["", "application/octet-stream", "text/plain"]) {
       expect(checkUploadedFile({ ...docx, type }, { ext: "docx" })).toEqual({
         kind: "docx",
       });
@@ -254,6 +259,10 @@ describe("checkUploadedFile", () => {
     expect(checkUploadedFile(pdf, undefined)).toEqual({
       problem: "CONTENT_MISMATCH",
     });
+    // A text file renamed, sent without a type.
+    expect(
+      checkUploadedFile({ ...pdf, type: "text/plain" }, undefined),
+    ).toEqual({ problem: "CONTENT_MISMATCH" });
     expect(checkUploadedFile(pdf, { ext: "docx" })).toEqual({
       problem: "CONTENT_MISMATCH",
     });

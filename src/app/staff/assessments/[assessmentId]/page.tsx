@@ -15,11 +15,7 @@ import { PageHeader } from "@/components/page-header";
 import { type SummaryFact, SummaryStrip } from "@/components/summary-strip";
 import type { Tone } from "@/components/tone";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  type CalendarDate,
-  daysBetween,
-  instantToWallTime,
-} from "@/domain/college-time";
+import { instantToWallTime } from "@/domain/college-time";
 import { SEMESTER_LABELS } from "@/domain/curriculum";
 import {
   ASSESSMENT_STATE_LABELS,
@@ -29,10 +25,10 @@ import {
   formatCount,
   formatDateOf,
   formatDateTime,
-  formatDaysAway,
+  formatDeadlineAway,
   formatFileSize,
 } from "@/lib/format";
-import { collegeTimeZone, collegeToday } from "@/server/college";
+import { collegeTimeZone } from "@/server/college";
 import { orNotFound } from "@/server/pages";
 import {
   type AssessmentDetail,
@@ -106,9 +102,7 @@ async function AssessmentView({ params }: { params: Params }) {
         }
       />
       <div className="grid grid-cols-1 gap-8">
-        <SummaryStrip
-          facts={summaryFacts(assessment, collegeToday(), timeZone)}
-        />
+        <SummaryStrip facts={summaryFacts(assessment, new Date(), timeZone)} />
 
         <section aria-label="Submissions and marks">
           <h2 className="mb-4 text-xl font-semibold tracking-tight">
@@ -144,12 +138,11 @@ async function AssessmentView({ params }: { params: Params }) {
  */
 function summaryFacts(
   assessment: AssessmentDetail,
-  today: CalendarDate,
+  now: Date,
   timeZone: string,
 ): SummaryFact[] {
   const { submittedCount, expectedCount, lateCount } = assessment;
-  const dueOn = instantToWallTime(assessment.deadline, timeZone).slice(0, 10);
-  const away = formatDaysAway(daysBetween(today, dueOn));
+  const away = formatDeadlineAway(assessment.deadline, now, timeZone);
   const marks = assessment.students.flatMap(({ result }) =>
     result ? [result] : [],
   );
@@ -207,7 +200,9 @@ function marksheetRows(
       id: submission.id,
       fileName: submission.fileName,
       size: formatFileSize(submission.sizeBytes),
-      submittedAt: formatDateTime(submission.submittedAt, timeZone),
+      submittedAt: formatDateTime(submission.submittedAt, timeZone, {
+        seconds: true,
+      }),
       late: submission.late,
       replacedTimes: submission.attempt - 1,
     },

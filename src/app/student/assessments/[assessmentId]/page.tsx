@@ -104,7 +104,10 @@ async function AssessmentView({ params }: { params: Params }) {
                   {formatFileSize(submission.sizeBytes)}
                 </p>
                 <p className="flex flex-wrap items-center gap-2">
-                  Submitted {formatDateTime(submission.submittedAt, timeZone)}
+                  Submitted{" "}
+                  {formatDateTime(submission.submittedAt, timeZone, {
+                    seconds: true,
+                  })}
                   {submission.late && <LateBadge />}
                 </p>
                 {submission.attempt > 1 && (
@@ -151,7 +154,6 @@ async function AssessmentView({ params }: { params: Params }) {
             <UploadForm
               assessmentId={assessment.id}
               resubmission={upload.resubmission}
-              late={upload.late}
             />
           </CardContent>
         </Card>

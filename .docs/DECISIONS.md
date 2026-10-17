@@ -357,7 +357,9 @@ Staff can reopen an assessment or extend its deadline.
   - the file extension;
   - the type the browser declared. "application/octet-stream" or no type is
     accepted, because browsers send that for types the operating system
-    doesn't know; any other declared type must match the extension;
+    doesn't know, and so is "text/plain", the type a form part sent without
+    one has by definition (RFC 7578), as API clients send it. Any other
+    declared type must match the extension;
   - the file's actual content, checked with `file-type`. It also recognises
     macro-enabled Word documents (`.docm`), so they are refused even when
     renamed to `.docx`.
@@ -369,7 +371,15 @@ Staff can reopen an assessment or extend its deadline.
   own framing).
 - **Storage:** files are stored under random names in `UPLOAD_DIR`, outside
   the public folder. The name the student gave is kept for display and
-  downloads, cleaned of folders, quotes and control characters.
+  downloads, cleaned of folders, quotes and control characters, and of the
+  marks that reorder text, which could make "essay.pdf" display as a name
+  ending ".docx".
+- **Times to the second:** submission times are shown with seconds, since
+  work that arrives at 17:00:03 is late for a 17:00 deadline. A deadline
+  less than a day away is given in hours or minutes ("in 7 hours"), since
+  one at midnight is "tomorrow" by the calendar but due tonight. The upload's
+  confirmation takes the late flag from the server's reply, not from the
+  page, which may have been opened before the deadline passed.
 - **Downloads only:** files are always served as attachments, with
   `X-Content-Type-Options: nosniff` and a sandboxing Content-Security-Policy.
   Only staff and the student who submitted can download a file.

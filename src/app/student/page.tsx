@@ -19,7 +19,7 @@ import { StudentAssessmentsTable } from "@/components/submissions/student-assess
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { EnrolmentStatus } from "@/domain/enrolment";
-import { collegeTimeZone, collegeToday } from "@/server/college";
+import { collegeTimeZone } from "@/server/college";
 import { orNotFound } from "@/server/pages";
 import { getAccount } from "@/server/services/fees";
 import { getStudentModules } from "@/server/services/registrations";
@@ -120,7 +120,7 @@ async function Home() {
           <DashboardCard title="Next deadline">
             <NextDeadline
               assessment={next}
-              today={collegeToday()}
+              now={new Date()}
               timeZone={timeZone}
             />
           </DashboardCard>

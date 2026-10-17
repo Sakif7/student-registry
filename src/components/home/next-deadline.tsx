@@ -4,28 +4,22 @@ import Link from "next/link";
 
 import { EmptyNote } from "@/components/dashboard/dashboard-card";
 import { Badge } from "@/components/ui/badge";
-import {
-  type CalendarDate,
-  daysBetween,
-  instantToWallTime,
-} from "@/domain/college-time";
-import { formatDateTime, formatDaysAway } from "@/lib/format";
+import { formatDateTime, formatDeadlineAway } from "@/lib/format";
 import type { StudentAssessment } from "@/server/services/submissions";
 
 export function NextDeadline({
   assessment,
-  today,
+  now,
   timeZone,
 }: {
   /** The soonest open assessment, if any is open. */
   assessment: StudentAssessment | undefined;
-  today: CalendarDate;
+  now: Date;
   timeZone: string;
 }) {
   if (!assessment) {
     return <EmptyNote>No assessment is open for submissions.</EmptyNote>;
   }
-  const dueOn = instantToWallTime(assessment.deadline, timeZone).slice(0, 10);
   const { submission, upload } = assessment;
   return (
     <div className="grid gap-1.5">
@@ -42,7 +36,7 @@ export function NextDeadline({
       <p className="text-sm">
         Due {formatDateTime(assessment.deadline, timeZone)}{" "}
         <span className="whitespace-nowrap">
-          ({formatDaysAway(daysBetween(today, dueOn))})
+          ({formatDeadlineAway(assessment.deadline, now, timeZone)})
         </span>
       </p>
       <p className="mt-1 text-sm">

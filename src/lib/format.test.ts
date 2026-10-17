@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatDays,
   formatDaysAway,
+  formatDeadlineAway,
   formatFileSize,
   formatMoney,
 } from "./format";
@@ -36,6 +37,14 @@ describe("formatDateTime", () => {
       formatDateTime(new Date("2026-07-01T08:30:00Z"), "Europe/London"),
     ).toBe("Wed 1 Jul 2026, 09:30 BST");
   });
+
+  it("can show the seconds, for a submission time", () => {
+    expect(
+      formatDateTime(new Date("2026-10-15T15:45:03.250Z"), "Europe/London", {
+        seconds: true,
+      }),
+    ).toBe("Thu 15 Oct 2026, 16:45:03 BST");
+  });
 });
 
 describe("formatDays", () => {
@@ -55,6 +64,27 @@ describe("formatDaysAway", () => {
     [-3, "3 days ago"],
   ])("writes %i days as %j", (days, text) => {
     expect(formatDaysAway(days)).toBe(text);
+  });
+});
+
+describe("formatDeadlineAway", () => {
+  const timeZone = "Europe/London";
+  // 16:48 BST on Saturday 17 October 2026.
+  const now = new Date("2026-10-17T15:48:00.000Z");
+
+  it.each([
+    // Midnight is "tomorrow" by the calendar, but only hours away.
+    ["2026-10-17T23:00:00.000Z", "in 7 hours"],
+    ["2026-10-17T16:47:00.000Z", "in 59 minutes"],
+    ["2026-10-17T16:48:00.000Z", "in 1 hour"],
+    ["2026-10-17T15:48:30.000Z", "in less than a minute"],
+    ["2026-10-18T15:47:59.000Z", "in 23 hours"],
+    ["2026-10-18T16:00:00.000Z", "tomorrow"],
+    ["2026-10-20T16:00:00.000Z", "in 3 days"],
+    ["2026-10-17T09:00:00.000Z", "today"],
+    ["2026-10-16T16:00:00.000Z", "yesterday"],
+  ])("writes a deadline at %s as %j", (deadline, text) => {
+    expect(formatDeadlineAway(new Date(deadline), now, timeZone)).toBe(text);
   });
 });
 

@@ -18,7 +18,7 @@ export default function NewAssessmentPage() {
       <PageHeader
         breadcrumbs={[{ label: "Assessments", href: "/staff/assessments" }]}
         title="Set an assessment"
-        description="Students enrolled on the module's programme can submit a PDF or Word document until you close the assessment."
+        description="Enrolled students registered on the module can submit a PDF or Word document until you close the assessment."
       />
       <Suspense fallback={<Skeleton className="h-80 max-w-xl" />}>
         <NewAssessmentForm />
