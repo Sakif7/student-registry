@@ -1732,7 +1732,11 @@ they found what the fixes themselves had got wrong:
 - a marks test relied on the test data's 20 November deadline still being
   ahead, so it would have started failing on that day. A run of every unit
   and integration test with the clock moved 400 days ahead, the test
-  database's clock included, found no other;
+  database's clock included, found no other. The first fix, a deadline a
+  week from whenever the tests run, failed the same run in a new way: by
+  late August that week falls in the next academic year. The file now
+  fixes its clock, as the other test files do, and runs 40, 315 and 400
+  days ahead all pass;
 - the README said two Better Auth endpoints bypassed the sign-in lock,
   where one did and the other leaked session tokens; a bullet in
   DECISIONS.md had been split in two while it was being edited; and the

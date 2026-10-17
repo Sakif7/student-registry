@@ -1,5 +1,5 @@
 // Entering marks on an assessment's marksheet: PUT /api/assessments/{id}/marks.
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PUT as putMarks } from "@/app/api/assessments/[assessmentId]/marks/route";
 import { MARKS_NOT_YET_MESSAGE } from "@/domain/results";
@@ -22,6 +22,8 @@ import {
   type Viewer,
 } from "../helpers/requests";
 
+// A fixed "now", whenever the tests run: 15 October 2026, midday in London.
+const NOW = new Date("2026-10-15T11:00:00.000Z");
 const PUBLISHED_AT = new Date("2026-10-01T09:00:00.000Z");
 /** Past, so the assessment can be marked, and in 2026/27 like its students. */
 const PAST_DEADLINE = new Date("2026-10-08T16:00:00.000Z");
@@ -45,6 +47,8 @@ let amelia: { id: string };
 let hannah: { id: string };
 
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
   const computing = await createProgramme({ code: "BSC-CS" });
   const data = await createProgramme({ code: "MSC-DS" });
   const moduleId = (
@@ -80,6 +84,10 @@ beforeEach(async () => {
   // Hannah was registered before withdrawing; Liam is on another programme.
   await registerStudents(moduleId, [amelia.id, oliver.id, hannah.id]);
   await createSubmission({ studentId: amelia.id, assessmentId });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 async function save(
@@ -126,15 +134,14 @@ describe("PUT /api/assessments/[assessmentId]/marks", () => {
   });
 
   it("waits for the deadline, or for the assessment to close", async () => {
-    // Due next week, whenever the tests run: students can still submit or
-    // replace their work.
+    // Due on 20 November, after "now": students can still submit or replace
+    // their work.
     const open = await createAssessment({
       moduleId: (
         await db().assessment.findUniqueOrThrow({
           where: { id: assessmentId },
         })
       ).moduleId,
-      deadline: new Date(Date.now() + 7 * 86_400_000),
     });
 
     expect(await save({ "SMS-2025-0001": 72 }, { id: open.id })).toMatchObject({
