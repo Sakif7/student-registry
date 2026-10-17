@@ -69,7 +69,13 @@ and fee charges are raised per academic year.
 - Deferral and withdrawal need a reason. Every change, including the initial
   status, is kept with its date in `enrolment_status_changes`: Registry teams
   need deferral and withdrawal dates, for example to work out fee liability.
+  Students see their own status history, reasons included, on their record,
+  and the form says so: what is written there is theirs to read.
 - Records are never deleted. Withdrawal is a status, not a delete.
+- The status dialog says what the chosen change means before it is made:
+  Completed can't be undone; withdrawal and deferral leave fees as they are;
+  a student returning for a new academic year needs that year set first, so
+  they are registered on its modules and asked for its fee.
 
 ### What students who are not enrolled can do
 
@@ -863,6 +869,14 @@ out of it:
 - **Not found:** a page that can't find a record shows "Not found" inside
   the staff or student pages, with a way back. An unknown address gets a
   page in the look of the signed-out pages, instead of Next.js's unstyled
+- **Something went wrong:** a page that fails unexpectedly, say with the
+  database out of reach, shows "Something went wrong" in its place, with
+  **Try again** and the error's reference for matching a report to the
+  server's log. Inside the staff and student pages the sidebar keeps
+  working; elsewhere the page keeps the signed-out look, and a failure of
+  the root layout itself gets a page of its own.
+- **Long names:** a page title breaks a long word rather than widen the
+  page on a phone.
   default.
 - **Errors in a form:** the page's scroll padding is the height of the
   sticky top bar, so the first field with an error scrolls into view below
@@ -1081,7 +1095,8 @@ Assessments, Results, Fees and My record.
 - Undo makes the opposite request through the same API, so the audit trail
   records both changes, and a hold put back or an assessment closed again is
   dated from the undo. Lifting a hold remembers the hold's reason, so Undo
-  puts it back as it was.
+  puts it back as it was. A second click on Undo does nothing, so a double
+  click can't undo twice.
 - Publishing marks has no Undo: the student sees them at once. Payments and
   status changes have none either: they are corrected by a reversal or
   another status change, each with a reason.

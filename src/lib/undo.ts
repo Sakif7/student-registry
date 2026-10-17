@@ -20,11 +20,16 @@ export function toastWithUndo(
   message: string,
   undo: { run: () => Promise<unknown>; done: string },
 ): void {
+  // The button stays live while the toast closes, so a double click would
+  // otherwise undo twice: a second request, and a second audit entry.
+  let used = false;
   toast.success(message, {
     duration: UNDO_TOAST_MS,
     action: {
       label: "Undo",
       onClick: () => {
+        if (used) return;
+        used = true;
         void (async () => {
           try {
             await undo.run();
