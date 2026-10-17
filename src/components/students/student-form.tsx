@@ -11,6 +11,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Form } from "@/components/forms/form";
+import { FormDialogFooter } from "@/components/forms/form-dialog";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { FormField } from "@/components/forms/form-field";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -58,9 +59,8 @@ type StudentFormProps = {
       mode: "edit";
       studentNumber: string;
       defaultValues: StudentDetailsValues;
-      /** Called once the changes are saved; the form sits in a dialog. */
+      /** Called once the changes are saved; the form sits in a FormDialog. */
       onDone: () => void;
-      onCancel: () => void;
     }
 );
 
@@ -165,7 +165,7 @@ export function StudentForm(props: StudentFormProps) {
   return (
     <Form
       noValidate
-      className="max-w-xl"
+      className={props.mode === "create" ? "max-w-xl" : "grid gap-4"}
       onSubmit={(event) => {
         // The password isn't one of the form's own fields, so it is checked
         // here, alongside them.
@@ -319,28 +319,27 @@ export function StudentForm(props: StudentFormProps) {
           />
         )}
 
-        <div className="flex gap-2">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? "Saving…"
-              : props.mode === "create"
-                ? "Enrol student"
-                : "Save changes"}
-          </Button>
-          {props.mode === "edit" ? (
-            <Button type="button" variant="outline" onClick={props.onCancel}>
-              Cancel
+        {props.mode === "create" && (
+          <div className="flex gap-2">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving…" : "Enrol student"}
             </Button>
-          ) : (
             <Link
               href="/staff/students"
               className={buttonVariants({ variant: "outline" })}
             >
               Cancel
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </FieldGroup>
+      {props.mode === "edit" && (
+        <FormDialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : "Save changes"}
+          </Button>
+        </FormDialogFooter>
+      )}
     </Form>
   );
 }

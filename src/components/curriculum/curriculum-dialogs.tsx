@@ -18,6 +18,7 @@ export function SetUpProgrammeDialog() {
       title="Set up a programme"
       description="Its modules are added afterwards, year by year."
       variant="default"
+      wide
     >
       {(close) => <ProgrammeForm onDone={close} />}
     </FormDialog>
@@ -34,6 +35,7 @@ export function EditProgrammeDialog({
       label="Edit programme"
       title={`Edit ${programme.code}`}
       description="Its length and credits must still fit its modules and students."
+      wide
     >
       {(close) => <ProgrammeForm programme={programme} onDone={close} />}
     </FormDialog>
@@ -102,6 +104,7 @@ export function EditModuleDialog({
         </>
       }
       title={`Edit ${module.code}`}
+      size="xs"
     >
       {(close) => (
         <ModuleForm
@@ -135,6 +138,8 @@ export function AcademicYearDialog({
       title={calendar ? `Edit ${year}` : `Set up ${year}`}
       description="Semester 1 and semester 2, one after the other, inside the academic year."
       variant={calendar ? "outline" : "default"}
+      // On a year's card, the size of the card's other button.
+      size={calendar ? "sm" : "default"}
     >
       {(close) => (
         <AcademicYearForm year={year} calendar={calendar} onDone={close} />

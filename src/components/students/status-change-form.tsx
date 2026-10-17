@@ -8,6 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Form } from "@/components/forms/form";
+import { FormDialogFooter } from "@/components/forms/form-dialog";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button } from "@/components/ui/button";
@@ -99,9 +100,11 @@ export function StatusChangeForm({
           <Textarea {...control} rows={3} {...form.register("reason")} />
         )}
       </FormField>
-      <Button type="submit" disabled={isSubmitting} className="w-fit">
-        {isSubmitting ? "Saving…" : "Change status"}
-      </Button>
+      <FormDialogFooter>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving…" : "Change status"}
+        </Button>
+      </FormDialogFooter>
     </Form>
   );
 }

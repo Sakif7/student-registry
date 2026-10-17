@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { Form } from "@/components/forms/form";
+import { FormDialogFooter } from "@/components/forms/form-dialog";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,11 @@ export function ProgrammeForm({
   }
 
   return (
-    <Form noValidate onSubmit={(event) => void form.handleSubmit(save)(event)}>
+    <Form
+      noValidate
+      className="grid gap-4"
+      onSubmit={(event) => void form.handleSubmit(save)(event)}
+    >
       <FieldGroup>
         {!programme && (
           <FormField
@@ -173,14 +178,16 @@ export function ProgrammeForm({
             )}
           </FormField>
         </div>
-        <Button type="submit" disabled={isSubmitting} className="w-fit">
+      </FieldGroup>
+      <FormDialogFooter>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting
             ? "Saving…"
             : programme
               ? "Save changes"
               : "Set up programme"}
         </Button>
-      </FieldGroup>
+      </FormDialogFooter>
     </Form>
   );
 }

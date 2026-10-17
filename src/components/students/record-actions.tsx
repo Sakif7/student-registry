@@ -44,7 +44,6 @@ export function EditDetailsDialog({
           academicYears={academicYears}
           today={today}
           onDone={close}
-          onCancel={close}
         />
       )}
     </FormDialog>

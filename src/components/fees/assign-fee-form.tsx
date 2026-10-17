@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Form } from "@/components/forms/form";
+import { FormDialogFooter } from "@/components/forms/form-dialog";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button } from "@/components/ui/button";
@@ -91,7 +92,11 @@ export function AssignFeeForm({
   }
 
   return (
-    <Form noValidate onSubmit={(event) => void form.handleSubmit(save)(event)}>
+    <Form
+      noValidate
+      className="grid gap-4"
+      onSubmit={(event) => void form.handleSubmit(save)(event)}
+    >
       <FieldGroup>
         <FormField
           id="feeAcademicYear"
@@ -147,10 +152,12 @@ export function AssignFeeForm({
             <Textarea {...control} rows={2} {...form.register("note")} />
           )}
         </FormField>
-        <Button type="submit" disabled={isSubmitting} className="w-fit">
+      </FieldGroup>
+      <FormDialogFooter>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Charging…" : "Charge fee"}
         </Button>
-      </FieldGroup>
+      </FormDialogFooter>
     </Form>
   );
 }

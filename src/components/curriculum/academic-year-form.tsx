@@ -8,6 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Form } from "@/components/forms/form";
+import { FormDialogFooter } from "@/components/forms/form-dialog";
 import { FormField } from "@/components/forms/form-field";
 import { applyServerErrors } from "@/components/forms/server-errors";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,11 @@ export function AcademicYearForm({
   }
 
   return (
-    <Form noValidate onSubmit={(event) => void form.handleSubmit(save)(event)}>
+    <Form
+      noValidate
+      className="grid gap-4"
+      onSubmit={(event) => void form.handleSubmit(save)(event)}
+    >
       <FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2">
           {DATE_FIELDS.map(([name, label]) => (
@@ -102,10 +107,16 @@ export function AcademicYearForm({
             form.setValue("studentsChooseModules", checked)
           }
         />
-        <Button type="submit" disabled={isSubmitting} className="w-fit">
-          {isSubmitting ? "Saving…" : calendar ? "Save changes" : "Set up"}
-        </Button>
       </FieldGroup>
+      <FormDialogFooter>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? "Saving…"
+            : calendar
+              ? "Save changes"
+              : `Set up ${year}`}
+        </Button>
+      </FormDialogFooter>
     </Form>
   );
 }
