@@ -91,7 +91,7 @@ export function CorrectFeeDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="ghost" size="xs" />}>
+      <DialogTrigger render={<Button variant="outline" size="xs" />}>
         Correct
         <span className="sr-only"> the fee for {charge.academicYear}</span>
       </DialogTrigger>

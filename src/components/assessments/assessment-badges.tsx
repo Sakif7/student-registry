@@ -11,7 +11,7 @@ import {
 const STATE_TONES: Record<AssessmentState, string> = {
   OPEN: "bg-emerald-100 text-emerald-900",
   ACCEPTING_LATE: "bg-amber-100 text-amber-900",
-  CLOSED: "bg-zinc-200 text-zinc-800",
+  CLOSED: "bg-neutral-200 text-neutral-800",
 };
 
 /** Open, Past deadline or Closed. */

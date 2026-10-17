@@ -57,7 +57,7 @@ export function AccountSection({
       </div>
 
       {staff && account.currentYearUncharged && (
-        <Alert>
+        <Alert variant="warning">
           <AlertTitle>No fee charged for {account.academicYear}</AlertTitle>
           <AlertDescription>
             This student has no tuition fee for their current academic year.

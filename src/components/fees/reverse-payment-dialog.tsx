@@ -52,7 +52,7 @@ export function ReversePaymentDialog({ payment }: { payment: PaymentView }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="ghost" size="xs" />}>
+      <DialogTrigger render={<Button variant="outline" size="xs" />}>
         Reverse
         <span className="sr-only"> payment {payment.reference}</span>
       </DialogTrigger>

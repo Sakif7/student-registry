@@ -95,7 +95,8 @@ export function CommandMenu({ role }: { role: ShellRole }) {
       >
         <Search />
         Search…
-        <kbd className="ml-auto rounded border bg-muted px-1.5 font-mono text-xs text-foreground">
+        {/* The shortcut means nothing on a phone, which has no keyboard. */}
+        <kbd className="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-xs text-foreground sm:inline">
           {isMac ? "⌘" : "Ctrl"} K
         </kbd>
       </Button>

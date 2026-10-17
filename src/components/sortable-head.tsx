@@ -44,7 +44,7 @@ export function SortableHead({
         {label}
         <Arrow
           aria-hidden
-          className={direction ? "size-3.5" : "size-3.5 opacity-40"}
+          className={direction ? "size-3.5" : "size-3.5 text-muted-foreground"}
         />
       </Link>
     </TableHead>

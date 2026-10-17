@@ -9,5 +9,5 @@ export const TONE_COLOURS: Record<Tone, string> = {
   attention: "bg-amber-500",
   negative: "bg-red-500",
   info: "bg-sky-500",
-  neutral: "bg-zinc-400",
+  neutral: "bg-neutral-400",
 };

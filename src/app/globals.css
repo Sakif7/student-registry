@@ -722,7 +722,9 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  /* Darker than the borders and table rules (0.922), so an empty field
+     never reads as a blank table cell. */
+  --input: oklch(0.87 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -744,7 +746,9 @@
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  /* Darker than shadcn's 0.97, so the current page stands out from the
+     sidebar's 0.985. */
+  --sidebar-accent: oklch(0.94 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
@@ -790,8 +794,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Lines are evened out so a paragraph doesn't end on a lone word. */
+    text-wrap: pretty;
   }
   html {
     @apply font-sans;
+    /* A field scrolled into view, such as the first one with an error, stops
+       below the sticky header (h-14) rather than under it. */
+    scroll-padding-top: calc(var(--spacing) * 18);
   }
 }

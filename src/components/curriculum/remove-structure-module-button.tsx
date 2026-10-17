@@ -52,8 +52,8 @@ export function RemoveStructureModuleButton({
 
   return (
     <Button
-      variant="ghost"
-      size="sm"
+      variant="outline"
+      size="xs"
       disabled={removing}
       onClick={() => void remove()}
     >

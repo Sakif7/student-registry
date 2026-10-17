@@ -24,13 +24,16 @@ async function expectNoViolations(page: Page, path: string): Promise<void> {
 /** Scans what the page shows now, or only part of it. */
 async function scan(page: Page, label: string, include?: string) {
   // Let opening animations finish first: text halfway through fading in
-  // fails the contrast check. Endless ones (such as a pulse) never finish.
+  // fails the contrast check. Endless ones (such as a pulse) never finish,
+  // nor do those tied to scrolling (the fade at a table's edge), which follow
+  // the scroll position rather than the clock.
   await page.evaluate(async () => {
     await Promise.all(
       document
         .getAnimations()
         .filter(
           (animation) =>
+            animation.timeline instanceof DocumentTimeline &&
             animation.effect?.getComputedTiming().endTime !== Infinity,
         )
         .map((animation) => animation.finished.catch(() => undefined)),

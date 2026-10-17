@@ -10,7 +10,7 @@ const TONES: Record<AccountStanding, string> = {
   DUE: "bg-amber-100 text-amber-900",
   PAID: "bg-emerald-100 text-emerald-900",
   CREDIT: "bg-sky-100 text-sky-900",
-  NONE: "bg-zinc-100 text-zinc-700",
+  NONE: "bg-neutral-200 text-neutral-800",
 };
 
 export function StandingBadge({ standing }: { standing: AccountStanding }) {

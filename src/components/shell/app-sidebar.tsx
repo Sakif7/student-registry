@@ -71,11 +71,15 @@ export function AppSidebar({
 function ActiveNavGroups({ groups }: { groups: readonly NavGroup[] }) {
   const pathname = usePathname();
   // The longest matching prefix wins, so /staff/students/SMS-2026-0001 marks
-  // "Students" rather than the "/staff" dashboard.
+  // "Students". The home page ("/staff" or "/student") matches only itself:
+  // pages outside the menu, such as the account page, mark nothing.
   const active = groups
     .flatMap((group) => group.items)
     .filter(
-      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+      (item) =>
+        pathname === item.href ||
+        (item.href.lastIndexOf("/") > 0 &&
+          pathname.startsWith(`${item.href}/`)),
     )
     .sort((a, b) => b.href.length - a.href.length)[0];
   return <NavGroups groups={groups} activeHref={active?.href} />;

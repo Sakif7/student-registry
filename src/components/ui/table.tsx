@@ -5,9 +5,12 @@ import { cn } from "cn";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
+    // A table wider than its box fades out at the side it scrolls towards,
+    // so a phone shows there is more. Browsers that can't tie the fade to
+    // scrolling show none, rather than fading every table's edges.
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="relative w-full scroll-fade-x overflow-x-auto not-supports-[animation-timeline:scroll()]:scroll-fade-none"
     >
       <table
         data-slot="table"

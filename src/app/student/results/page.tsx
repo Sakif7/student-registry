@@ -37,7 +37,7 @@ async function MyResults() {
   );
   if (withheld) {
     return (
-      <Alert className="max-w-prose">
+      <Alert variant="warning" className="max-w-prose">
         <AlertTitle>Your results are being withheld</AlertTitle>
         <AlertDescription>
           Reason: {withheld.reason}. Contact the Registry to resolve this, and

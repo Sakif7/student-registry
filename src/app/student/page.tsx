@@ -91,7 +91,10 @@ async function Home() {
         description={`${student.programme.title} · ${student.academicYear}`}
       />
       {note && (
-        <Alert className="mb-6">
+        <Alert
+          variant={student.status === "COMPLETED" ? "default" : "warning"}
+          className="mb-6"
+        >
           <AlertDescription>{note}</AlertDescription>
         </Alert>
       )}

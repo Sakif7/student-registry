@@ -58,8 +58,8 @@ export function RegistrationButton({
 
   return (
     <Button
-      variant={action === "add" ? "outline" : "ghost"}
-      size="sm"
+      variant="outline"
+      size="xs"
       disabled={busy}
       onClick={() => void change()}
     >
