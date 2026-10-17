@@ -126,13 +126,15 @@ describe("PUT /api/assessments/[assessmentId]/marks", () => {
   });
 
   it("waits for the deadline, or for the assessment to close", async () => {
-    // Due on 20 November: students can still submit or replace their work.
+    // Due next week, whenever the tests run: students can still submit or
+    // replace their work.
     const open = await createAssessment({
       moduleId: (
         await db().assessment.findUniqueOrThrow({
           where: { id: assessmentId },
         })
       ).moduleId,
+      deadline: new Date(Date.now() + 7 * 86_400_000),
     });
 
     expect(await save({ "SMS-2025-0001": 72 }, { id: open.id })).toMatchObject({

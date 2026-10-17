@@ -493,9 +493,19 @@ describe("modules", () => {
       }),
     ]);
 
-    expect([changed.status, added.status].sort()).toEqual(
-      added.status === 409 ? [200, 409] : [201, 409],
-    );
+    // Whichever comes first goes through (204 for the change, 201 for the
+    // new module), and the other is refused.
+    expect([
+      [204, 409],
+      [409, 201],
+    ]).toContainEqual([changed.status, added.status]);
+    const core = await db().programmeModule.findMany({
+      where: { programme: { code: "BSC-CS" }, yearOfStudy: 1, kind: "CORE" },
+      select: { module: { select: { credits: true } } },
+    });
+    expect(
+      core.reduce((total, { module }) => total + module.credits, 0),
+    ).toBeLessThanOrEqual(120);
   });
 });
 

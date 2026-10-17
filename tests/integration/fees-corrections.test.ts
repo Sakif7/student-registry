@@ -246,6 +246,36 @@ describe("POST /api/payments/[paymentId]/reversal", () => {
     );
   });
 
+  it("lets only one of two simultaneous entries of a reference through", async () => {
+    // Sign in for both first, so the two entries really run side by side.
+    const requests = await Promise.all(
+      [1, 2].map(() =>
+        apiRequest("POST", "/api/students/SMS-2025-0001/payments", {
+          session: STAFF,
+          json: {
+            amountPence: 100_000,
+            paidOn: "2026-10-14",
+            reference: "BACS 2",
+          },
+        }),
+      ),
+    );
+    const responses = await Promise.all(
+      requests.map((request) =>
+        recordPayment(
+          request,
+          routeContext({ studentNumber: "SMS-2025-0001" }),
+        ),
+      ),
+    );
+    expect(responses.map((response) => response.status).sort()).toEqual([
+      201, 409,
+    ]);
+    expect(await db().payment.count({ where: { reference: "BACS 2" } })).toBe(
+      1,
+    );
+  });
+
   it("refuses to reverse a payment twice", async () => {
     await reverse({ reason: "Keyed against the wrong student" });
     const response = await reverse({ reason: "Again" });
