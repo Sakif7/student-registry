@@ -5,6 +5,12 @@
 /** The password of every seeded account that can sign in. */
 export const DEMO_PASSWORD = "demo-password-2026";
 
+/**
+ * Mailpit's web inbox from compose.yaml, where every email the app sends
+ * locally arrives. Demo pages point to it.
+ */
+export const DEMO_INBOX_URL = "http://localhost:8025";
+
 /** A demo login, with what makes it worth trying. */
 export interface DemoAccount {
   name: string;

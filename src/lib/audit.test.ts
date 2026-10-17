@@ -98,6 +98,7 @@ describe("describeEvent", () => {
       "Emailed a link to activate the account",
     ],
     ["sign_in.link_sent", { kind: "reset" }, "Emailed a password reset link"],
+    ["sign_in.password_set", {}, "Set a password for the account"],
     ["sign_in.turned_off", {}, "Turned sign-in off"],
     ["sign_in.turned_on", {}, "Turned sign-in back on"],
     ["student.edited", { fields: ["yearOfStudy"] }, "Edited the year of study"],

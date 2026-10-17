@@ -53,6 +53,8 @@ export interface AuditDetails {
     attempt: number;
   };
   "sign_in.link_sent": { kind: "activation" | "reset" };
+  /** Staff set the student's first password at enrolment, instead. */
+  "sign_in.password_set": Record<string, never>;
   "sign_in.turned_off": Record<string, never>;
   "sign_in.turned_on": Record<string, never>;
   "programme.created": { code: string; title: string };

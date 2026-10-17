@@ -6,7 +6,9 @@ import { PageHeader } from "@/components/page-header";
 import { StudentForm } from "@/components/students/student-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
+import { DEMO_INBOX_URL, DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { collegeToday } from "@/server/college";
+import { env } from "@/server/env";
 import { listProgrammes } from "@/server/services/students";
 import { requirePageRole } from "@/server/session";
 
@@ -39,6 +41,13 @@ async function NewStudentForm() {
       academicYears={academicYearsAround(currentYear, 1, 1)}
       defaultAcademicYear={currentYear}
       today={today}
+      // In the demo, a new student can sign in at once with the demo
+      // password, and emails are read in Mailpit.
+      demo={
+        env().SHOW_DEMO_ACCOUNTS
+          ? { password: DEMO_PASSWORD, inboxUrl: DEMO_INBOX_URL }
+          : undefined
+      }
     />
   );
 }

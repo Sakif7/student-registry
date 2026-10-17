@@ -1,7 +1,10 @@
 // A student's sign-in account: staff enrol the student, the activation email
 // arrives (read from Mailpit), and the student chooses a password and signs
-// in. Staff can also turn a student's sign-in off, which signs them out.
+// in; or staff set the password at enrolment, and the student signs in at
+// once. Staff can also turn a student's sign-in off, which signs them out.
 import { expect, test } from "@playwright/test";
+
+import { DEMO_PASSWORD } from "@/lib/demo-accounts";
 
 import { demoStudent, loadDemoData, viewAs } from "./support/helpers";
 import { clearInbox, latestEmailTo, linkIn } from "./support/mailpit";
@@ -22,6 +25,9 @@ test("a newly enrolled student activates the account from the emailed link", asy
   await page.getByLabel("Email").fill(GRACE);
   await page.getByLabel("Date of birth").fill("2005-03-12");
   await page.getByLabel("Programme").selectOption("BSC-CS");
+  // The demo starts with a password set now; this journey is the email's.
+  await page.getByRole("switch", { name: "Send an activation link" }).click();
+  await expect(page.getByLabel("Password")).toHaveCount(0);
   await page.getByRole("button", { name: "Enrol student" }).click();
 
   await expect(
@@ -60,6 +66,44 @@ test("a newly enrolled student activates the account from the emailed link", asy
   await page.reload();
   await page.getByRole("tab", { name: "Sign-in" }).click();
   await expect(page.getByText(/^Activated on /)).toBeVisible();
+});
+
+test("a student enrolled with a password set by staff can sign in at once", async ({
+  page,
+  browser,
+}) => {
+  const MAYA = "maya.ellis@student.example";
+  await viewAs(page, "staff");
+  await page.goto("/staff/students/new");
+  await page.getByLabel("Full name").fill("Maya Ellis");
+  await page.getByLabel("Email").fill(MAYA);
+  await page.getByLabel("Date of birth").fill("2006-01-20");
+  await page.getByLabel("Programme").selectOption("BA-BM");
+  // In the demo, the password starts as the demo password.
+  await expect(
+    page.getByRole("switch", { name: "Send an activation link" }),
+  ).not.toBeChecked();
+  await expect(page.getByLabel("Password")).toHaveValue(DEMO_PASSWORD);
+  await page.getByRole("button", { name: "Enrol student" }).click();
+
+  await expect(
+    page.getByText("They can sign in now, with the password you set."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Active", { exact: true }),
+  ).toBeVisible();
+
+  const own = await browser.newContext();
+  const student = await own.newPage();
+  await student.goto("/login");
+  await student.getByLabel("Email").fill(MAYA);
+  await student.getByLabel("Password", { exact: true }).fill(DEMO_PASSWORD);
+  await student.getByRole("button", { name: "Sign in" }).click();
+  await expect(student).toHaveURL("/student");
+  await expect(
+    student.getByRole("heading", { level: 1, name: "Maya Ellis" }),
+  ).toBeVisible();
+  await own.close();
 });
 
 // Last in the file: it ends Priya's demo session, which viewAs relies on.

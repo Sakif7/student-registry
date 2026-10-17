@@ -29,19 +29,16 @@ export const signInSchema = z.object({
 /** Asking for a password-reset link. */
 export const forgotPasswordSchema = z.object({ email: emailField });
 
+/** A password long enough, and not too long, to be accepted. */
+export const passwordSchema = z
+  .string()
+  .min(MIN_PASSWORD_LENGTH, `Use at least ${MIN_PASSWORD_LENGTH} characters`)
+  .max(MAX_PASSWORD_LENGTH, `Use ${MAX_PASSWORD_LENGTH} characters or fewer`);
+
 /** A new password, typed twice. */
 export const newPasswordSchema = z
   .object({
-    password: z
-      .string()
-      .min(
-        MIN_PASSWORD_LENGTH,
-        `Use at least ${MIN_PASSWORD_LENGTH} characters`,
-      )
-      .max(
-        MAX_PASSWORD_LENGTH,
-        `Use ${MAX_PASSWORD_LENGTH} characters or fewer`,
-      ),
+    password: passwordSchema,
     confirmation: z.string(),
   })
   .refine((values) => values.password === values.confirmation, {

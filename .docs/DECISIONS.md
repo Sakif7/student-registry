@@ -450,6 +450,18 @@ services already used. No service changed.
   as the record, waiting for activation, and an activation email goes to the
   student's address. Its link opens the activation page, where the student
   chooses a password.
+- **Or a password set at enrolment:** staff can set the student's first
+  password instead, when the student is in front of them or can't receive
+  email yet. The account is active at once; staff give the student the
+  password, which the student can change on their account page. The audit
+  trail records that staff set it. With more time, the student would be asked
+  to choose their own at first sign-in.
+- **In the demo** (`SHOW_DEMO_ACCOUNTS`), the enrolment form starts with a
+  password set, filled in with the demo password, so a reviewer can sign in
+  as a new student straight away without opening the emails. Switching on
+  "Send an activation link" sends the email to Mailpit, and the confirmation
+  links to its inbox. Outside the demo, the form starts with the email, as a
+  registry would use it.
 - **If the email fails:** the enrolment still stands, as the record matters
   more than the email. Staff see a warning that stays until dismissed, and
   can send the email again from the record.

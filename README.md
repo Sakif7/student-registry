@@ -51,7 +51,8 @@ Router), PostgreSQL and Prisma.
   - five wrong passwords lock the email address for 15 minutes, on top of
     rate limits per client address;
   - nobody signs up: staff accounts come with the system, and each
-    student's is created at enrolment and activated from an emailed link;
+    student's is created at enrolment, then activated from an emailed link,
+    or given a first password by staff there and then;
   - staff can resend that link, email a password reset link, or turn a
     student's sign-in off, which signs them out everywhere;
   - every page and API call checks the role.
@@ -232,7 +233,7 @@ means the student whose record it is.
 | PUT         | `/api/academic-years/{year}`                 | Staff         | Set an academic year's semesters, and whether students choose       |
 | GET, POST   | `/api/students/{number}/modules`             | Staff or self | A student's modules and options; register on one                    |
 | DELETE      | `/api/students/{number}/modules/{module}`    | Staff or self | Drop a module                                                       |
-| GET, POST   | `/api/students`                              | Staff         | Search and filter students; enrol one, emailing the activation link |
+| GET, POST   | `/api/students`                              | Staff         | Search and filter students; enrol one (activation link or password) |
 | GET, PATCH  | `/api/students/{number}`                     | Staff or self | Read a record (staff edit it)                                       |
 | POST        | `/api/students/{number}/status`              | Staff         | Change the enrolment status                                         |
 | GET, PATCH  | `/api/students/{number}/sign-in`             | Staff         | A student's sign-in account; turn sign-in off or on                 |

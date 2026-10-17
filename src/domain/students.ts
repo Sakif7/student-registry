@@ -2,6 +2,7 @@
 // students is filtered. Schemas are shared by the forms and the API.
 import { z } from "zod";
 
+import { passwordSchema } from "./accounts";
 import { academicYearSchema } from "./academic-year";
 import { type CalendarDate, isCalendarDate } from "./college-time";
 import { MAX_PROGRAMME_YEARS } from "./curriculum";
@@ -135,6 +136,11 @@ export function createStudentSchema(today: CalendarDate) {
         error: "A new record starts as Enrolled or Deferred",
       })
       .default(EnrolmentStatus.ENROLLED),
+    /**
+     * The student's first password, set by staff. Without one, the student
+     * is emailed an activation link and chooses their own.
+     */
+    password: passwordSchema.optional(),
   });
 }
 

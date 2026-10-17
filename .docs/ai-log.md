@@ -1540,3 +1540,27 @@ the year's 120" in the "needs attention" tone, so staff can drop an option.
 
 **Checked by:** unit tests of the rule for a short, a full and an over year;
 the registration and enrolment end-to-end tests, which read those summaries.
+
+## A first password at enrolment
+
+**What the AI did:** the owner pointed out that a reviewer trying the app
+may not want to open Mailpit to activate each new student. The enrolment
+form now has a switch, **Send an activation link**. Switched off, staff set
+the student's first password: the account is active at once, no email is
+sent, and the audit trail records "Set a password for the account". In the
+demo, the form starts with the switch off and the demo password filled in,
+so a reviewer can sign in as the new student straight away; with the switch
+on, the confirmation links to Mailpit's inbox. Outside the demo the form
+starts with the email, as before.
+
+The API takes an optional `password` on `POST /api/students`, and the
+password rules moved into one schema that enrolment and the password forms
+share. Enrolling became a service function, `enrolStudent`, which sends the
+email only when no password was set, so the route is one line.
+
+**Checked by:** a unit test of the schema; integration tests that a password
+set at enrolment signs in at once, with no email and the right audit event,
+and that a short one is refused; end-to-end tests of both journeys (the
+email's, which now switches the link on first, and the password's, signing
+in from a second browser); the accessibility and phone-width checks of the
+form; and a look at the form itself.

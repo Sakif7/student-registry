@@ -46,6 +46,18 @@ describe("createStudentSchema", () => {
     });
   });
 
+  it("takes a first password set by staff, if it is long enough", () => {
+    expect(
+      createStudentSchema(TODAY).parse({
+        ...valid,
+        password: "a-long-first-password",
+      }),
+    ).toMatchObject({ password: "a-long-first-password" });
+    expect(errorFor({ ...valid, password: "too-short" }, "password")).toBe(
+      "Use at least 12 characters",
+    );
+  });
+
   it("takes a year of study, as a number or as a form sends it", () => {
     expect(
       createStudentSchema(TODAY).parse({ ...valid, yearOfStudy: "2" }),

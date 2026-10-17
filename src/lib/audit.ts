@@ -52,6 +52,7 @@ const DESCRIBE: Describe = {
     kind === "activation"
       ? "Emailed a link to activate the account"
       : "Emailed a password reset link",
+  "sign_in.password_set": () => "Set a password for the account",
   "sign_in.turned_off": () => "Turned sign-in off",
   "sign_in.turned_on": () => "Turned sign-in back on",
   "programme.created": ({ code, title }) =>

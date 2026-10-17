@@ -205,14 +205,15 @@ As staff:
    saved.
 3. Fill in the form:
 
-   | Field            | Value                                                      |
-   | ---------------- | ---------------------------------------------------------- |
-   | Full name        | `Grace Thompson`                                           |
-   | Email            | `Grace.Thompson@Student.Example`                           |
-   | Date of birth    | 12 March 2005 (the date picker uses your browser's format) |
-   | Programme        | BSc (Hons) Computer Science                                |
-   | Academic year    | 2026/27 (the default)                                      |
-   | Enrolment status | Enrolled (the default)                                     |
+   | Field                   | Value                                                             |
+   | ----------------------- | ----------------------------------------------------------------- |
+   | Full name               | `Grace Thompson`                                                  |
+   | Email                   | `Grace.Thompson@Student.Example`                                  |
+   | Date of birth           | 12 March 2005 (the date picker uses your browser's format)        |
+   | Programme               | BSc (Hons) Computer Science                                       |
+   | Academic year           | 2026/27 (the default)                                             |
+   | Enrolment status        | Enrolled (the default)                                            |
+   | Send an activation link | On. In the demo it starts off, with the demo password set instead |
 
    Select **Enrol student**. You land on Grace's record:
    - The ID is **SMS-2026-0008**, the next number after the seeded 0001–0007.
@@ -238,6 +239,15 @@ As staff:
 8. Back on Grace's record as staff, reload: **Sign-in** reads **Active**. The
    **Sign-in** tab gives the date of activation and "Signed in on 1 device
    now."
+9. Enrol `Maya Ellis` (`maya.ellis@student.example`, born 20 January 2006,
+   BA (Hons) Business Management), leaving **Send an activation link** off.
+   The password field holds the demo password, `demo-password-2026`; try
+   `too-short` first: "Use at least 12 characters" appears. With the demo
+   password back, select **Enrol student**. The message says Maya can sign in
+   now with the password you set, no email is sent, and **Sign-in** reads
+   **Active**. In a private window, sign in as Maya with the demo password:
+   you land on Maya's **Home** page. Maya's **History** tab reads "Set a
+   password for the account".
 
 ### 2a. Managing a student's sign-in
 

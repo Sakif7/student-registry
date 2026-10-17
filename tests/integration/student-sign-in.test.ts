@@ -50,7 +50,9 @@ interface SignInBody {
   };
 }
 
-async function enrolGrace(): Promise<Response> {
+async function enrolGrace(
+  extra: Record<string, unknown> = {},
+): Promise<Response> {
   return enrolStudent(
     await apiRequest("POST", "/api/students", {
       session: STAFF,
@@ -60,6 +62,7 @@ async function enrolGrace(): Promise<Response> {
         dateOfBirth: "2005-03-12",
         programmeCode: "BSC-CS",
         academicYear: "2026/27",
+        ...extra,
       },
     }),
     routeContext({}),
@@ -187,6 +190,38 @@ describe("enrolling a student", () => {
     const token = page.searchParams.get("token") ?? "";
     expect((await setPassword(token)).status).toBe(200);
     expect(await signInStatus(GRACE, PASSWORD)).toBe(200);
+  });
+
+  it("sets the password staff give instead, so the student can sign in at once", async () => {
+    const response = await enrolGrace({ password: PASSWORD });
+
+    expect(response.status).toBe(201);
+    const { student, activationEmail } = await bodyOf<{
+      student: { studentNumber: string };
+      activationEmail: unknown;
+    }>(response);
+    expect(activationEmail).toBeNull();
+    expect(sentEmails()).toEqual([]);
+    expect(await signInStatus(GRACE, PASSWORD)).toBe(200);
+    expect((await readSignIn(student.studentNumber)).body.signIn).toMatchObject(
+      { state: "ACTIVE", link: null },
+    );
+    expect(
+      await db().auditEvent.findMany({
+        where: { action: { startsWith: "sign_in." } },
+        select: { action: true },
+      }),
+    ).toEqual([{ action: "sign_in.password_set" }]);
+  });
+
+  it("refuses a password too short to set", async () => {
+    const response = await enrolGrace({ password: "too-short" });
+
+    expect(response.status).toBe(400);
+    expect(await bodyOf(response)).toMatchObject({
+      errors: { password: ["Use at least 12 characters"] },
+    });
+    expect(await db().student.count()).toBe(0);
   });
 
   it("still enrols the student when the email can't be sent, and says so", async () => {

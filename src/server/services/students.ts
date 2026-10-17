@@ -4,6 +4,8 @@
 // no caller can forget to.
 import "server-only";
 
+import { hashPassword } from "better-auth/crypto";
+
 import { startYearOf } from "@/domain/academic-year";
 import {
   addDays,
@@ -49,6 +51,7 @@ import {
 
 import { summariseAccounts } from "./fees";
 import { syncRegistrations } from "./registrations";
+import { type SentLink, sendSignInLink } from "./sign-in";
 
 /** A programme as offered in forms and filters. */
 export interface ProgrammeOption {
@@ -254,13 +257,42 @@ export async function getStudent(
   return toRecord(student);
 }
 
+/** A new enrolment, and the activation email if one was sent. */
+export interface Enrolment {
+  student: StudentRecord;
+  /** The activation email, or null when staff set the student's password. */
+  activationEmail: SentLink | null;
+}
+
 /**
- * Enrols a student (staff only). The student number is allocated in the same
- * transaction as the insert, so numbers are unique and have no gaps. A student
- * enrolled straight away is charged the programme's standard fee for the
- * year in the same transaction, so a new enrolment can't be left unbilled.
- * The student's sign-in account is created with the record, waiting for
- * activation (see services/sign-in.ts for the email).
+ * Enrols a student (staff only), as createStudent does, then emails the
+ * student a link to activate their account, unless staff set its password.
+ * A mail server failure doesn't undo the enrolment: the result says the email
+ * didn't go, and staff can send it again from the student's record.
+ *
+ * @throws AppError: as createStudent.
+ */
+export async function enrolStudent(
+  session: Session | null,
+  input: unknown,
+): Promise<Enrolment> {
+  const { student, passwordSet } = await insertStudent(session, input);
+  return {
+    student,
+    activationEmail: passwordSet
+      ? null
+      : await sendSignInLink(session, student.studentNumber),
+  };
+}
+
+/**
+ * Creates a student's record (staff only). The student number is allocated
+ * in the same transaction as the insert, so numbers are unique and have no
+ * gaps. A student enrolled straight away is charged the programme's standard
+ * fee for the year in the same transaction, so a new enrolment can't be left
+ * unbilled. The student's sign-in account is created with the record: active,
+ * if staff set its first password, or else waiting for activation (see
+ * enrolStudent for the email).
  *
  * @throws AppError: VALIDATION for invalid details or an unknown programme;
  *   CONFLICT if another student or account already uses the email address.
@@ -269,12 +301,24 @@ export async function createStudent(
   session: Session | null,
   input: unknown,
 ): Promise<StudentRecord> {
+  return (await insertStudent(session, input)).student;
+}
+
+async function insertStudent(
+  session: Session | null,
+  input: unknown,
+): Promise<{ student: StudentRecord; passwordSet: boolean }> {
   const staff = requireStaff(session);
   const today = collegeToday();
   const details = parseInput(createStudentSchema(today), input);
   const programme = await findProgramme(details.programmeCode);
   checkYearOfStudy(details.yearOfStudy, programme);
   const intakeYear = startYearOf(details.academicYear);
+  // Hashed before the transaction, so its locks aren't held while scrypt works.
+  const passwordHash =
+    details.password === undefined
+      ? null
+      : await hashPassword(details.password);
 
   try {
     const student = await db().$transaction(async (tx) => {
@@ -307,12 +351,15 @@ export async function createStudent(
         },
         include: recordInclude,
       });
-      await tx.user.create({
+      const user = await tx.user.create({
         data: {
           name: created.fullName,
           email: created.email,
           role: "student",
           studentNumber: created.studentNumber,
+          // A password set now makes the account active, as activating it
+          // would.
+          emailVerified: passwordHash !== null,
         },
       });
       await recordEvent(tx, staff, {
@@ -323,10 +370,27 @@ export async function createStudent(
           status: created.status,
         },
       });
+      if (passwordHash !== null) {
+        // Stored as Better Auth stores a password: in a credential account
+        // whose ID is the user's.
+        await tx.account.create({
+          data: {
+            userId: user.id,
+            providerId: "credential",
+            accountId: user.id,
+            password: passwordHash,
+          },
+        });
+        await recordEvent(tx, staff, {
+          action: "sign_in.password_set",
+          studentId: created.id,
+          details: {},
+        });
+      }
       await syncRegistrations(tx, staff, created.id);
       return created;
     });
-    return toRecord(student);
+    return { student: toRecord(student), passwordSet: passwordHash !== null };
   } catch (error) {
     throw asDuplicateEmail(error);
   }
