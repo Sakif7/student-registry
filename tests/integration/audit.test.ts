@@ -237,7 +237,13 @@ describe("the audit trail records", () => {
           moduleCode: "CS4002",
         },
       },
-      { action: "assessment.edited", details },
+      {
+        action: "assessment.edited",
+        details: {
+          ...details,
+          changes: { title: { from: "SQL lab test", to: "SQL lab test 1" } },
+        },
+      },
       { action: "assessment.closed", details },
       { action: "assessment.reopened", details },
     ]);

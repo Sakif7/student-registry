@@ -313,6 +313,12 @@ Staff can reopen an assessment or extend its deadline.
 - A deadline must be in the future when it is set or moved. A deadline
   already past would make every submission late, and is far more likely to be
   a typo than a real intention.
+- A deadline can be moved only within its academic year. Moving it past 31
+  August would hand the assessment to the next year's students, and the
+  students who had already submitted would lose it. For another year, staff
+  set a new assessment. The same rule means a September deadline belongs to
+  the year starting that September, so a dissertation due after the summer
+  can't yet be set for the year before (see "Known limitations").
 - Deadlines are typed in college time. A time inside the hour the clocks skip
   in spring is refused with an explanation, rather than silently moved. A time
   inside the hour that happens twice in autumn means its first occurrence
@@ -681,7 +687,10 @@ an audit trail.
   which the seed and the tests use to start afresh, still works.
 - **Self-describing:** each event keeps the details needed to describe it,
   such as the assessment's title at the time, so its description doesn't
-  change when the record does later. `src/domain/audit.ts` lists every kind
+  change when the record does later. A correction keeps the value before as
+  well as after: a mark's old and new value, a fee's old amount and due
+  date with the note explaining it, and an assessment's old title and
+  deadline. An appeal about a late flag needs to know what the deadline was. `src/domain/audit.ts` lists every kind
   of event and its details; `src/lib/audit.ts` words them.
 - **Who can see it:** staff, in the Activity log (every change, newest
   first, 50 to a page) and in each student's History. Students don't see
@@ -1270,6 +1279,13 @@ unused `mysql2` driver inside the Prisma CLI, so it isn't reachable either.
   deployment would scan files (e.g. with ClamAV) before staff download them.
 - **Accents in search:** search matches accents exactly, so `Chloe` doesn't
   find "Chloé". PostgreSQL's `unaccent` extension would fix this.
+- **An assessment's year comes from its deadline:** a postgraduate
+  dissertation due in September, after the academic year has turned, can't
+  be set for the students who started the previous September. Storing the
+  academic year on the assessment, chosen when it is set, would fix this.
+- **Assessments can't be deleted or moved to another module:** one set in
+  error stays on its students' lists. Deleting one with no submissions or
+  marks would be safe to add.
 - **Search speed:** search scans names, IDs and emails with `ILIKE`, which is
   fine for thousands of records. Beyond that, a trigram index (`pg_trgm`)
   would keep it fast.

@@ -68,6 +68,27 @@ describe("describeEvent", () => {
       "Set the assessment “SQL lab test” for CS4002",
     ],
     ["assessment.edited", SQL, "Edited the assessment “SQL lab test”"],
+    [
+      "assessment.edited",
+      {
+        ...SQL,
+        changes: {
+          deadline: { from: "2026-10-30T17:00", to: "2026-11-06T09:30" },
+        },
+      },
+      "Edited the assessment “SQL lab test”: deadline moved from 30 Oct 2026, 17:00 to 6 Nov 2026, 09:30",
+    ],
+    [
+      "assessment.edited",
+      {
+        ...SQL,
+        changes: {
+          title: { from: "SQL test", to: "SQL lab test" },
+          deadline: { from: "2026-10-30T17:00", to: "2026-11-06T17:00" },
+        },
+      },
+      "Edited the assessment “SQL lab test”: renamed from “SQL test”; deadline moved from 30 Oct 2026, 17:00 to 6 Nov 2026, 17:00",
+    ],
     ["assessment.closed", SQL, "Closed “SQL lab test” to submissions"],
     ["assessment.reopened", SQL, "Reopened “SQL lab test” to submissions"],
     [

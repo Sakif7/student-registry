@@ -10,7 +10,8 @@ import {
   createAssessmentSchema,
   updateAssessmentSchema,
 } from "@/domain/assessments";
-import { academicYearAt } from "@/domain/academic-year";
+import { academicYearAt, academicYearSpan } from "@/domain/academic-year";
+import { instantToWallTime } from "@/domain/college-time";
 import type { Semester } from "@/domain/curriculum";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
@@ -28,6 +29,7 @@ import {
   isLate,
 } from "@/domain/submissions";
 import type { Prisma } from "@/generated/prisma/client";
+import { formatDate } from "@/lib/format";
 
 import { recordEvent } from "../audit";
 import { collegeTimeZone } from "../college";
@@ -304,6 +306,21 @@ export async function updateAssessment(
       })
     : null;
   if (!assessment) throw assessmentNotFound();
+  const timeZone = collegeTimeZone();
+  const academicYear = academicYearAt(assessment.deadline, timeZone);
+  if (
+    changes.deadline &&
+    academicYearAt(changes.deadline, timeZone) !== academicYear
+  ) {
+    // Its students are those registered on the module for the year of its
+    // deadline, so moving it to another year would hand it to another
+    // cohort, work already submitted and all.
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      deadline: [
+        `Keep the deadline within ${academicYear}, by ${formatDate(academicYearSpan(academicYear).last)}: the assessment is for that year's students. For another year, set a new assessment.`,
+      ],
+    });
+  }
 
   let closedAt: Date | null | undefined;
   if (changes.closed === true) {
@@ -318,11 +335,30 @@ export async function updateAssessment(
       data: { title: changes.title, deadline: changes.deadline, closedAt },
     });
     const details = { assessmentId: updated.id, title: updated.title };
-    if (
-      updated.title !== assessment.title ||
-      updated.deadline.getTime() !== assessment.deadline.getTime()
-    ) {
-      await recordEvent(tx, staff, { action: "assessment.edited", details });
+    const renamed = updated.title !== assessment.title;
+    const moved = updated.deadline.getTime() !== assessment.deadline.getTime();
+    if (renamed || moved) {
+      // Deadlines as college wall times, as staff typed them: an appeal
+      // about lateness needs the deadline before and after.
+      const wallTime = (instant: Date) =>
+        instantToWallTime(instant, timeZone).slice(0, 16);
+      await recordEvent(tx, staff, {
+        action: "assessment.edited",
+        details: {
+          ...details,
+          changes: {
+            ...(renamed && {
+              title: { from: assessment.title, to: updated.title },
+            }),
+            ...(moved && {
+              deadline: {
+                from: wallTime(assessment.deadline),
+                to: wallTime(updated.deadline),
+              },
+            }),
+          },
+        },
+      });
     }
     if (!assessment.closedAt && updated.closedAt) {
       await recordEvent(tx, staff, { action: "assessment.closed", details });

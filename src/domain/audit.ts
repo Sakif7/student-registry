@@ -34,7 +34,18 @@ export interface AuditDetails {
     reason: string;
   };
   "assessment.set": { assessmentId: string; title: string; moduleCode: string };
-  "assessment.edited": { assessmentId: string; title: string };
+  /**
+   * What changed, deadlines as college wall times ("2026-10-30T17:00").
+   * Missing from events recorded before it was kept.
+   */
+  "assessment.edited": {
+    assessmentId: string;
+    title: string;
+    changes?: {
+      title?: { from: string; to: string };
+      deadline?: { from: string; to: string };
+    };
+  };
   "assessment.closed": { assessmentId: string; title: string };
   "assessment.reopened": { assessmentId: string; title: string };
   /** A mark entered, changed (from a previous one) or removed (to null). */

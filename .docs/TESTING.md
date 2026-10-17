@@ -488,7 +488,12 @@ As staff:
    Oliver Bennett and Priya Natarajan, the first-years registered on CS4002.
    Amelia Hart, a second-year, isn't on the module.
 5. Select **Edit title or deadline**, move the deadline a week later and save.
-   The page shows the new deadline.
+   The page shows the new deadline. Open it again and try 1 September next
+   year: "Keep the deadline within 2026/27, by 31 Aug 2027: the assessment is
+   for that year's students…" appears, because a September deadline would
+   hand the assessment to the next year's students. Cancel. **Activity**
+   lists the change as "Edited the assessment “SQL lab test”: deadline moved
+   from … to …".
 6. Select **Close to submissions**. A dialog asks you to confirm, with
    **Cancel** focused. Confirm: the assessment shows **Closed** with the time
    it closed, and the message offers **Undo**. Select it: the assessment is

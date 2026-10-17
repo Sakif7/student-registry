@@ -33,7 +33,14 @@ const DESCRIBE: Describe = {
     `Reversed the payment of ${formatMoney(amountPence)} (${reference}): ${reason}`,
   "assessment.set": ({ title, moduleCode }) =>
     `Set the assessment “${title}” for ${moduleCode}`,
-  "assessment.edited": ({ title }) => `Edited the assessment “${title}”`,
+  "assessment.edited": ({ title, changes }) => {
+    const what = [
+      changes?.title && `renamed from “${changes.title.from}”`,
+      changes?.deadline &&
+        `deadline moved from ${formatWallTime(changes.deadline.from)} to ${formatWallTime(changes.deadline.to)}`,
+    ].filter(Boolean);
+    return `Edited the assessment “${title}”${what.length > 0 ? `: ${what.join("; ")}` : ""}`;
+  },
   "assessment.closed": ({ title }) => `Closed “${title}” to submissions`,
   "assessment.reopened": ({ title }) => `Reopened “${title}” to submissions`,
   "mark.saved": ({ title, from, to }) =>
@@ -88,6 +95,11 @@ export function describeEvent(action: string, details: unknown): string {
     details: unknown,
   ) => string;
   return describe(details);
+}
+
+/** A college wall time, "2026-10-30T17:00", as "30 Oct 2026, 17:00". */
+function formatWallTime(wallTime: string): string {
+  return `${formatDate(wallTime.slice(0, 10))}, ${wallTime.slice(11, 16)}`;
 }
 
 /** "a", "a and b", "a, b and c". */

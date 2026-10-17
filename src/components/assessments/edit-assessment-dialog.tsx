@@ -25,12 +25,14 @@ import {
 } from "@/components/ui/dialog";
 import { FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { academicYearOn, academicYearSpan } from "@/domain/academic-year";
 import {
   assessmentTitleSchema,
   deadlineFieldSchema,
 } from "@/domain/assessments";
 import type { WallTime } from "@/domain/college-time";
 import { ApiError, apiRequest } from "@/lib/api-client";
+import { formatDate } from "@/lib/format";
 import { refreshAfterWrite } from "@/server/actions";
 
 export function EditAssessmentDialog({
@@ -49,6 +51,9 @@ export function EditAssessmentDialog({
   now: WallTime;
 }) {
   const [open, setOpen] = useState(false);
+  // A deadline can't leave its academic year (see updateAssessment).
+  const academicYear = academicYearOn(deadline.slice(0, 10));
+  const lastDay = academicYearSpan(academicYear).last;
   const form = useForm({
     resolver: zodResolver(
       z
@@ -135,7 +140,7 @@ export function EditAssessmentDialog({
             <FormField
               id="edit-deadline"
               label="Deadline"
-              description={`In college time (${timeZone}).`}
+              description={`In college time (${timeZone}), by ${formatDate(lastDay)}: the assessment is for ${academicYear}'s students.`}
               error={errors.deadline?.message}
             >
               {(control) => (
@@ -143,6 +148,7 @@ export function EditAssessmentDialog({
                   {...control}
                   type="datetime-local"
                   min={now}
+                  max={`${lastDay}T23:59`}
                   className="w-fit"
                   {...form.register("deadline")}
                 />

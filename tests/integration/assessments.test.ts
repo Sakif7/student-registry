@@ -455,6 +455,24 @@ describe("PATCH /api/assessments/[assessmentId]", () => {
     });
   });
 
+  it("keeps a moved deadline within the assessment's academic year", async () => {
+    // Due 20 November 2026, so for 2026/27's students.
+    const { id } = await insertAssessment({ moduleId: computingModuleId });
+    expect(await update(id, { deadline: "2027-09-01T17:00" })).toMatchObject({
+      status: 400,
+      body: {
+        errors: {
+          deadline: [
+            "Keep the deadline within 2026/27, by 31 Aug 2027: the assessment is for that year's students. For another year, set a new assessment.",
+          ],
+        },
+      },
+    });
+    expect((await update(id, { deadline: "2027-08-31T17:00" })).status).toBe(
+      200,
+    );
+  });
+
   it("refuses an empty change, a past deadline, an unknown ID and non-staff", async () => {
     const { id } = await insertAssessment({ moduleId: computingModuleId });
     expect(await update(id, {})).toMatchObject({
