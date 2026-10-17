@@ -148,3 +148,10 @@ export const DROP_REFUSAL_MESSAGES: Record<DropRefusal, string> = {
   HAS_WORK:
     "Work has been submitted or marked for this module, so it stays on the record.",
 };
+
+/**
+ * What a student is told when a module can't be dropped because of a mark
+ * they can't see yet: naming the reason would tell them the mark exists.
+ */
+export const DROP_REFUSED_WITHOUT_REASON =
+  "This module can't be dropped just now. Contact the Registry to change it.";

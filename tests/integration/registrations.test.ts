@@ -8,6 +8,7 @@ import {
   POST as registerOnModule,
 } from "@/app/api/students/[studentNumber]/modules/route";
 import { toDbDate } from "@/domain/college-time";
+import { DROP_REFUSED_WITHOUT_REASON } from "@/domain/registration";
 import { db } from "@/server/db";
 import {
   changeStatus,
@@ -44,7 +45,8 @@ interface ModulesBody {
     registered: {
       code: string;
       kind: string | null;
-      drop: { allowed: boolean };
+      hasWork: boolean;
+      drop: { allowed: boolean; message?: string };
     }[];
     options: { code: string; fits: boolean }[];
   };
@@ -387,6 +389,39 @@ describe("students choosing their own modules", () => {
       { action: "registration.added" },
       { action: "registration.dropped" },
     ]);
+  });
+
+  it("aren't told of a mark they can't see yet, even by a module they can't drop", async () => {
+    await openChoosing(true);
+    const { studentNumber } = await enrol();
+    const student = await db().student.findUniqueOrThrow({
+      where: { studentNumber },
+    });
+    const self = asStudent(studentNumber);
+    await register(studentNumber, "AI4001", self);
+    const test = await createAssessment({ moduleId: moduleIds.AI4001 });
+    // Marked, without a submission, and not yet published.
+    await db().assessmentResult.create({
+      data: { studentId: student.id, assessmentId: test.id, mark: 55 },
+    });
+
+    const own = (await modules(studentNumber, self)).registered.find(
+      ({ code }) => code === "AI4001",
+    );
+    expect(own).toMatchObject({
+      hasWork: false,
+      drop: { allowed: false, message: DROP_REFUSED_WITHOUT_REASON },
+    });
+    expect(await drop(studentNumber, "AI4001", self)).toMatchObject({
+      status: 409,
+      body: { detail: DROP_REFUSED_WITHOUT_REASON },
+    });
+    // Staff see why.
+    expect(
+      (await modules(studentNumber)).registered.find(
+        ({ code }) => code === "AI4001",
+      ),
+    ).toMatchObject({ hasWork: true });
   });
 
   it("only ever their own", async () => {

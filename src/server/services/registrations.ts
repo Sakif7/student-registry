@@ -12,11 +12,14 @@ import {
   checkDrop,
   checkRegistration,
   DROP_REFUSAL_MESSAGES,
+  DROP_REFUSED_WITHOUT_REASON,
+  type DropRefusal,
   type Registered,
   registeredCredits,
   registrationChanges,
   registrationRefusalMessage,
 } from "@/domain/registration";
+import { isVisibleToStudent } from "@/domain/results";
 import type { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
@@ -108,15 +111,16 @@ export async function getStudentModules(
   const number = studentNumber.toUpperCase();
   const viewer = requireStaffOrSelf(session, number);
   const student = await findStudent(db(), number);
-  const [calendar, registrations, structure, withWork] = await Promise.all([
+  const [calendar, registrations, structure, work] = await Promise.all([
     getAcademicYear(session, student.academicYear),
     db().moduleRegistration.findMany({
       where: { studentId: student.id },
       include: { module: true },
     }),
     structureFor(db(), student),
-    modulesWithWork(db(), student.id, student.academicYear),
+    modulesWithWork(db(), student, student.academicYear),
   ]);
+  const own = viewer.role === "student";
   const kinds = new Map(structure.map((entry) => [entry.moduleId, entry.kind]));
   const changes = changesFor(viewer.role, student.status, calendar);
 
@@ -129,22 +133,25 @@ export async function getStudentModules(
   const registered = current
     .map(({ module }): StudentModule => {
       const kind = kinds.get(module.id) ?? null;
-      const hasWork = withWork.has(module.id);
-      const verdict = checkDrop({ status: student.status, kind, hasWork });
+      const verdict = checkDrop({
+        status: student.status,
+        kind,
+        hasWork: work.all.has(module.id),
+      });
       return {
         code: module.code,
         title: module.title,
         credits: module.credits,
         semester: module.semester,
         kind,
-        hasWork,
+        hasWork: (own ? work.known : work.all).has(module.id),
         drop: !changes.allowed
           ? changes
           : verdict.allowed
             ? verdict
             : {
                 allowed: false,
-                message: DROP_REFUSAL_MESSAGES[verdict.reason],
+                message: dropRefusal(verdict.reason, own, work, module.id),
               },
       };
     })
@@ -322,20 +329,24 @@ export async function dropModule(
       );
     }
     const structure = await structureFor(tx, student);
-    const withWork = await modulesWithWork(
-      tx,
-      student.id,
-      student.academicYear,
-    );
+    const work = await modulesWithWork(tx, student, student.academicYear);
     const verdict = checkDrop({
       status: student.status,
       kind:
         structure.find((entry) => entry.moduleId === registration.moduleId)
           ?.kind ?? null,
-      hasWork: withWork.has(registration.moduleId),
+      hasWork: work.all.has(registration.moduleId),
     });
     if (!verdict.allowed) {
-      throw new AppError("CONFLICT", DROP_REFUSAL_MESSAGES[verdict.reason]);
+      throw new AppError(
+        "CONFLICT",
+        dropRefusal(
+          verdict.reason,
+          viewer.role === "student",
+          work,
+          registration.moduleId,
+        ),
+      );
     }
 
     await tx.moduleRegistration.delete({ where: { id: registration.id } });
@@ -374,22 +385,23 @@ export async function syncRegistrations(
       programmeId: true,
       yearOfStudy: true,
       academicYear: true,
+      resultsWithheldAt: true,
     },
   });
   if (student.status !== "ENROLLED") return;
 
-  const [structure, current, withWork] = await Promise.all([
+  const [structure, current, work] = await Promise.all([
     structureFor(tx, student),
     tx.moduleRegistration.findMany({
       where: { studentId: student.id, academicYear: student.academicYear },
       include: { module: true },
     }),
-    modulesWithWork(tx, student.id, student.academicYear),
+    modulesWithWork(tx, student, student.academicYear),
   ]);
   const registered: Registered[] = current.map(({ module }) => ({
     moduleId: module.id,
     credits: module.credits,
-    hasWork: withWork.has(module.id),
+    hasWork: work.all.has(module.id),
   }));
   const { add, drop } = registrationChanges(structure, registered);
   const modules = new Map(
@@ -469,32 +481,41 @@ async function structureFor(
 
 /**
  * The modules a student has submitted work for, or has a mark in, during an
- * academic year: an assessment belongs to the year of its deadline.
+ * academic year: an assessment belongs to the year of its deadline. `all`
+ * counts every mark, and decides what can be dropped; `known` counts only
+ * the marks the student may see (published, and not withheld), and is all
+ * the student is told, so a hidden mark can't be inferred from it.
  */
 async function modulesWithWork(
   client: Client,
-  studentId: string,
+  student: { id: string; resultsWithheldAt: Date | null },
   academicYear: string,
-): Promise<Set<string>> {
+): Promise<{ all: Set<string>; known: Set<string> }> {
   const timeZone = collegeTimeZone();
   const [submissions, results] = await Promise.all([
     client.submission.findMany({
-      where: { studentId },
+      where: { studentId: student.id },
       select: { assessment: { select: { moduleId: true, deadline: true } } },
     }),
     client.assessmentResult.findMany({
-      where: { studentId },
-      select: { assessment: { select: { moduleId: true, deadline: true } } },
+      where: { studentId: student.id },
+      select: {
+        publishedAt: true,
+        assessment: { select: { moduleId: true, deadline: true } },
+      },
     }),
   ]);
-  return new Set(
-    [...submissions, ...results]
-      .filter(
-        ({ assessment }) =>
-          academicYearAt(assessment.deadline, timeZone) === academicYear,
-      )
-      .map(({ assessment }) => assessment.moduleId),
+  const inYear = ({ assessment }: { assessment: { deadline: Date } }) =>
+    academicYearAt(assessment.deadline, timeZone) === academicYear;
+  const modules = (work: { assessment: { moduleId: string } }[]) =>
+    new Set(work.map(({ assessment }) => assessment.moduleId));
+  const visible = results.filter((result) =>
+    isVisibleToStudent(result, student.resultsWithheldAt !== null),
   );
+  return {
+    all: modules([...submissions, ...results].filter(inYear)),
+    known: modules([...submissions, ...visible].filter(inYear)),
+  };
 }
 
 /**
@@ -543,6 +564,7 @@ const studentSelect = {
   programmeId: true,
   yearOfStudy: true,
   academicYear: true,
+  resultsWithheldAt: true,
   programme: { select: { code: true, title: true, creditsPerYear: true } },
 } satisfies Prisma.StudentSelect;
 
@@ -564,6 +586,21 @@ async function findStudent(client: Client, studentNumber: string) {
  * Finds a student and locks their record for the rest of the transaction,
  * so that two registrations at once can't both fit the year's credits.
  */
+/**
+ * Why a drop is refused, in words the viewer may read: a student refused
+ * because of a mark they can't see yet isn't told about the mark.
+ */
+function dropRefusal(
+  reason: DropRefusal,
+  student: boolean,
+  work: { known: Set<string> },
+  moduleId: string,
+): string {
+  return reason === "HAS_WORK" && student && !work.known.has(moduleId)
+    ? DROP_REFUSED_WITHOUT_REASON
+    : DROP_REFUSAL_MESSAGES[reason];
+}
+
 async function lockStudent(
   tx: Prisma.TransactionClient,
   studentNumber: string,
