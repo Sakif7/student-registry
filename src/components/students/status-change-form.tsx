@@ -33,7 +33,7 @@ const CHANGE_NOTES: Record<EnrolmentStatus, string> = {
   DEFERRED:
     "A deferred student can't submit work. Fees don't change: correct the charge if the fee moves to a later year.",
   WITHDRAWN:
-    "Withdrawal doesn't cancel what the student owes, which stays on the account. The student keeps sign-in, to see their fees and results, until you turn it off.",
+    "Withdrawal leaves the year's fee as it is: review the charge for what the student is liable for, from when they stopped attending. They keep sign-in, to see their fees and results, until you turn it off.",
   COMPLETED:
     "Completed is final: the status can't be changed again, so check the record first. The student keeps sign-in, to see their results.",
 };
