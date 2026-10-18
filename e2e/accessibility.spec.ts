@@ -78,6 +78,7 @@ test("staff pages", async ({ page }) => {
     "/staff/assessments/new",
     marksheet,
     "/staff/results",
+    "/staff/progression",
     "/staff/account",
     "/staff/activity",
   ]) {

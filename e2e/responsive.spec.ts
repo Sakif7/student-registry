@@ -50,6 +50,7 @@ test("staff pages fit a phone", async ({ page }) => {
     "/staff/assessments/new",
     marksheet,
     "/staff/results",
+    "/staff/progression",
     "/staff/activity",
     "/staff/programmes",
     "/staff/programmes/BSC-CS",
