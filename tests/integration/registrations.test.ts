@@ -524,3 +524,69 @@ describe("moving a student", () => {
     expect((await modules(student.studentNumber)).registered).toEqual([]);
   });
 });
+
+describe("a year that has ended", () => {
+  /** A student not moved on from 2025/26, whose choosing was left on. */
+  async function stillInLastYear() {
+    const student = await makeStudent({ programmeId, academicYear: "2025/26" });
+    await registerStudents(moduleIds.CS4001, [student.id], "2025/26");
+    await registerStudents(moduleIds.CS4004, [student.id], "2025/26");
+    await db().academicYear.create({
+      data: {
+        year: "2025/26",
+        semester1Start: toDbDate("2025-09-22"),
+        semester1End: toDbDate("2026-01-23"),
+        semester2Start: toDbDate("2026-02-02"),
+        semester2End: toDbDate("2026-06-12"),
+        studentsChooseModules: true,
+      },
+    });
+    return student;
+  }
+
+  it("keeps its modules: neither staff nor the student can change them", async () => {
+    const { studentNumber } = await stillInLastYear();
+    const toStaff =
+      "2025/26 has ended, so the student's modules for it stay as they are. Move the student on to a new academic year first.";
+    const toStudent =
+      "2025/26 has ended, so your modules for it stay as they are.";
+
+    expect(await register(studentNumber, "AI4001")).toMatchObject({
+      status: 409,
+      body: { detail: toStaff },
+    });
+    expect(await drop(studentNumber, "CS4004")).toMatchObject({
+      status: 409,
+      body: { detail: toStaff },
+    });
+    const own = asStudent(studentNumber);
+    expect(await drop(studentNumber, "CS4004", own)).toMatchObject({
+      status: 409,
+      body: { detail: toStudent },
+    });
+    expect((await modules(studentNumber, own)).changes).toEqual({
+      allowed: false,
+      message: toStudent,
+    });
+    expect(
+      await db().moduleRegistration.count({
+        where: { student: { studentNumber } },
+      }),
+    ).toBe(2);
+  });
+
+  it("gets no modules of its own when a record is moved back to it", async () => {
+    const { studentNumber } = await enrol();
+
+    await updateStudent(await sessionFor(STAFF), studentNumber, {
+      academicYear: "2025/26",
+    });
+
+    // 2026/27's modules, with no work, go; 2025/26 gets none added.
+    expect(
+      await db().moduleRegistration.count({
+        where: { student: { studentNumber } },
+      }),
+    ).toBe(0);
+  });
+});

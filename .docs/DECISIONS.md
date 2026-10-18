@@ -201,6 +201,10 @@ That isn't how a registry works, so the curriculum is now modelled.
 - Only an enrolled student's modules change. Deferred, withdrawn and
   completed students keep the registrations they had, and none can be
   added or dropped.
+- **A year that has ended keeps its modules.** They are history, with that
+  year's work and marks, so nobody adds or drops them, even if the year's
+  choosing switch was left on, and registering for the year automatically
+  changes nothing in it. A student still in such a year is moved on first.
 - Every registration and drop goes into the audit trail, by whoever made
   it, including the student choosing an option.
 

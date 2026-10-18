@@ -6,7 +6,11 @@
 import "server-only";
 
 import { academicYearAt } from "@/domain/academic-year";
-import type { ModuleKind, Semester } from "@/domain/curriculum";
+import {
+  academicYearEnded,
+  type ModuleKind,
+  type Semester,
+} from "@/domain/curriculum";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   checkDrop,
@@ -24,7 +28,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
 import { recordEvent } from "../audit";
-import { collegeTimeZone } from "../college";
+import { collegeTimeZone, collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput } from "../errors";
 import { requireStaffOrSelf, type Session } from "../session";
@@ -85,6 +89,16 @@ export interface StudentModules {
 const CHOOSING_CLOSED =
   "Choosing modules isn't open just now. Contact the Registry to change your modules.";
 
+/**
+ * Why the modules of a year that has ended can't change: they are history,
+ * with its work and marks. A student still in such a year is moved on first.
+ */
+function yearEnded(role: Session["role"], academicYear: string): string {
+  return role === "student"
+    ? `${academicYear} has ended, so your modules for it stay as they are.`
+    : `${academicYear} has ended, so the student's modules for it stay as they are. Move the student on to a new academic year first.`;
+}
+
 const SEMESTER_ORDER: Record<Semester, number> = {
   FIRST: 0,
   SECOND: 1,
@@ -122,7 +136,7 @@ export async function getStudentModules(
   ]);
   const own = viewer.role === "student";
   const kinds = new Map(structure.map((entry) => [entry.moduleId, entry.kind]));
-  const changes = changesFor(viewer.role, student.status, calendar);
+  const changes = changesFor(viewer.role, student, calendar);
 
   const current = registrations.filter(
     (registration) => registration.academicYear === student.academicYear,
@@ -215,8 +229,8 @@ export async function getStudentModules(
  *
  * @throws AppError: VALIDATION for an unknown module; NOT_FOUND; FORBIDDEN
  *   for a student while choosing is closed, or for a core module; CONFLICT
- *   for a module outside the student's year, one already registered, or one
- *   that doesn't fit the year's credits.
+ *   for a module outside the student's year, one already registered, one
+ *   that doesn't fit the year's credits, or an academic year that has ended.
  */
 export async function registerOnModule(
   session: Session | null,
@@ -238,6 +252,7 @@ export async function registerOnModule(
     const structure = await structureFor(tx, student);
     const kind =
       structure.find((entry) => entry.moduleId === found.id)?.kind ?? null;
+    requireYearOpen(viewer.role, student.academicYear);
     if (viewer.role === "student") {
       await requireChoosing(tx, student.academicYear);
       if (kind === "CORE") {
@@ -298,7 +313,8 @@ export async function registerOnModule(
  *
  * @throws AppError: NOT_FOUND for a module the student isn't registered on;
  *   FORBIDDEN for a student while choosing is closed; CONFLICT for a student
- *   who isn't enrolled, a core module or one with work.
+ *   who isn't enrolled, an academic year that has ended, a core module or
+ *   one with work.
  */
 export async function dropModule(
   session: Session | null,
@@ -311,6 +327,7 @@ export async function dropModule(
 
   await db().$transaction(async (tx) => {
     const student = await lockStudent(tx, number);
+    requireYearOpen(viewer.role, student.academicYear);
     if (viewer.role === "student") {
       await requireChoosing(tx, student.academicYear);
     }
@@ -369,6 +386,8 @@ export async function dropModule(
  * modules from outside the year are dropped unless the student has work for
  * them. Optional modules in the year stay as they are. Called when a
  * student is enrolled, returns to Enrolled, or moves programme or year.
+ * An academic year that has ended keeps the modules it had: they are
+ * history, with its work and marks.
  *
  * @param actor - Whoever made the change that calls for it.
  */
@@ -389,7 +408,26 @@ export async function syncRegistrations(
     },
   });
   if (student.status !== "ENROLLED") return;
+  if (!academicYearEnded(student.academicYear, collegeToday())) {
+    await syncYear(tx, actor, student);
+  }
+  await dropLaterYears(tx, actor, student);
+}
 
+type StudentToSync = {
+  id: string;
+  programmeId: string;
+  yearOfStudy: number;
+  academicYear: string;
+  resultsWithheldAt: Date | null;
+};
+
+/** Adds the year's missing core modules, and drops those outside it. */
+async function syncYear(
+  tx: Prisma.TransactionClient,
+  actor: Session,
+  student: StudentToSync,
+): Promise<void> {
   const [structure, current, work] = await Promise.all([
     structureFor(tx, student),
     tx.moduleRegistration.findMany({
@@ -439,11 +477,19 @@ export async function syncRegistrations(
       academicYear: student.academicYear,
     });
   }
+}
 
-  // Registrations in a later academic year can only come from moving the
-  // student forward and back again. They go, unless the student has work in
-  // them: otherwise they would show as an earlier year, and make the student
-  // expected for that year's assessments.
+/**
+ * Registrations in a later academic year than the student's can only come
+ * from moving the student forward and back again. They go, unless the
+ * student has work in them: otherwise they would show as an earlier year,
+ * and make the student expected for that year's assessments.
+ */
+async function dropLaterYears(
+  tx: Prisma.TransactionClient,
+  actor: Session,
+  student: StudentToSync,
+): Promise<void> {
   const later = await tx.moduleRegistration.findMany({
     // Academic years are written YYYY/YY, so their text sorts in order.
     where: {
@@ -546,15 +592,15 @@ async function modulesWithWork(
 
 /**
  * Whether a viewer may change a student's modules: only an enrolled
- * student's change, and the student's own only while their academic year
- * lets students choose.
+ * student's change, in an academic year that hasn't ended, and the
+ * student's own only while their academic year lets students choose.
  */
 function changesFor(
   role: Session["role"],
-  status: EnrolmentStatus,
+  student: { status: EnrolmentStatus; academicYear: string },
   calendar: AcademicYearCalendar | null,
 ): Permission {
-  if (status !== "ENROLLED") {
+  if (student.status !== "ENROLLED") {
     return {
       allowed: false,
       message:
@@ -563,10 +609,20 @@ function changesFor(
           : DROP_REFUSAL_MESSAGES.NOT_ENROLLED,
     };
   }
+  if (academicYearEnded(student.academicYear, collegeToday())) {
+    return { allowed: false, message: yearEnded(role, student.academicYear) };
+  }
   if (role === "student" && calendar?.studentsChooseModules !== true) {
     return { allowed: false, message: CHOOSING_CLOSED };
   }
   return { allowed: true };
+}
+
+/** Refuses any change to the modules of a year that has ended. */
+function requireYearOpen(role: Session["role"], academicYear: string): void {
+  if (academicYearEnded(academicYear, collegeToday())) {
+    throw new AppError("CONFLICT", yearEnded(role, academicYear));
+  }
 }
 
 /** Refuses a student's own change while their academic year's choice is closed. */
