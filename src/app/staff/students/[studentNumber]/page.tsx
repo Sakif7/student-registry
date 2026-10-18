@@ -30,7 +30,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { recordYears } from "@/domain/academic-year";
+import {
+  academicYearOn,
+  recordYears,
+  returnYears,
+} from "@/domain/academic-year";
+import { academicYearEnded } from "@/domain/curriculum";
 import { formatDateOf, formatDateTime } from "@/lib/format";
 import { collegeTimeZone, collegeToday } from "@/server/college";
 import { firstValues, orNotFound } from "@/server/pages";
@@ -94,6 +99,19 @@ async function StudentRecordView({ params, searchParams }: Props) {
   const academicYears = [
     ...new Set([...recordYears(today), student.academicYear]),
   ].sort();
+  // A deferred or withdrawn student returns in this year or next: their own
+  // if it hasn't ended, as its modules would be history.
+  const returning = student.allowedStatusChanges.includes("ENROLLED")
+    ? {
+        academicYears: returnYears(today),
+        academicYear: academicYearEnded(student.academicYear, today)
+          ? academicYearOn(today)
+          : student.academicYear,
+        yearOfStudy: student.yearOfStudy,
+        years: student.programme.years,
+        signInOff: signIn.disabledAt !== null,
+      }
+    : undefined;
 
   return (
     <>
@@ -117,11 +135,13 @@ async function StudentRecordView({ params, searchParams }: Props) {
               programmes={programmes}
               academicYears={academicYears}
               today={today}
+              fixedPlacement={student.status === "COMPLETED"}
             />
             <ChangeStatusDialog
               studentNumber={student.studentNumber}
               status={student.status}
               allowed={student.allowedStatusChanges}
+              returning={returning}
             />
           </>
         }

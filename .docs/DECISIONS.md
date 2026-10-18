@@ -65,16 +65,27 @@ API refuses others, as the forms offer no others:
 
 ### Enrolment statuses
 
-| From \ To |      Enrolled      | Deferred | Withdrawn | Completed |
-| --------- | :----------------: | :------: | :-------: | :-------: |
-| Enrolled  |         —          |   yes    |    yes    |    yes    |
-| Deferred  |        yes         |    —     |    yes    |           |
-| Withdrawn | yes (re-admission) |          |     —     |           |
-| Completed |                    |          |           |     —     |
+| From \ To |      Enrolled      | Deferred | Withdrawn |    Completed     |
+| --------- | :----------------: | :------: | :-------: | :--------------: |
+| Enrolled  |         —          |   yes    |    yes    | yes (final year) |
+| Deferred  |        yes         |    —     |    yes    |                  |
+| Withdrawn | yes (re-admission) |          |     —     |                  |
+| Completed |                    |          |           |        —         |
 
 - A new record starts as Enrolled, or Deferred for a deferred entry. Starting
   as Withdrawn or Completed makes no sense for a new enrolment.
-- Completed is final.
+- Completed is final, and only a student in the final year of their
+  programme completes it. A completed record's programme, year of study and
+  academic year stay as they were: they are the history of the award.
+- **A return to Enrolled names its year.** A deferred or withdrawn student
+  returns in this academic year or next, never one that has ended, whose
+  modules are history, and in a year of study staff choose; the dialog asks
+  for both, and the change registers them on that year's modules in the same
+  transaction. If staff had turned the student's sign-in off, the dialog
+  says so, as returning doesn't turn it back on.
+- A student still in a year that has ended changes programme or year of
+  study only by moving on to a new academic year in the same edit, as the
+  ended year's modules can't be redone.
 - Deferral and withdrawal need a reason. Every change, including the initial
   status, is kept with its date in `enrolment_status_changes`: Registry teams
   need deferral and withdrawal dates, for example to work out fee liability.
@@ -83,8 +94,8 @@ API refuses others, as the forms offer no others:
 - Records are never deleted. Withdrawal is a status, not a delete.
 - The status dialog says what the chosen change means before it is made:
   Completed can't be undone; withdrawal and deferral leave fees as they are;
-  a student returning for a new academic year needs that year set first, so
-  they are registered on its modules and asked for its fee.
+  a returning student is registered on the modules of the year they return
+  in, and asked for its fee.
 
 ### What students who are not enrolled can do
 

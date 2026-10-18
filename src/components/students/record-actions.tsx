@@ -3,7 +3,10 @@
 // The actions at the top of a student's record, each in a dialog: editing
 // the details, and changing the enrolment status.
 import { FormDialog } from "@/components/forms/form-dialog";
-import { StatusChangeForm } from "@/components/students/status-change-form";
+import {
+  type Returning,
+  StatusChangeForm,
+} from "@/components/students/status-change-form";
 import {
   StudentForm,
   type StudentDetailsValues,
@@ -21,12 +24,15 @@ export function EditDetailsDialog({
   programmes,
   academicYears,
   today,
+  fixedPlacement,
 }: {
   studentNumber: string;
   details: StudentDetailsValues;
   programmes: ProgrammeOption[];
   academicYears: string[];
   today: CalendarDate;
+  /** A completed student's programme and years stay as they were. */
+  fixedPlacement?: boolean;
 }) {
   return (
     <FormDialog
@@ -43,6 +49,7 @@ export function EditDetailsDialog({
           programmes={programmes}
           academicYears={academicYears}
           today={today}
+          fixedPlacement={fixedPlacement}
           onDone={close}
         />
       )}
@@ -54,10 +61,13 @@ export function ChangeStatusDialog({
   studentNumber,
   status,
   allowed,
+  returning,
 }: {
   studentNumber: string;
   status: EnrolmentStatus;
   allowed: readonly EnrolmentStatus[];
+  /** For a student who can return to Enrolled. */
+  returning?: Returning;
 }) {
   return (
     <FormDialog
@@ -73,6 +83,7 @@ export function ChangeStatusDialog({
           key={status}
           studentNumber={studentNumber}
           allowed={allowed}
+          returning={returning}
           onDone={close}
         />
       )}

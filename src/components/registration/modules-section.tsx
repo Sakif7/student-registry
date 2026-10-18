@@ -201,9 +201,13 @@ function RegisteredCard({
                         {MODULE_KIND_LABELS[module.kind]}
                       </Badge>
                     ) : (
-                      <Badge variant="outline">
-                        Outside year {modules.yearOfStudy}
-                      </Badge>
+                      // Only an enrolled student's year is measured against
+                      // today's structure; anyone else's modules are history.
+                      modules.status === "ENROLLED" && (
+                        <Badge variant="outline">
+                          Outside year {modules.yearOfStudy}
+                        </Badge>
+                      )
                     )}
                   </TableCell>
                   {changing && (

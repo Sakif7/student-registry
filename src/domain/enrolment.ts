@@ -33,19 +33,29 @@ const ALLOWED_CHANGES: Record<EnrolmentStatus, readonly EnrolmentStatus[]> = {
   COMPLETED: [],
 };
 
-/** The statuses a record in `from` can move to. Completed is final. */
+/**
+ * The statuses a record in `from` can move to. Completed is final, and only
+ * a student in the final year of their programme completes it.
+ *
+ * @param finalYear - Whether the student is in their programme's last year
+ *   of study.
+ */
 export function allowedStatusChanges(
   from: EnrolmentStatus,
+  finalYear: boolean,
 ): readonly EnrolmentStatus[] {
-  return ALLOWED_CHANGES[from];
+  return ALLOWED_CHANGES[from].filter(
+    (to) => to !== EnrolmentStatus.COMPLETED || finalYear,
+  );
 }
 
 /** True if a record may move from one status to another. */
 export function canChangeStatus(
   from: EnrolmentStatus,
   to: EnrolmentStatus,
+  finalYear: boolean,
 ): boolean {
-  return ALLOWED_CHANGES[from].includes(to);
+  return allowedStatusChanges(from, finalYear).includes(to);
 }
 
 /** Deferral and withdrawal must be explained; the reason is kept on record. */

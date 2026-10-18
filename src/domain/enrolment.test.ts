@@ -32,11 +32,25 @@ describe("status changes", () => {
     [COMPLETED, WITHDRAWN, false],
     [COMPLETED, COMPLETED, false],
   ])("%s → %s allowed: %s", (from, to, allowed) => {
-    expect(canChangeStatus(from, to)).toBe(allowed);
+    // In the programme's final year, so Completed is open to them.
+    expect(canChangeStatus(from, to, true)).toBe(allowed);
+  });
+
+  it("completes only a student in their programme's final year", () => {
+    expect(allowedStatusChanges(ENROLLED, true)).toEqual([
+      DEFERRED,
+      WITHDRAWN,
+      COMPLETED,
+    ]);
+    expect(allowedStatusChanges(ENROLLED, false)).toEqual([
+      DEFERRED,
+      WITHDRAWN,
+    ]);
+    expect(canChangeStatus(ENROLLED, COMPLETED, false)).toBe(false);
   });
 
   it("treats Completed as final", () => {
-    expect(allowedStatusChanges(COMPLETED)).toEqual([]);
+    expect(allowedStatusChanges(COMPLETED, true)).toEqual([]);
   });
 
   it("lists every status", () => {

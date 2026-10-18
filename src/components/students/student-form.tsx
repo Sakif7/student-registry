@@ -57,6 +57,11 @@ type StudentFormProps = {
     }
   | {
       mode: "edit";
+      /**
+       * A completed student's programme and years stay as they were, so
+       * their fields offer only those.
+       */
+      fixedPlacement?: boolean;
       studentNumber: string;
       defaultValues: StudentDetailsValues;
       /** Called once the changes are saved; the form sits in a FormDialog. */
@@ -98,6 +103,17 @@ export function StudentForm(props: StudentFormProps) {
   const years =
     programmes.find((programme) => programme.code === programmeCode)?.years ??
     Math.max(1, ...programmes.map((programme) => programme.years));
+  const fixed =
+    props.mode === "edit" && props.fixedPlacement
+      ? props.defaultValues
+      : undefined;
+  const programmeOptions = fixed
+    ? programmes.filter((programme) => programme.code === fixed.programmeCode)
+    : programmes;
+  const yearOptions = fixed ? [fixed.academicYear] : academicYears;
+  const studyYears = fixed
+    ? [fixed.yearOfStudy]
+    : Array.from({ length: years }, (_, index) => index + 1);
 
   /** What is wrong with the password typed, if one is being set now. */
   function passwordProblem(): string | undefined {
@@ -218,6 +234,11 @@ export function StudentForm(props: StudentFormProps) {
         <FormField
           id="programmeCode"
           label="Programme"
+          description={
+            fixed
+              ? "The student has completed, so their programme and years stay as they were."
+              : undefined
+          }
           error={errors.programmeCode?.message}
         >
           {(control) => (
@@ -229,7 +250,7 @@ export function StudentForm(props: StudentFormProps) {
               <NativeSelectOption value="" disabled>
                 Choose a programme
               </NativeSelectOption>
-              {programmes.map((programme) => (
+              {programmeOptions.map((programme) => (
                 <NativeSelectOption key={programme.code} value={programme.code}>
                   {programme.title} ({formatMoney(programme.annualFeePence)} a
                   year)
@@ -251,7 +272,7 @@ export function StudentForm(props: StudentFormProps) {
         >
           {(control) => (
             <NativeSelect {...control} {...form.register("academicYear")}>
-              {academicYears.map((year) => (
+              {yearOptions.map((year) => (
                 <NativeSelectOption key={year} value={year}>
                   {year}
                 </NativeSelectOption>
@@ -268,9 +289,9 @@ export function StudentForm(props: StudentFormProps) {
         >
           {(control) => (
             <NativeSelect {...control} {...form.register("yearOfStudy")}>
-              {Array.from({ length: years }, (_, index) => (
-                <NativeSelectOption key={index} value={index + 1}>
-                  Year {index + 1}
+              {studyYears.map((year) => (
+                <NativeSelectOption key={year} value={year}>
+                  Year {year}
                 </NativeSelectOption>
               ))}
             </NativeSelect>

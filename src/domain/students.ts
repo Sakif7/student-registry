@@ -168,7 +168,10 @@ export function updateStudentSchema(today: CalendarDate) {
     });
 }
 
-/** Input for moving a student to another status. */
+/**
+ * Input for moving a student to another status. A student returning to
+ * Enrolled can be given the academic year and year of study they return to.
+ */
 export const changeStatusSchema = z
   .object({
     status: z.enum(ENROLMENT_STATUSES, { error: "Choose a status" }),
@@ -178,6 +181,8 @@ export const changeStatusSchema = z
       .max(500, "Use 500 characters or fewer")
       .optional()
       .transform((value) => value || undefined),
+    academicYear: academicYearSchema.optional(),
+    yearOfStudy: yearOfStudySchema.optional(),
   })
   .superRefine(({ status, reason }, ctx) => {
     if (statusChangeNeedsReason(status) && !reason) {

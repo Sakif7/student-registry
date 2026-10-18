@@ -9,8 +9,10 @@ import { hashPassword } from "better-auth/crypto";
 import {
   chooseAcademicYearFrom,
   recordYears,
+  returnYears,
   startYearOf,
 } from "@/domain/academic-year";
+import { academicYearEnded } from "@/domain/curriculum";
 import type { AuditDetails } from "@/domain/audit";
 import { type CalendarDate, fromDbDate, toDbDate } from "@/domain/college-time";
 import {
@@ -462,6 +464,7 @@ export async function updateStudent(
         newProgramme ?? before.programme,
       );
       checkRecordYear(changes.academicYear, before.academicYear, today);
+      checkPlacementChange(before, changes, newProgramme?.id, today);
       const updated = await tx.student.update({
         where: { id },
         data: {
@@ -577,6 +580,62 @@ function checkYearOfStudy(
 }
 
 /**
+ * Refuses moving a completed student, whose programme and years are
+ * history, and a new programme or year of study for a student in a year that
+ * has ended, unless they move on to a new academic year with it: that year's
+ * modules are history too.
+ */
+function checkPlacementChange(
+  before: {
+    status: EnrolmentStatus;
+    programmeId: string;
+    academicYear: string;
+    yearOfStudy: number;
+  },
+  changes: { academicYear?: string; yearOfStudy?: number },
+  programmeId: string | undefined,
+  today: CalendarDate,
+): void {
+  const moved = {
+    programmeCode:
+      programmeId !== undefined && programmeId !== before.programmeId,
+    academicYear:
+      changes.academicYear !== undefined &&
+      changes.academicYear !== before.academicYear,
+    yearOfStudy:
+      changes.yearOfStudy !== undefined &&
+      changes.yearOfStudy !== before.yearOfStudy,
+  };
+  if (before.status === "COMPLETED") {
+    const fields = STUDENT_PLACEMENT_FIELDS.filter((field) => moved[field]);
+    if (fields.length > 0) {
+      throw new AppError(
+        "VALIDATION",
+        "Some fields need correcting.",
+        Object.fromEntries(
+          fields.map((field) => [
+            field,
+            ["The student has completed, so this stays as it was"],
+          ]),
+        ),
+      );
+    }
+    return;
+  }
+  const academicYear = changes.academicYear ?? before.academicYear;
+  if (
+    (moved.programmeCode || moved.yearOfStudy) &&
+    academicYearEnded(academicYear, today)
+  ) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      academicYear: [
+        `${academicYear} has ended: move the student on to a new academic year to change their programme or year of study`,
+      ],
+    });
+  }
+}
+
+/**
  * Refuses an academic year staff can't move a record to (see recordYears).
  * Keeping the year the record has is always allowed.
  */
@@ -636,18 +695,44 @@ export async function changeStatus(
   input: unknown,
 ): Promise<StudentRecord> {
   const staff = requireStaff(session);
-  const { status: to, reason } = parseInput(changeStatusSchema, input);
-  const { id, status: from } = await findStudentId(studentNumber);
-  if (!canChangeStatus(from, to)) {
-    throw new AppError("CONFLICT", statusChangeRefusal(from, to));
+  const {
+    status: to,
+    reason,
+    academicYear,
+    yearOfStudy,
+  } = parseInput(changeStatusSchema, input);
+  const number = studentNumber.toUpperCase();
+  const current = await db().student.findUnique({
+    where: { studentNumber: number },
+    include: { programme: true },
+  });
+  if (!current) {
+    throw new AppError("NOT_FOUND", `There is no student with ID ${number}.`);
   }
+  const { id, status: from } = current;
+  const finalYear = current.yearOfStudy === current.programme.years;
+  if (!canChangeStatus(from, to, finalYear)) {
+    throw new AppError("CONFLICT", statusChangeRefusal(from, to, current));
+  }
+  // Only a return to Enrolled moves the student's year with it.
+  if (to !== "ENROLLED" && (academicYear ?? yearOfStudy) !== undefined) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      academicYear: [
+        "Only a return to Enrolled changes the year here. Use Edit details.",
+      ],
+    });
+  }
+  const placement =
+    to === "ENROLLED"
+      ? returnPlacement(current, { academicYear, yearOfStudy })
+      : undefined;
 
   const student = await db().$transaction(async (tx) => {
     // Only change the status if it is still the one just read, so that two
     // people changing the same record at once can't both succeed.
     const { count } = await tx.student.updateMany({
       where: { id, status: from },
-      data: { status: to },
+      data: { status: to, ...placement },
     });
     if (count === 0) {
       throw new AppError(
@@ -663,6 +748,19 @@ export async function changeStatus(
       studentId: id,
       details: { from, to, reason: reason ?? null },
     });
+    const changes =
+      placement &&
+      placementChanges(current, { ...placement, programme: current.programme });
+    if (changes) {
+      await recordEvent(tx, staff, {
+        action: "student.edited",
+        studentId: id,
+        details: {
+          fields: STUDENT_PLACEMENT_FIELDS.filter((field) => field in changes),
+          changes,
+        },
+      });
+    }
     await syncRegistrations(tx, staff, id);
     return tx.student.findUniqueOrThrow({
       where: { id },
@@ -672,11 +770,65 @@ export async function changeStatus(
   return toRecord(student);
 }
 
-function statusChangeRefusal(from: EnrolmentStatus, to: EnrolmentStatus) {
+/** The placement fields, in the order an edit names them. */
+const STUDENT_PLACEMENT_FIELDS = [
+  "programmeCode",
+  "academicYear",
+  "yearOfStudy",
+] as const;
+
+/**
+ * The academic year and year of study a student returns to Enrolled in:
+ * those given, or else the record's own. A year that has ended can't be
+ * returned to, as its modules are history: a student in one needs a new
+ * year, this one or next.
+ */
+function returnPlacement(
+  current: {
+    academicYear: string;
+    yearOfStudy: number;
+    programme: { title: string; years: number };
+  },
+  input: { academicYear?: string; yearOfStudy?: number },
+): { academicYear: string; yearOfStudy: number } {
+  const today = collegeToday();
+  const years = returnYears(today);
+  const academicYear = input.academicYear ?? current.academicYear;
+  if (
+    input.academicYear === undefined &&
+    academicYearEnded(academicYear, today)
+  ) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      academicYear: [
+        `${academicYear} has ended: choose the academic year the student returns to`,
+      ],
+    });
+  }
+  if (academicYear !== current.academicYear && !years.includes(academicYear)) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      academicYear: [chooseAcademicYearFrom(years)],
+    });
+  }
+  const yearOfStudy = input.yearOfStudy ?? current.yearOfStudy;
+  checkYearOfStudy(yearOfStudy, current.programme);
+  return { academicYear, yearOfStudy };
+}
+
+function statusChangeRefusal(
+  from: EnrolmentStatus,
+  to: EnrolmentStatus,
+  student: { yearOfStudy: number; programme: { years: number } },
+) {
   if (from === to) {
     return `The student is already ${ENROLMENT_STATUS_LABELS[to]}.`;
   }
-  const allowed = allowedStatusChanges(from);
+  if (to === "COMPLETED" && canChangeStatus(from, to, true)) {
+    return `Only a student in the final year of their programme can complete it: this student is in year ${student.yearOfStudy} of ${student.programme.years}.`;
+  }
+  const allowed = allowedStatusChanges(
+    from,
+    student.yearOfStudy === student.programme.years,
+  );
   if (allowed.length === 0) {
     return `A ${ENROLMENT_STATUS_LABELS[from]} record is final; its status can't change.`;
   }
@@ -752,6 +904,9 @@ function toRecord(student: StudentWithRelations): StudentRecord {
       reason: change.reason,
       changedAt: change.changedAt,
     })),
-    allowedStatusChanges: allowedStatusChanges(student.status),
+    allowedStatusChanges: allowedStatusChanges(
+      student.status,
+      student.yearOfStudy === student.programme.years,
+    ),
   };
 }

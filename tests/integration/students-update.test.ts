@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PATCH as updateStudent } from "@/app/api/students/[studentNumber]/route";
 import { POST as changeStatus } from "@/app/api/students/[studentNumber]/status/route";
+import { db } from "@/server/db";
 
 import { createProgramme, createStudent } from "../helpers/factories";
 import {
@@ -23,6 +24,7 @@ interface StudentBody {
     fullName: string;
     email: string;
     academicYear: string;
+    yearOfStudy: number;
     status: string;
     programme: { code: string };
     statusHistory: { from: string | null; to: string; reason: string | null }[];
@@ -44,13 +46,17 @@ async function patch(
   );
 }
 
-async function setStatus(body: unknown, session: Viewer | null = STAFF) {
+async function setStatus(
+  body: unknown,
+  session: Viewer | null = STAFF,
+  number = NUMBER,
+) {
   return changeStatus(
-    await apiRequest("POST", `/api/students/${NUMBER}/status`, {
+    await apiRequest("POST", `/api/students/${number}/status`, {
       json: body,
       session,
     }),
-    routeContext({ studentNumber: NUMBER }),
+    routeContext({ studentNumber: number }),
   );
 }
 
@@ -140,6 +146,33 @@ describe("PATCH /api/students/[studentNumber]", () => {
     ).toBe(200);
   });
 
+  it("moves a student in an ended year on before changing their programme or year", async () => {
+    await createStudent({
+      studentNumber: "SMS-2025-0001",
+      academicYear: "2025/26",
+    });
+
+    expect(
+      await bodyOf(await patch({ yearOfStudy: 2 }, STAFF, "SMS-2025-0001")),
+    ).toMatchObject({
+      status: 400,
+      errors: {
+        academicYear: [
+          "2025/26 has ended: move the student on to a new academic year to change their programme or year of study",
+        ],
+      },
+    });
+    expect(
+      (
+        await patch(
+          { yearOfStudy: 2, academicYear: "2026/27" },
+          STAFF,
+          "SMS-2025-0001",
+        )
+      ).status,
+    ).toBe(200);
+  });
+
   it("is for staff only, and 404s for an unknown student", async () => {
     expect((await patch({ fullName: "X Y" }, asStudent(NUMBER))).status).toBe(
       403,
@@ -198,6 +231,8 @@ describe("POST /api/students/[studentNumber]/status", () => {
       },
     );
 
+    // Completing needs a student in their programme's final year.
+    await patch({ yearOfStudy: 3 });
     await setStatus({ status: "COMPLETED" });
     expect(await bodyOf(await setStatus({ status: "ENROLLED" }))).toMatchObject(
       {
@@ -205,6 +240,109 @@ describe("POST /api/students/[studentNumber]/status", () => {
         detail: "A Completed record is final; its status can't change.",
       },
     );
+  });
+
+  it("completes only a student in their programme's final year", async () => {
+    expect(
+      await bodyOf(await setStatus({ status: "COMPLETED" })),
+    ).toMatchObject({
+      status: 409,
+      detail:
+        "Only a student in the final year of their programme can complete it: this student is in year 1 of 3.",
+    });
+
+    await patch({ yearOfStudy: 3 });
+    const response = await setStatus({ status: "COMPLETED" });
+    expect(response.status).toBe(200);
+    expect(
+      (await bodyOf<StudentBody>(response)).student.allowedStatusChanges,
+    ).toEqual([]);
+  });
+
+  it("keeps a completed student's programme and years as they were", async () => {
+    await patch({ yearOfStudy: 3 });
+    await setStatus({ status: "COMPLETED" });
+
+    expect(
+      await bodyOf(await patch({ yearOfStudy: 2, academicYear: "2027/28" })),
+    ).toMatchObject({
+      status: 400,
+      errors: {
+        academicYear: ["The student has completed, so this stays as it was"],
+        yearOfStudy: ["The student has completed, so this stays as it was"],
+      },
+    });
+    expect((await patch({ fullName: "Oliver J. Bennett" })).status).toBe(200);
+  });
+
+  it("returns a student to Enrolled in this year or next, never one that has ended", async () => {
+    await createStudent({
+      studentNumber: "SMS-2025-0001",
+      academicYear: "2025/26",
+      status: "DEFERRED",
+      statusChanges: { create: { toStatus: "DEFERRED" } },
+    });
+    const back = (json: object) =>
+      setStatus({ status: "ENROLLED", ...json }, STAFF, "SMS-2025-0001");
+
+    expect(await bodyOf(await back({}))).toMatchObject({
+      status: 400,
+      errors: {
+        academicYear: [
+          "2025/26 has ended: choose the academic year the student returns to",
+        ],
+      },
+    });
+    expect(await bodyOf(await back({ academicYear: "2024/25" }))).toMatchObject(
+      {
+        errors: {
+          academicYear: ["Choose an academic year from 2026/27 to 2027/28"],
+        },
+      },
+    );
+
+    const response = await back({ academicYear: "2026/27", yearOfStudy: 2 });
+    expect(response.status).toBe(200);
+    expect((await bodyOf<StudentBody>(response)).student).toMatchObject({
+      status: "ENROLLED",
+      academicYear: "2026/27",
+      yearOfStudy: 2,
+    });
+    expect(
+      await db().auditEvent.findMany({
+        where: { action: "student.edited" },
+        select: { details: true },
+      }),
+    ).toEqual([
+      {
+        details: {
+          fields: ["academicYear", "yearOfStudy"],
+          changes: {
+            academicYear: { from: "2025/26", to: "2026/27" },
+            yearOfStudy: { from: 1, to: 2 },
+          },
+        },
+      },
+    ]);
+  });
+
+  it("moves the year with the status only on a return to Enrolled", async () => {
+    expect(
+      await bodyOf(
+        await setStatus({
+          status: "DEFERRED",
+          reason: "Medical grounds",
+          academicYear: "2027/28",
+        }),
+      ),
+    ).toMatchObject({
+      status: 400,
+      errors: {
+        academicYear: [
+          "Only a return to Enrolled changes the year here. Use Edit details.",
+        ],
+      },
+    });
   });
 
   it("lets only one of two simultaneous changes win", async () => {

@@ -117,6 +117,14 @@ export function recordYears(today: CalendarDate): string[] {
   return academicYearsAround(academicYearOn(today), 3, 1);
 }
 
+/**
+ * The academic years a student can return to Enrolled in: this year or next.
+ * One that has ended can't be returned to, as its modules are history.
+ */
+export function returnYears(today: CalendarDate): string[] {
+  return academicYearsAround(academicYearOn(today), 0, 1);
+}
+
 /** What to tell staff who chose an academic year outside `years`. */
 export function chooseAcademicYearFrom(years: readonly string[]): string {
   return `Choose an academic year from ${years[0]} to ${years.at(-1)}`;
