@@ -124,7 +124,8 @@ test("sorts the list by a column, and goes from a row to part of a record", asyn
   await expect(
     page.getByRole("columnheader", { name: "Name" }),
   ).toHaveAttribute("aria-sort", "descending");
-  await expect(page.getByRole("row").nth(1)).toContainText("Sofia Rossi");
+  // Last by name, so first going down.
+  await expect(page.getByRole("row").nth(1)).toContainText("Tomasz Nowak");
 
   await page.getByRole("button", { name: "Actions for Kwame Mensah" }).click();
   await page.getByRole("menuitem", { name: "Fees" }).click();
