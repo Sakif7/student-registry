@@ -18,9 +18,10 @@ import { StatusBadge } from "@/components/status-badge";
 import { StudentAssessmentsTable } from "@/components/submissions/student-assessments-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { academicYearEnded } from "@/domain/academic-year";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import { formatPlacement } from "@/lib/format";
-import { collegeTimeZone } from "@/server/college";
+import { collegeTimeZone, collegeToday } from "@/server/college";
 import { orNotFound } from "@/server/pages";
 import { getAccount } from "@/server/services/fees";
 import { getStudentModules } from "@/server/services/registrations";
@@ -74,7 +75,12 @@ async function Home() {
   );
   const creditsLeft = modules.creditsPerYear - modules.registeredCredits;
   const timeZone = collegeTimeZone();
-  const note = STATUS_NOTES[student.status];
+  // Not yet moved on: what they see is still their last year's.
+  const note =
+    student.status === "ENROLLED" &&
+    academicYearEnded(student.academicYear, collegeToday())
+      ? `Your academic year, ${student.academicYear}, has ended. The Registry will move you on to your next year; until then, your modules and assessments are ${student.academicYear}'s.`
+      : STATUS_NOTES[student.status];
   // Open ones first, soonest deadline first (see compareAssessments).
   const takingWork = assessments.filter(({ state }) => state !== "CLOSED");
   const next = assessments.find(({ state }) => state === "OPEN");

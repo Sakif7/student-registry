@@ -282,6 +282,39 @@ reversed at once.
 - Dropping a module from outside the student's year has no Undo, as it
   couldn't be added back.
 
+### Moving students on to a new academic year
+
+A student's academic year and year of study are stored, not worked out
+from the date: whether someone moves up depends on their results (a student
+who fails repeats the year, a finalist completes, one awaiting a resit
+waits), and moving everyone on 1 September would move the wrong people.
+Staff move them on instead, a year's students at a time.
+
+- **The progression page** lists the enrolled students still in an earlier
+  academic year than the one they move on to: this year, or from 1 August
+  next year too, once exam boards have met. Each has a suggested step, up a
+  year or, in the final year, complete, which staff can change to repeating
+  the year or leaving them for now. Choices are kept while staff page
+  through the list and narrow it, like the other lists, with a live search
+  and filters by programme and year of study.
+- **One button moves them all on,** after a confirmation: every student the
+  list holds for its filters, each taking their step. The request carries
+  how many students the list held, and nobody moves if that has changed
+  (409), as with publishing marks.
+- **Each student moves in a transaction of their own,** under a lock on
+  their record, with what an edit or a status change would do: into the
+  new year and year of study, registered on its core modules, charged its
+  standard fee if not charged already, and every change audited; or, in a
+  final year, completed. A long list then holds no lock for long, a student
+  someone else changed meanwhile is left as they are and reported, and
+  running it again carries on where it stopped.
+- **Registrations count from the start of the year** when students are
+  moved on after it has begun: they were in the year from then, so its
+  deadlines since are theirs, as missing work staff can see.
+- **Nothing lets a student fall through:** while any enrolled student is in
+  a year that has ended, the dashboard says how many, with a link to move
+  them on; their record says so, and so does their own home page.
+
 ### Moving the existing data
 
 The migration keeps what existing data meant. Every module becomes a core
@@ -1539,9 +1572,11 @@ deliberate scope limit, not an oversight:
   together once the board has confirmed them. Scheduling a module's release
   would come next (see "With more time").
 - **Module results, progression and awards:** there are no weighted module
-  marks or credits achieved, moving to the next year is an edit, and
-  Completed records no award or classification. The pass mark is 40 at
-  every level, where a master's usually needs 50.
+  marks or credits achieved, so staff decide each student's next step on
+  the progression page from the results, rather than the app proposing it
+  from them; and Completed records no award or classification. A step left
+  for now isn't kept: the student stays on the list until moved on. The
+  pass mark is 40 at every level, where a master's usually needs 50.
 - **Resits, late penalties and misconduct:** a student has one submission
   and one mark per assessment, so a resit would replace the first attempt.
   Late work is flagged, not penalised, and misconduct has no process beyond
@@ -1589,8 +1624,7 @@ In rough order of value to a real Registry:
 - **Individual deadline extensions** for students with mitigating
   circumstances, and **payment plans** with instalments, rather than moving
   a charge's single due date.
-- **More registration tools:** progressing a whole year's students to the
-  next year at once; registering a student on a module from outside their
+- **More registration tools:** registering a student on a module from outside their
   programme (an elective from another programme, or a resit); applying a
   changed structure to the students already registered; prerequisites,
   module capacities, and dates for when students may choose.

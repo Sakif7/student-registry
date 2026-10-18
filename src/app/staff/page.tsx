@@ -29,11 +29,13 @@ import { OverdueTable } from "@/components/dashboard/overdue-table";
 import { ProgrammeChart } from "@/components/dashboard/programme-chart";
 import { Worklist } from "@/components/dashboard/worklist";
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCount, formatDateOf, formatMoney } from "@/lib/format";
 import { collegeTimeZone } from "@/server/college";
 import { getDashboard } from "@/server/services/dashboard";
+import { countStillInEndedYears } from "@/server/services/progression";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Registry dashboard" };
@@ -58,7 +60,10 @@ export default function StaffDashboardPage() {
 
 async function Dashboard() {
   const session = await requirePageRole("staff");
-  const dashboard = await getDashboard(session);
+  const [dashboard, notMovedOn] = await Promise.all([
+    getDashboard(session),
+    countStillInEndedYears(session),
+  ]);
   const timeZone = collegeTimeZone();
   const {
     academicYear,
@@ -82,6 +87,29 @@ async function Dashboard() {
 
   return (
     <div className="grid grid-cols-1 gap-6">
+      {notMovedOn.count > 0 && (
+        // Until they are moved on, the new year's assessments and fees
+        // don't reach them.
+        <Alert variant="warning">
+          <AlertTitle>
+            {formatCount(notMovedOn.count, "enrolled student")}{" "}
+            {notMovedOn.count === 1 ? "is" : "are"} still in an earlier year
+            than {notMovedOn.year}
+          </AlertTitle>
+          <AlertDescription>
+            <p>
+              Their year has ended, so {notMovedOn.year}&apos;s modules,
+              assessments and fees don&apos;t reach them yet.{" "}
+              <Link
+                href="/staff/progression"
+                className="font-medium underline underline-offset-4"
+              >
+                Move them on
+              </Link>
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
       <Figures
         figures={[
           {

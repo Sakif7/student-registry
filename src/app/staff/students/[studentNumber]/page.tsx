@@ -3,6 +3,7 @@
 // record: details, modules, fees, assessments, results, history and
 // sign-in. The tab in the address (?tab=) opens first.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { HistoryCard } from "@/components/activity/history-card";
@@ -29,6 +30,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   academicYearEnded,
@@ -146,6 +148,26 @@ async function StudentRecordView({ params, searchParams }: Props) {
           </>
         }
       />
+
+      {student.status === "ENROLLED" &&
+        academicYearEnded(student.academicYear, today) && (
+          // Not yet moved on, so the new year doesn't reach them.
+          <Alert variant="warning" className="mb-6">
+            <AlertTitle>{student.academicYear} has ended</AlertTitle>
+            <AlertDescription>
+              <p>
+                {student.fullName} hasn&apos;t been moved on yet, so this
+                year&apos;s modules, assessments and fee don&apos;t reach them.{" "}
+                <Link
+                  href={`/staff/progression?q=${student.studentNumber}`}
+                  className="font-medium underline underline-offset-4"
+                >
+                  Move them on
+                </Link>
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
 
       {/* Keyed by the tab asked for, so a link to another tab of this record
           opens it even though the page stays mounted. */}
