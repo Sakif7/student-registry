@@ -403,11 +403,14 @@ export async function dropModule(
  * history, with its work and marks.
  *
  * @param actor - Whoever made the change that calls for it.
+ * @param registeredAt - When the modules it adds count from; now, unless a
+ *   student moved on late was in the year from its start.
  */
 export async function syncRegistrations(
   tx: Prisma.TransactionClient,
   actor: Session,
   studentId: string,
+  registeredAt?: Date,
 ): Promise<void> {
   const student = await tx.student.findUniqueOrThrow({
     where: { id: studentId },
@@ -422,7 +425,7 @@ export async function syncRegistrations(
   });
   if (student.status !== "ENROLLED") return;
   if (!academicYearEnded(student.academicYear, collegeToday())) {
-    await syncYear(tx, actor, student);
+    await syncYear(tx, actor, student, registeredAt);
   }
   await dropLaterYears(tx, actor, student);
 }
@@ -440,6 +443,7 @@ async function syncYear(
   tx: Prisma.TransactionClient,
   actor: Session,
   student: StudentToSync,
+  registeredAt: Date | undefined,
 ): Promise<void> {
   const [structure, current, work] = await Promise.all([
     structureFor(tx, student),
@@ -482,6 +486,7 @@ async function syncYear(
         studentId: student.id,
         moduleId,
         academicYear: student.academicYear,
+        registeredAt,
       },
     });
     await recordRegistrationEvent(tx, actor, "registration.added", {
