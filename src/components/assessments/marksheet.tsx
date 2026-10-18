@@ -231,7 +231,8 @@ export function Marksheet({
           <p className="max-w-prose text-sm text-muted-foreground">
             Marks are whole numbers from 0 to 100: Pass from 40, Merit from 60,
             Distinction from 70. Clear a mark to remove it. Students see marks
-            only once you publish them.
+            only once you publish them: saved marks can be published here, to
+            everyone at once, or from a student&apos;s record.
           </p>
         </div>
       ) : (

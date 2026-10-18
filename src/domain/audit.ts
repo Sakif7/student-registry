@@ -55,7 +55,8 @@ export interface AuditDetails {
     from: number | null;
     to: number | null;
   };
-  "results.published": { marks: number };
+  /** With the assessment's title when its marks were published together. */
+  "results.published": { marks: number; title?: string };
   "results.withheld": { reason: string };
   "results.hold_lifted": Record<string, never>;
   "work.submitted": {

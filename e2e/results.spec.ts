@@ -78,6 +78,61 @@ test("staff withhold results for a reason of their own", async ({ page }) => {
   await expect(page.getByRole("table")).toHaveCount(0);
 });
 
+test("staff publish an assessment's marks to all its students at once", async ({
+  page,
+}) => {
+  await viewAs(page, demoStudent("oliver"));
+  await page.goto("/student/results");
+  await expect(
+    page.getByRole("row", { name: /Database design report/ }),
+  ).toHaveCount(0);
+
+  await viewAs(page, "staff");
+  await page.goto("/staff/results");
+  const waiting = page.getByRole("region", {
+    name: "Assessments with marks to publish",
+  });
+  await waiting
+    .getByRole("button", { name: "Publish 1 mark for Database design report" })
+    .click();
+  await expect(
+    page.getByRole("dialog", {
+      name: "Publish 1 mark for Database design report?",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(
+    page.getByText("Published 1 mark for Database design report."),
+  ).toBeVisible();
+  await expect(
+    waiting.getByRole("link", { name: "Database design report" }),
+  ).toHaveCount(0);
+
+  await viewAs(page, demoStudent("oliver"));
+  await page.goto("/student/results");
+  const row = page.getByRole("row", { name: /Database design report/ });
+  await expect(row.getByRole("cell", { name: "81" })).toBeVisible();
+});
+
+test("an assessment's page publishes its marks too", async ({ page }) => {
+  await viewAs(page, "staff");
+  await page.goto("/staff/assessments");
+  await page.getByRole("link", { name: "Machine learning report" }).click();
+  // Arjun's mark waits; Liam's was published already.
+  await page
+    .getByRole("button", { name: "Publish 1 mark for Machine learning report" })
+    .click();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(
+    page.getByText("Published 1 mark for Machine learning report."),
+  ).toBeVisible();
+  const arjun = page.getByRole("row", { name: /Arjun Mehta/ });
+  await expect(arjun.getByText(/^Published /)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /^Publish \d+ marks? for/ }),
+  ).toHaveCount(0);
+});
+
 test("the results list opens a student's Results tab", async ({ page }) => {
   await viewAs(page, "staff");
   await page.goto("/staff/results");

@@ -7,6 +7,7 @@ import { Suspense } from "react";
 
 import { ClosureControl } from "@/components/assessments/closure-control";
 import { EditAssessmentDialog } from "@/components/assessments/edit-assessment-dialog";
+import { PublishMarksButton } from "@/components/assessments/publish-marks-button";
 import {
   Marksheet,
   type MarksheetRow,
@@ -68,6 +69,12 @@ async function AssessmentView({ params }: { params: Params }) {
   const { assessmentId } = await params;
   const assessment = await orNotFound(getAssessment(session, assessmentId));
   const timeZone = collegeTimeZone();
+  // Saved marks not yet published; those of students whose results are
+  // withheld stay unpublished when the rest are published.
+  const unpublished = assessment.students.filter(
+    ({ result }) => result && !result.publishedAt,
+  );
+  const waiting = unpublished.filter(({ resultsWithheld }) => !resultsWithheld);
   return (
     <>
       <PageHeader
@@ -105,9 +112,19 @@ async function AssessmentView({ params }: { params: Params }) {
         <SummaryStrip facts={summaryFacts(assessment, new Date(), timeZone)} />
 
         <section aria-label="Submissions and marks">
-          <h2 className="mb-4 text-xl font-semibold tracking-tight">
-            Submissions and marks
-          </h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold tracking-tight">
+              Submissions and marks
+            </h2>
+            {waiting.length > 0 && (
+              <PublishMarksButton
+                assessmentId={assessment.id}
+                title={assessment.title}
+                waitingCount={waiting.length}
+                withheldCount={unpublished.length - waiting.length}
+              />
+            )}
+          </div>
           {assessment.students.length === 0 ? (
             <p className="text-muted-foreground">
               {assessment.state === "OPEN"

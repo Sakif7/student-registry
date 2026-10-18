@@ -1,7 +1,8 @@
-// Students' results: publishing marks to a student, withholding all of a
-// student's results (e.g. for unpaid fees), and what each viewer may see. A
-// student only ever receives marks that are published and not withheld; the
-// filtering happens here, on the server, not in the page.
+// Students' results: publishing marks to a student, or an assessment's marks
+// to all its students at once, withholding all of a student's results (e.g.
+// for unpaid fees), and what each viewer may see. A student only ever
+// receives marks that are published and not withheld; the filtering happens
+// here, on the server, not in the page.
 import "server-only";
 
 import type { EnrolmentStatus } from "@/domain/enrolment";
@@ -18,6 +19,7 @@ import { recordEvent } from "../audit";
 import { collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput } from "../errors";
+import { isId } from "../ids";
 import { requireStaff, requireStaffOrSelf, type Session } from "../session";
 
 import { summariseAccounts } from "./fees";
@@ -137,12 +139,7 @@ export async function publishResults(
       const waiting = await tx.assessmentResult.count({
         where: { studentId: student.id, publishedAt: null },
       });
-      if (waiting !== expected) {
-        throw new AppError(
-          "CONFLICT",
-          `The marks waiting to be published have changed since you looked: there ${waiting === 1 ? "is now 1" : `are now ${waiting}`}. Reload the page to check them, then publish again.`,
-        );
-      }
+      if (waiting !== expected) throw waitingChanged(waiting);
     }
     const published = await tx.assessmentResult.updateMany({
       where: { studentId: student.id, publishedAt: null },
@@ -161,6 +158,125 @@ export async function publishResults(
     published: count,
     results: await getResults(session, student.studentNumber),
   };
+}
+
+/**
+ * Publishes an assessment's unpublished marks to all its students at once
+ * (staff only), as a registry releases a cohort's marks together. The marks
+ * of students whose results are withheld stay unpublished. Given the number
+ * the publisher saw waiting, it publishes nothing if that number has
+ * changed.
+ *
+ * @returns How many marks were published.
+ * @throws AppError: NOT_FOUND; CONFLICT if the marks waiting aren't the ones
+ *   the publisher saw.
+ */
+export async function publishAssessmentMarks(
+  session: Session | null,
+  assessmentId: string,
+  input: unknown = {},
+): Promise<{ published: number }> {
+  const staff = requireStaff(session);
+  const { expected } = parseInput(publishResultsSchema, input);
+  const assessment = isId(assessmentId)
+    ? await db().assessment.findUnique({
+        where: { id: assessmentId },
+        select: { id: true, title: true },
+      })
+    : null;
+  if (!assessment) {
+    throw new AppError("NOT_FOUND", "There is no such assessment.");
+  }
+
+  const published = await db().$transaction(async (tx) => {
+    // The lock a marksheet save takes, so no mark can be saved between
+    // counting the marks and publishing them.
+    await tx.$queryRaw`
+      SELECT id FROM assessments WHERE id = ${assessment.id}::uuid FOR UPDATE`;
+    const waiting = await tx.assessmentResult.findMany({
+      where: {
+        assessmentId: assessment.id,
+        publishedAt: null,
+        student: { resultsWithheldAt: null },
+      },
+      select: { id: true, studentId: true },
+    });
+    if (expected !== undefined && waiting.length !== expected) {
+      throw waitingChanged(waiting.length);
+    }
+    if (waiting.length === 0) return 0;
+    await tx.assessmentResult.updateMany({
+      where: { id: { in: waiting.map(({ id }) => id) } },
+      data: { publishedAt: new Date() },
+    });
+    // On each student's own record, as publishing to one student is.
+    for (const { studentId } of waiting) {
+      await recordEvent(tx, staff, {
+        action: "results.published",
+        studentId,
+        details: { marks: 1, title: assessment.title },
+      });
+    }
+    return waiting.length;
+  });
+  return { published };
+}
+
+/** An assessment with marks waiting to be published, for the results page. */
+export interface AssessmentToPublish {
+  id: string;
+  title: string;
+  module: { code: string; title: string };
+  deadline: Date;
+  /** Saved marks not yet published, of students whose results aren't withheld. */
+  waitingCount: number;
+  /** Students with a mark waiting whose results are withheld, which stays unpublished. */
+  withheldCount: number;
+}
+
+/**
+ * The assessments with marks waiting to be published (staff only), the
+ * longest waiting, by deadline, first.
+ */
+export async function listAssessmentsToPublish(
+  session: Session | null,
+): Promise<AssessmentToPublish[]> {
+  requireStaff(session);
+  const assessments = await db().assessment.findMany({
+    where: {
+      results: {
+        some: { publishedAt: null, student: { resultsWithheldAt: null } },
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+      deadline: true,
+      module: { select: { code: true, title: true } },
+      results: {
+        where: { publishedAt: null },
+        select: { student: { select: { resultsWithheldAt: true } } },
+      },
+    },
+    orderBy: [{ deadline: "asc" }, { title: "asc" }],
+  });
+  return assessments.map(({ results, ...assessment }) => {
+    const withheldCount = results.filter(
+      ({ student }) => student.resultsWithheldAt,
+    ).length;
+    return {
+      ...assessment,
+      waitingCount: results.length - withheldCount,
+      withheldCount,
+    };
+  });
+}
+
+function waitingChanged(waiting: number): AppError {
+  return new AppError(
+    "CONFLICT",
+    `The marks waiting to be published have changed since you looked: there ${waiting === 1 ? "is now 1" : `are now ${waiting}`}. Reload the page to check them, then publish again.`,
+  );
 }
 
 /**

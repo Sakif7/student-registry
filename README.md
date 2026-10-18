@@ -78,8 +78,9 @@ case, with exact inputs and expected results.
 - **Marks and results:**
   - marks from 0 to 100, classified Fail, Pass (40+), Merit (60+) and
     Distinction (70+);
-  - staff publish a student's marks, or withhold all of them with a reason
-    such as outstanding fees;
+  - staff publish an assessment's marks to all its students at once, or
+    one student's marks, and can withhold all of a student's results with a
+    reason such as outstanding fees;
   - students only ever receive marks that are published and not withheld.
 - **Sign-in:**
   - staff and students sign in with their email address and a password;
@@ -306,6 +307,7 @@ means the student whose record it is.
 | GET, PATCH  | `/api/assessments/{id}`                      | Staff         | Read with its marksheet; edit, close or reopen                      |
 | PUT         | `/api/assessments/{id}/submission`           | Student       | Submit or replace work (multipart, field `file`)                    |
 | PUT         | `/api/assessments/{id}/marks`                | Staff         | Save marks, keyed by student number                                 |
+| POST        | `/api/assessments/{id}/publication`          | Staff         | Publish the assessment's marks, except where results are withheld   |
 | GET         | `/api/students/{number}/assessments`         | Staff or self | A student's assessments, with their own work                        |
 | GET         | `/api/submissions/{id}/file`                 | Staff or self | Download a submitted file                                           |
 | GET         | `/api/students/{number}/results`             | Staff or self | Results (students: published only, unless withheld)                 |

@@ -1744,3 +1744,30 @@ they found what the fixes themselves had got wrong:
 
 Each was fixed, the first two with tests, and the payment-reference lock got
 the race test it had lacked.
+
+## Publishing an assessment's marks at once
+
+**What the AI did:** the owner asked whether the gap the registry review had
+named first, marks published one student at a time, had been fixed. It
+hadn't: the AI had listed it as a limitation and offered to build it. Staff
+can now publish an assessment's marks to all its students at once, from a
+button by the assessment's marksheet, as a registry releases a cohort's
+marks together. While it was being built, the owner asked for it on the
+Results page too, which now lists the assessments with marks waiting, the
+longest waiting first, above the students.
+
+The new service, `publishAssessmentMarks`, works as publishing to one
+student does: it takes the number of marks the confirmation showed and
+publishes nothing if that has changed, and records "Published 1 mark for …"
+on each student's record. Students whose results are withheld are left out,
+and the confirmation says how many. It takes the same row lock as a
+marksheet save, so no mark can be saved between counting the marks and
+publishing them.
+
+**Checked by:** integration tests that it publishes the waiting marks
+except the withheld students', keeps the dates of marks published before,
+records one event per student, refuses a stale count, answers 404 for an
+unknown assessment and is for staff only, and that the Results page's list
+counts and orders the assessments; end-to-end tests of both buttons,
+through to the student seeing the mark; and the accessibility and
+phone-width checks of both pages.

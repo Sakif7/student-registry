@@ -109,6 +109,11 @@ describe("describeEvent", () => {
     ["results.published", { marks: 1 }, "Published 1 mark"],
     ["results.published", { marks: 3 }, "Published 3 marks"],
     [
+      "results.published",
+      { marks: 1, title: "SQL lab test" },
+      "Published 1 mark for “SQL lab test”",
+    ],
+    [
       "results.withheld",
       { reason: "Outstanding tuition fees" },
       "Withheld the results: Outstanding tuition fees",

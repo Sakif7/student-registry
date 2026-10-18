@@ -2,6 +2,7 @@
 // POST .../results/publication, and PUT or DELETE .../results/hold.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { POST as publishAssessment } from "@/app/api/assessments/[assessmentId]/publication/route";
 import {
   DELETE as liftHold,
   PUT as putHold,
@@ -10,7 +11,10 @@ import { POST as publish } from "@/app/api/students/[studentNumber]/results/publ
 import { GET as getResults } from "@/app/api/students/[studentNumber]/results/route";
 import { toDbDate } from "@/domain/college-time";
 import { db } from "@/server/db";
-import { listResultsWorklist } from "@/server/services/results";
+import {
+  listAssessmentsToPublish,
+  listResultsWorklist,
+} from "@/server/services/results";
 
 import {
   createAssessment,
@@ -44,6 +48,7 @@ interface ResultsBody {
 }
 
 let ameliaId: string;
+let examId: string;
 
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -66,6 +71,7 @@ beforeEach(async () => {
     moduleId,
     deadline: new Date("2026-10-10T16:00:00Z"),
   });
+  examId = exam.id;
   ameliaId = (
     await createStudent({
       studentNumber: "SMS-2025-0001",
@@ -237,6 +243,143 @@ describe("POST /api/students/[studentNumber]/results/publication", () => {
 
   it("is for staff only", async () => {
     expect((await publishAll(AMELIA)).status).toBe(403);
+  });
+});
+
+describe("POST /api/assessments/[assessmentId]/publication", () => {
+  async function publishExam(
+    expected?: number,
+    session: Viewer | null = STAFF,
+    id = examId,
+  ) {
+    const response = await publishAssessment(
+      await apiRequest("POST", `/api/assessments/${id}/publication`, {
+        session,
+        ...(expected === undefined ? {} : { json: { expected } }),
+      }),
+      routeContext({ assessmentId: id }),
+    );
+    return { status: response.status, body: await bodyOf(response) };
+  }
+
+  /** Oliver's mark for the exam, and Hannah's, whose results are withheld. */
+  async function moreExamMarks() {
+    const oliver = await db().student.findUniqueOrThrow({
+      where: { studentNumber: "SMS-2026-0001" },
+    });
+    const hannah = await createStudent({
+      studentNumber: "SMS-2026-0005",
+      fullName: "Hannah Kowalski",
+      resultsWithheldAt: PUBLISHED_AT,
+      resultsWithheldReason: FEES,
+    });
+    await db().assessmentResult.createMany({
+      data: [
+        { studentId: oliver.id, assessmentId: examId, mark: 64 },
+        { studentId: hannah.id, assessmentId: examId, mark: 55 },
+      ],
+    });
+    return { oliver, hannah };
+  }
+
+  it("publishes an assessment's marks to all its students at once, but not where results are withheld", async () => {
+    const { oliver, hannah } = await moreExamMarks();
+
+    expect(await publishExam(2)).toMatchObject({
+      status: 200,
+      body: { published: 2 },
+    });
+
+    const exam = await db().assessmentResult.findMany({
+      where: { assessmentId: examId },
+      select: { studentId: true, publishedAt: true },
+    });
+    expect(
+      Object.fromEntries(
+        exam.map(({ studentId, publishedAt }) => [studentId, publishedAt]),
+      ),
+    ).toEqual({ [ameliaId]: NOW, [oliver.id]: NOW, [hannah.id]: null });
+    // Amelia sees the exam now; the essay, published before, keeps its date.
+    expect(marksOf((await read(AMELIA)).body)).toEqual([
+      ["Exam", 38],
+      ["Essay", 72],
+    ]);
+    expect(
+      (
+        await db().assessmentResult.findFirstOrThrow({
+          where: { assessmentId: { not: examId } },
+        })
+      ).publishedAt,
+    ).toEqual(PUBLISHED_AT);
+    // On each student's record, naming the assessment.
+    const events = await db().auditEvent.findMany({
+      where: { action: "results.published" },
+      select: { studentId: true, details: true },
+    });
+    expect(events).toHaveLength(2);
+    expect(events).toEqual(
+      expect.arrayContaining([
+        { studentId: ameliaId, details: { marks: 1, title: "Exam" } },
+        { studentId: oliver.id, details: { marks: 1, title: "Exam" } },
+      ]),
+    );
+
+    expect((await publishExam()).body).toMatchObject({ published: 0 });
+  });
+
+  it("publishes nothing if the marks waiting aren't the ones the publisher saw", async () => {
+    // Only Amelia's mark is waiting: a dialog that counted two was opened
+    // before a change, and must not publish what it didn't show.
+    expect(await publishExam(2)).toMatchObject({
+      status: 409,
+      body: {
+        detail:
+          "The marks waiting to be published have changed since you looked: there is now 1. Reload the page to check them, then publish again.",
+      },
+    });
+    expect(
+      await db().assessmentResult.count({ where: { publishedAt: null } }),
+    ).toBe(1);
+  });
+
+  it("404s for an unknown or malformed ID, and is for staff only", async () => {
+    expect(
+      (
+        await publishExam(
+          undefined,
+          STAFF,
+          "0195f6b4-0000-7000-8000-000000000000",
+        )
+      ).status,
+    ).toBe(404);
+    expect((await publishExam(undefined, STAFF, "not-an-id")).status).toBe(404);
+    expect((await publishExam(1, AMELIA)).status).toBe(403);
+    expect(
+      await db().assessmentResult.count({ where: { publishedAt: null } }),
+    ).toBe(1);
+  });
+
+  it("lists the assessments with marks waiting, the longest waiting first", async () => {
+    await moreExamMarks();
+    const staff = await sessionFor(STAFF);
+
+    // The essay's only mark is published, so only the exam is listed.
+    expect(await listAssessmentsToPublish(staff)).toMatchObject([
+      {
+        id: examId,
+        title: "Exam",
+        module: { code: "CS4001" },
+        waitingCount: 2,
+        withheldCount: 1,
+      },
+    ]);
+
+    await publishExam(2);
+    // Hannah's mark waits for the hold to be lifted, with nothing to publish.
+    expect(await listAssessmentsToPublish(staff)).toEqual([]);
+    await expect(
+      listAssessmentsToPublish(await sessionFor(AMELIA)),
+    ).rejects.toMatchObject({ kind: "FORBIDDEN" });
   });
 });
 

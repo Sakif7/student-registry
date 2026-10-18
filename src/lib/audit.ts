@@ -49,8 +49,8 @@ const DESCRIBE: Describe = {
       : from === null
         ? `Entered a mark of ${to} for “${title}”`
         : `Changed the mark for “${title}” from ${from} to ${to}`,
-  "results.published": ({ marks }) =>
-    `Published ${marks} ${marks === 1 ? "mark" : "marks"}`,
+  "results.published": ({ marks, title }) =>
+    `Published ${marks} ${marks === 1 ? "mark" : "marks"}${title ? ` for “${title}”` : ""}`,
   "results.withheld": ({ reason }) => `Withheld the results: ${reason}`,
   "results.hold_lifted": () => "Lifted the hold on the results",
   "work.submitted": ({ title, fileName, late, attempt }) =>

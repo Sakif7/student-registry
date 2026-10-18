@@ -588,15 +588,23 @@ Continue from scenario 11, as staff.
    Kwame shows **Withheld** with the reason. On **Dashboard**, the **Marks
    to publish** figure reads 3, for 3 students with 1 held, and the
    worklist under **Needs attention** names the same three students.
-7. On **SQL lab test**'s marksheet, change Priya's mark to `68` and save.
+7. Back on **Results**, **Assessments with marks to publish** lists
+   Management essay, Machine learning report and Database design report,
+   the longest waiting first, each with 1 mark. Select **Publish 1 mark** on
+   **Database design report** and confirm: it leaves the list. As **Oliver
+   Bennett**, **Results** shows Database design report with 81,
+   **Distinction**. An assessment's own page has the same button, by
+   **Submissions and marks**. Students whose results are withheld are left
+   out, and the dialog says how many.
+8. On **SQL lab test**'s marksheet, change Priya's mark to `68` and save.
    It reads "Not published" again, and Priya's **Results** no longer shows it
    until it is published again.
-8. As **Mohammed Al-Farsi** (completed), **Results** lists **Final year
+9. As **Mohammed Al-Farsi** (completed), **Results** lists **Final year
    project** with 68, **Merit**: completed students keep their results.
-9. As staff, on **Liam O'Connor**'s **Results** tab, select **Withhold
-   results** and confirm. The message offers **Undo**: select it, and the
-   results are no longer withheld. On Kwame's **Results** tab, select **Lift
-   the hold**, then **Undo**: the hold is back, with Kwame's reason.
+10. As staff, on **Liam O'Connor**'s **Results** tab, select **Withhold
+    results** and confirm. The message offers **Undo**: select it, and the
+    results are no longer withheld. On Kwame's **Results** tab, select **Lift
+    the hold**, then **Undo**: the hold is back, with Kwame's reason.
 
 ### 13. Who did what
 
@@ -844,6 +852,13 @@ curl -b student.txt http://localhost:3000/api/students/SMS-2025-0001/results
 # Publish all of a student's unpublished marks; 409 while withheld
 curl -i -b cookies.txt -X POST \
   http://localhost:3000/api/students/SMS-2025-0001/results/publication
+
+# Publish an assessment's marks to all its students at once, except those
+# whose results are withheld. With "expected" (the number of marks you saw
+# waiting), nothing is published if that has changed: 409.
+curl -i -b cookies.txt -X POST -H "Content-Type: application/json" \
+  -d '{"expected":1}' \
+  http://localhost:3000/api/assessments/<assessment-id>/publication
 
 # The audit trail: everything done to a student's record, and every change
 # made in the Registry, newest first, a page at a time

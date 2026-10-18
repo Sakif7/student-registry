@@ -426,10 +426,19 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
   marks as the last one left them, so two at once can't trip over each
   other, and the audit trail's "from" is always the mark that was there.
 
-### Publishing and withholding, per student
+### Publishing and withholding
 
-- "Publish results" acts per student and releases all of that student's
-  unpublished marks at once; each mark records when it was published.
+- Marks are published two ways. An assessment's marks can be published to
+  all its students at once, from the assessment's page or the Results page,
+  as a registry releases a cohort's marks together. A student's marks can
+  be published on their own, from the Results page or their record, which
+  releases all of that student's unpublished marks. Each mark records when
+  it was published.
+- Publishing an assessment's marks leaves out the students whose results
+  are withheld: their marks stay unpublished, and the confirmation says how
+  many. It takes the same lock as a marksheet save, so no mark is saved
+  between counting the marks and publishing them. Each student's record
+  shows its own "Published 1 mark for …".
 - Editing a published mark makes it unpublished again until staff publish once
   more, so a student never sees a mark that hasn't been reviewed.
 - "Withhold results" takes a reason; a preset covers outstanding tuition fees.
@@ -453,10 +462,12 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
 - Withholding again changes the reason but keeps the original date. Lifting a
   hold shows previously published marks again; unpublished marks still need
   publishing.
-- A Results page lists every student with marks or a hold. Students with marks
-  to publish come first, each with a publish button and their fee standing.
-  The dashboard counts students with marks to publish and with results
-  withheld.
+- The Results page lists the assessments with marks waiting first, the
+  longest waiting first, each with a publish button and a count of any
+  withheld. Then it lists every student with marks or a hold: students with
+  marks to publish first, each with a publish button and their fee
+  standing. The dashboard counts students with marks to publish and with
+  results withheld.
 
 ## Sign-in and sessions
 
@@ -1382,10 +1393,11 @@ deliberate scope limit, not an oversight:
 - **Fee status and mode of study:** each programme has one standard fee, so
   an international or part-time fee is a correction with a note. Registries
   set fees by fee status (Home or International) and mode of study.
-- **Releasing results:** marks are published one student at a time. A
-  registry usually releases an assessment's or a module's marks to the
-  whole cohort on a set date, after moderation and an exam board.
-  Publishing by assessment would come first (see "With more time").
+- **Releasing results:** an assessment's marks can be published to its
+  whole cohort at once, but there is no moderation step or exam board, and
+  no release on a set date. A registry usually releases a module's marks
+  together once the board has confirmed them. Scheduling a module's release
+  would come next (see "With more time").
 - **Module results, progression and awards:** there are no weighted module
   marks or credits achieved, moving to the next year is an edit, and
   Completed records no award or classification. The pass mark is 40 at
@@ -1428,7 +1440,8 @@ In rough order of value to a real Registry:
   password changes, and an export of the trail for the college's auditors.
 - **Bulk work:**
   - importing students from a spreadsheet, initialising the ID counters;
-  - publishing a whole assessment's marks at once;
+  - releasing a module's marks together on a set date, after an exam
+    board confirms them;
   - exporting marksheets.
 - **Notifications:** emails when results are published or a deadline is
   near, and reminders for overdue fees.
