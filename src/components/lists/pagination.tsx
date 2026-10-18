@@ -14,6 +14,8 @@ export function Pagination({
   plural,
   hrefFor,
   label = "Pages",
+  previous = "Previous",
+  next = "Next",
 }: {
   page: ListPage<unknown>;
   /** What the list holds, e.g. "assessment". */
@@ -23,6 +25,9 @@ export function Pagination({
   hrefFor: (page: number) => string;
   /** The navigation's name, when a page has more than one list. */
   label?: string;
+  /** The links' words, e.g. "Newer" and "Older" for a log. */
+  previous?: string;
+  next?: string;
 }) {
   const first = (page - 1) * pageSize + 1;
   const last = first + items.length - 1;
@@ -39,13 +44,13 @@ export function Pagination({
       {pageCount > 1 && (
         <div className="flex items-center gap-2">
           <PageLink href={page > 1 ? hrefFor(page - 1) : undefined}>
-            Previous
+            {previous}
           </PageLink>
           <span>
             Page {page} of {pageCount}
           </span>
           <PageLink href={page < pageCount ? hrefFor(page + 1) : undefined}>
-            Next
+            {next}
           </PageLink>
         </div>
       )}

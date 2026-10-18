@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { describeEvent } from "./audit";
+import { ACTIVITY_AREA_ACTIONS, ACTIVITY_AREAS } from "@/domain/audit";
+
+import { AUDIT_ACTIONS, describeEvent } from "./audit";
 
 const SQL = { assessmentId: "a1", title: "SQL lab test" };
 
@@ -220,5 +222,16 @@ describe("describeEvent", () => {
     expect(describeEvent("timetable.published", {})).toBe(
       "timetable.published",
     );
+  });
+});
+
+describe("the activity log's kinds of change", () => {
+  it("cover every kind of event, each exactly once", () => {
+    for (const action of AUDIT_ACTIONS) {
+      const areas = ACTIVITY_AREAS.filter((area) =>
+        ACTIVITY_AREA_ACTIONS[area].some((prefix) => action.startsWith(prefix)),
+      );
+      expect([action, areas.length]).toEqual([action, 1]);
+    }
   });
 });

@@ -390,6 +390,35 @@ describe("the audit trail", () => {
     expect(await db().auditEvent.count()).toBe(1);
   });
 
+  it("narrows the log to a search of students and staff, and a kind of change", async () => {
+    const { student } = await enrolledStudent();
+    const staff = await sessionFor(STAFF);
+    await changeStatus(staff, student.studentNumber, {
+      status: "DEFERRED",
+      reason: "First",
+    });
+    await assignFee(staff, student.studentNumber, { academicYear: "2026/27" });
+    const descriptions = async (query: object) =>
+      (await listActivity(staff, query)).items.map(
+        ({ description }) => description,
+      );
+
+    expect(await descriptions({ area: "fees" })).toEqual([
+      "Charged the 2026/27 fee of £9,535.00",
+    ]);
+    expect(await descriptions({ area: "records" })).toEqual([
+      "Changed the status from Enrolled to Deferred: First",
+    ]);
+    // The student by name or ID, in any case, and who made the change.
+    for (const q of ["bennett", "sms-2026-0001", "Rachel"]) {
+      expect((await listActivity(staff, { q })).total).toBe(2);
+    }
+    expect((await listActivity(staff, { q: "nobody" })).total).toBe(0);
+    expect(await descriptions({ q: "rachel", area: "fees" })).toHaveLength(1);
+    // A typed % is a character, not a wildcard.
+    expect((await listActivity(staff, { q: "%" })).total).toBe(0);
+  });
+
   it("lists every change, newest first, a page at a time, for staff only", async () => {
     const { student } = await enrolledStudent();
     const staff = await sessionFor(STAFF);

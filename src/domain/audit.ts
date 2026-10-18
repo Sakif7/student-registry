@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { CalendarDate } from "./college-time";
 import type { ModuleKind } from "./curriculum";
 import type { EnrolmentStatus } from "./enrolment";
+import { listSearchSchema } from "./lists";
 
 /** The details each kind of event records. */
 export interface AuditDetails {
@@ -148,7 +149,47 @@ export const MODULE_FIELD_LABELS: Record<string, string> = {
 /** Events shown per page of the staff activity log. */
 export const ACTIVITY_PAGE_SIZE = 50;
 
-/** The activity log's query: which page. Anything odd shows the first. */
+/** The kinds of change the activity log can be narrowed to. */
+export const ACTIVITY_AREAS = [
+  "records",
+  "registration",
+  "fees",
+  "assessments",
+  "marks",
+  "sign-in",
+  "curriculum",
+] as const;
+export type ActivityArea = (typeof ACTIVITY_AREAS)[number];
+
+export const ACTIVITY_AREA_LABELS: Record<ActivityArea, string> = {
+  records: "Enrolment and status",
+  registration: "Modules and registration",
+  fees: "Fees and payments",
+  assessments: "Assessments and work",
+  marks: "Marks and results",
+  "sign-in": "Sign-in",
+  curriculum: "Curriculum",
+};
+
+/** The events of each kind of change, by how their actions begin. */
+export const ACTIVITY_AREA_ACTIONS: Record<ActivityArea, readonly string[]> = {
+  records: ["student."],
+  registration: ["registration."],
+  fees: ["fee.", "payment."],
+  assessments: ["assessment.", "work."],
+  marks: ["mark.", "results."],
+  "sign-in": ["sign_in."],
+  curriculum: ["programme.", "module.", "academic_year."],
+};
+
+/**
+ * The activity log's query: a search of the students concerned and the
+ * people who made the changes, a kind of change, and the page. Anything odd
+ * is ignored, and an odd page shows the first.
+ */
 export const activityQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1).catch(1),
+  q: listSearchSchema,
+  area: z.enum(ACTIVITY_AREAS).optional().catch(undefined),
 });
+export type ActivityQuery = z.infer<typeof activityQuerySchema>;

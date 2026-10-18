@@ -37,6 +37,7 @@ import { collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput, violatedUniqueConstraint } from "../errors";
 import { passwordLinksOf } from "../password-links";
+import { containsPatterns } from "../search";
 import {
   requireSession,
   requireStaff,
@@ -213,23 +214,13 @@ function studentsOrder(
 function studentsWhere(filters: StudentFilters): Prisma.StudentWhereInput {
   const conditions: Prisma.StudentWhereInput[] = [];
   if (filters.q) {
-    // Typed % and _ are literal characters, not ILIKE wildcards.
-    const text = filters.q.replace(/[\\%_]/g, "\\$&");
-    // A name may hold either apostrophe, O'Connor or O’Connor, and may be
-    // searched for with the other.
-    const names = new Set([
-      text,
-      text.replaceAll("’", "'"),
-      text.replaceAll("'", "’"),
-    ]);
+    const patterns = containsPatterns(filters.q);
     conditions.push({
-      OR: [
-        ...[...names].map((name) => ({
-          fullName: { contains: name, mode: "insensitive" as const },
-        })),
-        { studentNumber: { contains: text, mode: "insensitive" } },
-        { email: { contains: text, mode: "insensitive" } },
-      ],
+      OR: patterns.flatMap((pattern) => [
+        { fullName: { contains: pattern, mode: "insensitive" as const } },
+        { studentNumber: { contains: pattern, mode: "insensitive" as const } },
+        { email: { contains: pattern, mode: "insensitive" as const } },
+      ]),
     });
   }
   if (filters.programme)

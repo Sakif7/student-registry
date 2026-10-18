@@ -85,6 +85,9 @@ const DESCRIBE: Describe = {
     `Dropped ${moduleCode} ${moduleTitle} for ${academicYear}`,
 };
 
+/** Every kind of event the trail records. */
+export const AUDIT_ACTIONS = Object.keys(DESCRIBE) as AuditAction[];
+
 /**
  * A sentence for an event, given its action and details as stored. An
  * action this version doesn't know is shown as it is.
