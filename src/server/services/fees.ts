@@ -139,6 +139,11 @@ export async function assignFee(
 
   try {
     await db().$transaction(async (tx) => {
+      // Under the student's lock, as moving them on to a new year charges
+      // its fee too: taken first, the two run one after the other, rather
+      // than each waiting on the other's charge.
+      await tx.$queryRaw`
+        SELECT id FROM students WHERE id = ${student.id}::uuid FOR UPDATE`;
       await tx.feeCharge.create({
         data: {
           studentId: student.id,

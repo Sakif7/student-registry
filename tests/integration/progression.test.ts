@@ -5,6 +5,7 @@ import {
   GET as listToProgress,
   POST as moveOn,
 } from "@/app/api/progression/route";
+import { POST as chargeFee } from "@/app/api/students/[studentNumber]/fees/route";
 import { db } from "@/server/db";
 import { countStillInEndedYears } from "@/server/services/progression";
 
@@ -341,10 +342,45 @@ describe("POST /api/progression", () => {
     });
   });
 
+  it("charges the new year's fee once when staff charge it at the same moment", async () => {
+    const listed = await listedFor("?q=2025-0001");
+    // Signed in first, so that the two changes themselves run together.
+    const [moving, charging] = await Promise.all([
+      apiRequest("POST", "/api/progression", {
+        json: { to: "2026/27", q: "2025-0001", listed },
+        session: STAFF,
+      }),
+      apiRequest("POST", "/api/students/SMS-2025-0001/fees", {
+        json: { academicYear: "2026/27" },
+        session: STAFF,
+      }),
+    ]);
+
+    const [moved, charged] = await Promise.all([
+      moveOn(moving, routeContext({})),
+      chargeFee(charging, routeContext({ studentNumber: "SMS-2025-0001" })),
+    ]);
+
+    // Whichever charges it first, the other leaves it be: the move still
+    // succeeds, and there is one charge, recorded once.
+    expect(moved.status).toBe(200);
+    expect([201, 409]).toContain(charged.status);
+    expect((await student("SMS-2025-0001")).feeCharges).toMatchObject([
+      { academicYear: "2026/27" },
+    ]);
+    expect(
+      await db().auditEvent.count({ where: { action: "fee.charged" } }),
+    ).toBe(1);
+  });
+
   it("is for staff only", async () => {
     expect(
-      (await post({ to: "2026/27", expected: 4 }, asStudent("SMS-2025-0001")))
-        .status,
+      (
+        await post(
+          { to: "2026/27", listed: await listedFor() },
+          asStudent("SMS-2025-0001"),
+        )
+      ).status,
     ).toBe(403);
   });
 });

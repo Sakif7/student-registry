@@ -320,22 +320,21 @@ async function moveOn(
     },
   });
   await syncRegistrations(tx, staff, id, registeredAt);
-  const charged = await tx.feeCharge.findUnique({
-    where: { studentId_academicYear: { studentId: id, academicYear: to } },
-    select: { id: true },
+  // The year's fee, unless it is charged already, even by someone charging
+  // it at this moment (ON CONFLICT DO NOTHING): theirs then stands.
+  const amountPence = student.programme.annualFeePence;
+  const { count } = await tx.feeCharge.createMany({
+    data: {
+      studentId: id,
+      academicYear: to,
+      description: feeDescription(to, student.programme.title),
+      amountPence,
+      standardFeePence: amountPence,
+      dueDate: toDbDate(defaultDueDate(today, to)),
+    },
+    skipDuplicates: true,
   });
-  if (!charged) {
-    const amountPence = student.programme.annualFeePence;
-    await tx.feeCharge.create({
-      data: {
-        studentId: id,
-        academicYear: to,
-        description: feeDescription(to, student.programme.title),
-        amountPence,
-        standardFeePence: amountPence,
-        dueDate: toDbDate(defaultDueDate(today, to)),
-      },
-    });
+  if (count > 0) {
     await recordEvent(tx, staff, {
       action: "fee.charged",
       studentId: id,
