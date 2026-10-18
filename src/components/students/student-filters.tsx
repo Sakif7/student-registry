@@ -59,6 +59,9 @@ export function StudentFilterBar({
           className="w-full sm:w-fit"
           id={`${id}programme`}
           name="programme"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={filters.programme ?? ""}
           defaultValue={filters.programme ?? ""}
           onChange={applyNow}
         >
@@ -77,6 +80,9 @@ export function StudentFilterBar({
           className="w-full sm:w-fit"
           id={`${id}status`}
           name="status"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={filters.status ?? ""}
           defaultValue={filters.status ?? ""}
           onChange={applyNow}
         >
@@ -95,6 +101,9 @@ export function StudentFilterBar({
           className="w-full sm:w-fit"
           id={`${id}year`}
           name="year"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={filters.year ?? ""}
           defaultValue={filters.year ?? ""}
           onChange={applyNow}
         >

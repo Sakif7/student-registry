@@ -76,12 +76,7 @@ async function MyResults({
   const page = paginate(filterStudentResults(results, query), query.page);
   return (
     <>
-      <StudentResultsFilterBar
-        // Remount when the classification changes, so the select shows it;
-        // the search box keeps its own text while you type.
-        key={query.result ?? ""}
-        query={query}
-      />
+      <StudentResultsFilterBar query={query} />
       {page.total === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <p className="font-medium">No results match these filters.</p>

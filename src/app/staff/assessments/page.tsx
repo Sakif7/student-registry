@@ -60,19 +60,9 @@ async function Assessments({ searchParams }: Pick<Props, "searchParams">) {
     ),
     query.page,
   );
-  // Remount when the filters change, so the selects show the ones applied,
-  // but not as the search does: the search box keeps its own text while
-  // you type.
-  const settled = new URLSearchParams(params);
-  settled.delete("q");
-  settled.delete("page");
   return (
     <>
-      <AssessmentFilterBar
-        key={settled.toString()}
-        query={query}
-        academicYears={academicYears}
-      />
+      <AssessmentFilterBar query={query} academicYears={academicYears} />
       <AssessmentsTable
         page={page}
         query={query}

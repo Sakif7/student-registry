@@ -73,11 +73,6 @@ async function Modules({
   ]);
   const academicYear = academicYearOn(collegeToday());
   const page = paginate(filterModules(modules, query), query.page);
-  // Remount when the filters change, so the selects show the ones applied,
-  // but not as the search does: the search box keeps its own text.
-  const settled = new URLSearchParams(params);
-  settled.delete("q");
-  settled.delete("page");
   if (modules.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-10 text-center">
@@ -90,11 +85,7 @@ async function Modules({
   }
   return (
     <>
-      <ModuleFilterBar
-        key={settled.toString()}
-        query={query}
-        programmes={programmes}
-      />
+      <ModuleFilterBar query={query} programmes={programmes} />
       {page.total === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <p className="font-medium">No modules match these filters.</p>

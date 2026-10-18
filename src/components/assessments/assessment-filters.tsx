@@ -59,6 +59,9 @@ export function AssessmentFilterBar({
           className="w-full sm:w-fit"
           id={`${id}state`}
           name="state"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={query.state ?? ""}
           defaultValue={query.state ?? ""}
           onChange={applyNow}
         >
@@ -78,6 +81,9 @@ export function AssessmentFilterBar({
             className="w-full sm:w-fit"
             id={`${id}year`}
             name="year"
+            // Remounts when this filter changes elsewhere (Back, "Clear
+            // filters"), to show the one applied; the search box never does.
+            key={query.year ?? ""}
             defaultValue={query.year ?? ""}
             onChange={applyNow}
           >

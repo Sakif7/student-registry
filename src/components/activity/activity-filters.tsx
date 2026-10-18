@@ -42,6 +42,9 @@ export function ActivityFilterBar({ query }: { query: ActivityQuery }) {
           className="w-full sm:w-fit"
           id={`${id}area`}
           name="area"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={query.area ?? ""}
           defaultValue={query.area ?? ""}
           onChange={applyNow}
         >

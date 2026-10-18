@@ -42,12 +42,7 @@ async function Activity({
   const page = await listActivity(session, params);
   return (
     <>
-      <ActivityFilterBar
-        // Remount when the kind changes, so the select shows it; the search
-        // box keeps its own text while you type.
-        key={params.area ?? ""}
-        query={query}
-      />
+      <ActivityFilterBar query={query} />
       <ActivityLog page={page} query={query} timeZone={collegeTimeZone()} />
     </>
   );

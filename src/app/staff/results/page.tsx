@@ -84,12 +84,7 @@ async function Worklists({
         <h2 className="mb-4 text-xl font-semibold tracking-tight">
           Students with marks
         </h2>
-        <ResultsStudentFilters
-          // Remount when the filter changes, so the select shows it; the
-          // search box keeps its own text while you type.
-          key={query.show ?? ""}
-          query={query}
-        />
+        <ResultsStudentFilters query={query} />
         <ResultsWorklist page={studentPage} query={query} />
       </section>
     </div>

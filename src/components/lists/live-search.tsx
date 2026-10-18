@@ -7,7 +7,7 @@
 // list instead of stepping back a letter at a time. Inside the list's form,
 // Enter searches at once.
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,7 @@ export function LiveSearch({
   const [value, setValue] = useState(applied);
   const [typing, setTyping] = useState(false);
   const [, startTransition] = useTransition();
+  const input = useRef<HTMLInputElement>(null);
   // Unique to this instance, as hidden pages stay in the document.
   const id = `${useId()}${param}`;
 
@@ -54,9 +55,29 @@ export function LiveSearch({
     const text = value.trim();
     if (text === applied.trim()) return;
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams);
-      if (text) params.set(param, text);
-      else params.delete(param);
+      // The address as it is now, with this form's own fields as they are
+      // now: a filter chosen a moment ago is in its select even while its
+      // own navigation is still on its way, and must not be lost.
+      const params = new URLSearchParams(window.location.search);
+      const form = input.current?.form;
+      const fields = form
+        ? Array.from(form.elements).filter(
+            (element) =>
+              (element instanceof HTMLInputElement &&
+                element.type !== "hidden") ||
+              element instanceof HTMLSelectElement,
+          )
+        : [];
+      for (const field of fields as (HTMLInputElement | HTMLSelectElement)[]) {
+        if (!field.name) continue;
+        const fieldValue = field.value.trim();
+        if (fieldValue) params.set(field.name, fieldValue);
+        else params.delete(field.name);
+      }
+      if (!form) {
+        if (text) params.set(param, text);
+        else params.delete(param);
+      }
       params.delete(pageParam);
       const query = params.toString();
       startTransition(() => {
@@ -66,12 +87,13 @@ export function LiveSearch({
       });
     }, PAUSE_MS);
     return () => clearTimeout(timer);
-  }, [value, applied, param, pageParam, pathname, router, searchParams]);
+  }, [value, applied, param, pageParam, pathname, router]);
 
   return (
     <div className={className ?? "grid w-full gap-1.5 sm:w-auto"}>
       <Label htmlFor={id}>{label}</Label>
       <Input
+        ref={input}
         id={id}
         name={param}
         type="search"

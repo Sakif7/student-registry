@@ -75,6 +75,9 @@ export function ResultsStudentFilters({ query }: { query: ResultsListQuery }) {
           className="w-full sm:w-fit"
           id={`${id}show`}
           name="show"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={query.show ?? ""}
           defaultValue={query.show ?? ""}
           onChange={applyNow}
         >
@@ -132,6 +135,9 @@ export function StudentResultsFilterBar({
           className="w-full sm:w-fit"
           id={`${id}result`}
           name="result"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={query.result ?? ""}
           defaultValue={query.result ?? ""}
           onChange={applyNow}
         >

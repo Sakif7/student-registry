@@ -66,6 +66,9 @@ export function ModuleFilterBar({
           className="w-full sm:w-fit"
           id={`${id}semester`}
           name="semester"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={query.semester ?? ""}
           defaultValue={query.semester ?? ""}
           onChange={applyNow}
         >
@@ -84,6 +87,9 @@ export function ModuleFilterBar({
           className="w-full sm:w-fit"
           id={`${id}programme`}
           name="programme"
+          // Remounts when this filter changes elsewhere (Back, "Clear
+          // filters"), to show the one applied; the search box never does.
+          key={query.programme ?? ""}
           defaultValue={query.programme ?? ""}
           onChange={applyNow}
         >

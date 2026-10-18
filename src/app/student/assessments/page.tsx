@@ -57,13 +57,7 @@ async function MyAssessments({
   const page = paginate(filterAssessments(assessments, query), query.page);
   return (
     <>
-      <AssessmentFilterBar
-        action="/student/assessments"
-        // Remount when the state changes, so the select shows it; the
-        // search box keeps its own text while you type.
-        key={query.state ?? ""}
-        query={query}
-      />
+      <AssessmentFilterBar action="/student/assessments" query={query} />
       {page.total === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <p className="font-medium">No assessments match these filters.</p>
