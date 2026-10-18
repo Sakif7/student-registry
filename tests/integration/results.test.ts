@@ -360,11 +360,23 @@ describe("POST /api/assessments/[assessmentId]/publication", () => {
   });
 
   it("lists the assessments with marks waiting, the longest waiting first", async () => {
-    await moreExamMarks();
+    const { oliver } = await moreExamMarks();
+    // A quiz due before the exam, with a mark waiting too.
+    const quiz = await createAssessment({
+      title: "Quiz",
+      moduleId: (
+        await db().assessment.findUniqueOrThrow({ where: { id: examId } })
+      ).moduleId,
+      deadline: new Date("2026-10-01T16:00:00Z"),
+    });
+    await db().assessmentResult.create({
+      data: { studentId: oliver.id, assessmentId: quiz.id, mark: 70 },
+    });
     const staff = await sessionFor(STAFF);
 
-    // The essay's only mark is published, so only the exam is listed.
+    // The essay's only mark is published, so the essay isn't listed.
     expect(await listAssessmentsToPublish(staff)).toMatchObject([
+      { id: quiz.id, title: "Quiz", waitingCount: 1, withheldCount: 0 },
       {
         id: examId,
         title: "Exam",
@@ -375,8 +387,11 @@ describe("POST /api/assessments/[assessmentId]/publication", () => {
     ]);
 
     await publishExam(2);
-    // Hannah's mark waits for the hold to be lifted, with nothing to publish.
-    expect(await listAssessmentsToPublish(staff)).toEqual([]);
+    // Hannah's exam mark waits for the hold to be lifted, with nothing to
+    // publish, so only the quiz is left.
+    expect(await listAssessmentsToPublish(staff)).toMatchObject([
+      { id: quiz.id },
+    ]);
     await expect(
       listAssessmentsToPublish(await sessionFor(AMELIA)),
     ).rejects.toMatchObject({ kind: "FORBIDDEN" });

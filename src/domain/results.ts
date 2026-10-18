@@ -95,9 +95,9 @@ export const markFieldSchema = z
 export const OUTSTANDING_FEES_REASON = "Outstanding tuition fees";
 
 /**
- * Input for publishing a student's marks: how many the person publishing
- * saw waiting. If that has changed (a colleague saved another), nothing is
- * published, as a published mark can't be taken back.
+ * Input for publishing a student's marks, or an assessment's: how many the
+ * person publishing saw waiting. If that has changed (a colleague saved
+ * another), nothing is published, as a published mark can't be taken back.
  */
 export const publishResultsSchema = z.object({
   expected: z.number().int().min(0).optional(),
