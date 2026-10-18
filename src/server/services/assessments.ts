@@ -12,7 +12,7 @@ import {
 } from "@/domain/assessments";
 import { academicYearAt, academicYearSpan } from "@/domain/academic-year";
 import { instantToWallTime } from "@/domain/college-time";
-import type { Semester } from "@/domain/curriculum";
+import type { ModuleKind, Semester } from "@/domain/curriculum";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   canEnterMarks,
@@ -131,6 +131,44 @@ export async function listModules(
     select: { code: true, title: true, semester: true },
     orderBy: { code: "asc" },
   });
+}
+
+/** A programme and its modules, as offered when setting an assessment. */
+export interface ProgrammeModules {
+  code: string;
+  title: string;
+  /** Year by year, then by code. */
+  modules: (ModuleOption & { yearOfStudy: number; kind: ModuleKind })[];
+}
+
+/**
+ * Every programme with its modules, for choosing a module by programme when
+ * setting an assessment (staff only). A module shared by programmes is
+ * under each.
+ */
+export async function listProgrammeModules(
+  session: Session | null,
+): Promise<ProgrammeModules[]> {
+  requireStaff(session);
+  const programmes = await db().programme.findMany({
+    select: {
+      code: true,
+      title: true,
+      modules: {
+        select: {
+          yearOfStudy: true,
+          kind: true,
+          module: { select: { code: true, title: true, semester: true } },
+        },
+        orderBy: [{ yearOfStudy: "asc" }, { module: { code: "asc" } }],
+      },
+    },
+    orderBy: { title: "asc" },
+  });
+  return programmes.map(({ modules, ...programme }) => ({
+    ...programme,
+    modules: modules.map(({ module, ...place }) => ({ ...module, ...place })),
+  }));
 }
 
 /** Every assessment, with submission counts (staff only). */

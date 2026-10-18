@@ -12,6 +12,7 @@ import {
 } from "@/app/api/assessments/route";
 import { GET as listModules } from "@/app/api/modules/route";
 import { db } from "@/server/db";
+import { listProgrammeModules } from "@/server/services/assessments";
 
 import {
   createAssessment as insertAssessment,
@@ -26,6 +27,7 @@ import {
   asStudent,
   bodyOf,
   routeContext,
+  sessionFor,
   STAFF,
   type Viewer,
 } from "../helpers/requests";
@@ -508,5 +510,49 @@ describe("GET /api/modules", () => {
         { code: "DS7001", title: "Machine Learning", semester: "FIRST" },
       ],
     });
+  });
+});
+
+describe("listProgrammeModules", () => {
+  it("lists each programme's modules, year by year, for staff setting an assessment", async () => {
+    // A second-year option in BSC-CS that MSC-DS shares, in its first year.
+    const [computing, data] = await Promise.all(
+      ["BSC-CS", "MSC-DS"].map((code) =>
+        db().programme.findUniqueOrThrow({ where: { code } }),
+      ),
+    );
+    const shared = await createModule({
+      code: "CS5005",
+      title: "Data Mining",
+      programmeId: computing?.id,
+      yearOfStudy: 2,
+      kind: "OPTIONAL",
+    });
+    await db().programmeModule.create({
+      data: {
+        programmeId: data?.id ?? "",
+        moduleId: shared.id,
+        yearOfStudy: 1,
+        kind: "OPTIONAL",
+      },
+    });
+
+    const programmes = await listProgrammeModules(await sessionFor(STAFF));
+
+    expect(programmes.find(({ code }) => code === "BSC-CS")).toMatchObject({
+      title: "BSc (Hons) Computer Science",
+      modules: [
+        { code: "CS4001", yearOfStudy: 1, kind: "CORE", semester: "FIRST" },
+        { code: "CS5005", yearOfStudy: 2, kind: "OPTIONAL" },
+      ],
+    });
+    expect(
+      programmes
+        .find(({ code }) => code === "MSC-DS")
+        ?.modules.map(({ code }) => code),
+    ).toEqual(["CS5005", "DS7001"]);
+    await expect(
+      listProgrammeModules(await sessionFor(asStudent("SMS-2025-0001"))),
+    ).rejects.toMatchObject({ kind: "FORBIDDEN" });
   });
 });

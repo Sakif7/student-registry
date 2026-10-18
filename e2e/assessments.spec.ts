@@ -29,6 +29,9 @@ test("staff set an assessment, with the deadline in college time", async ({
 }) => {
   await viewAs(page, "staff");
   await page.goto("/staff/assessments/new");
+  // A programme first: its modules are then listed, year by year.
+  await expect(page.getByLabel("Module")).toBeDisabled();
+  await page.getByLabel("Programme").selectOption("BSC-CS");
   await page.getByLabel("Module").selectOption("CS4002");
   await page.getByLabel("Title").fill("SQL lab test");
 

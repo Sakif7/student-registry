@@ -1,4 +1,4 @@
-// Set an assessment for a module.
+// Set an assessment for a module, chosen by programme.
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { instantToWallTime } from "@/domain/college-time";
 import { collegeTimeZone } from "@/server/college";
-import { listModules } from "@/server/services/assessments";
+import { listProgrammeModules } from "@/server/services/assessments";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Set an assessment" };
@@ -29,11 +29,11 @@ export default function NewAssessmentPage() {
 
 async function NewAssessmentForm() {
   const session = await requirePageRole("staff");
-  const modules = await listModules(session);
+  const programmes = await listProgrammeModules(session);
   const timeZone = collegeTimeZone();
   return (
     <AssessmentForm
-      modules={modules}
+      programmes={programmes}
       timeZone={timeZone}
       now={instantToWallTime(new Date(), timeZone)}
     />
