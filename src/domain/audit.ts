@@ -11,8 +11,20 @@ import { listSearchSchema } from "./lists";
 /** The details each kind of event records. */
 export interface AuditDetails {
   "student.enrolled": { studentNumber: string; status: EnrolmentStatus };
-  /** Which details changed, by field name (see STUDENT_FIELD_LABELS). */
-  "student.edited": { fields: string[] };
+  /**
+   * Which details changed, by field name (see STUDENT_FIELD_LABELS), and the
+   * old and new values of those that place the student: programme (by
+   * code), year of study and academic year. Names, email addresses and
+   * dates of birth are personal details, so only that they changed is kept.
+   */
+  "student.edited": {
+    fields: string[];
+    changes?: {
+      programmeCode?: { from: string; to: string };
+      yearOfStudy?: { from: number; to: number };
+      academicYear?: { from: string; to: string };
+    };
+  };
   "student.status_changed": {
     from: EnrolmentStatus;
     to: EnrolmentStatus;

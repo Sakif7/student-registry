@@ -142,6 +142,18 @@ describe("describeEvent", () => {
     ["sign_in.turned_on", {}, "Turned sign-in back on"],
     ["student.edited", { fields: ["yearOfStudy"] }, "Edited the year of study"],
     [
+      "student.edited",
+      {
+        fields: ["programmeCode", "academicYear", "yearOfStudy"],
+        changes: {
+          programmeCode: { from: "BSC-CS", to: "BSC-AI" },
+          yearOfStudy: { from: 1, to: 2 },
+          academicYear: { from: "2025/26", to: "2026/27" },
+        },
+      },
+      "Edited the programme, academic year and year of study: programme from BSC-CS to BSC-AI; year 1 to year 2; 2025/26 to 2026/27",
+    ],
+    [
       "programme.created",
       { code: "BSC-CS", title: "BSc (Hons) Computer Science" },
       "Set up the programme BSC-CS BSc (Hons) Computer Science",

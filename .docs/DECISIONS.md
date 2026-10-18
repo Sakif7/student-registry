@@ -753,9 +753,11 @@ an audit trail.
   such as the assessment's title at the time, so its description doesn't
   change when the record does later. A correction keeps the value before as
   well as after: a mark's old and new value, a fee's old amount and due
-  date with the note explaining it, and an assessment's old title and
-  deadline. An appeal about a late flag needs to know what the deadline was. `src/domain/audit.ts` lists every kind
-  of event and its details; `src/lib/audit.ts` words them.
+  date with the note explaining it, an assessment's old title and deadline,
+  and a student's old and new programme, year of study and academic year,
+  so their years can be traced. An appeal about a late flag needs to know
+  what the deadline was. `src/domain/audit.ts` lists every kind of event and
+  its details; `src/lib/audit.ts` words them.
 - **Who can see it:** staff, in the Activity log (every change, newest
   first, 50 to a page) and in each student's History. Students don't see
   it.
@@ -1488,9 +1490,10 @@ deliberate scope limit, not an oversight:
   text that may hold health details, and it is copied into the append-only
   trail, where it can't be corrected or erased. Structured reasons, with any
   details kept where a retention policy can delete them, would fix this.
-- **What an edit changed:** the trail names the fields an edit changed, not
-  their old and new values, so no history of programmes or years is kept.
-  Recording values would need the same care as the reasons above.
+- **What an edit changed:** the trail keeps the old and new programme, year
+  of study and academic year, but only names a changed name, email address
+  or date of birth: those are personal details, and recording their values
+  would need the same care as the reasons above.
 
 ## With more time
 

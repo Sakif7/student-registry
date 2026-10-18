@@ -19,8 +19,17 @@ type Describe = {
 const DESCRIBE: Describe = {
   "student.enrolled": ({ studentNumber, status }) =>
     `Enrolled as ${studentNumber}, ${ENROLMENT_STATUS_LABELS[status]}`,
-  "student.edited": ({ fields }) =>
-    `Edited the ${list(fields.map((field) => STUDENT_FIELD_LABELS[field] ?? field))}`,
+  "student.edited": ({ fields, changes }) => {
+    const what = [
+      changes?.programmeCode &&
+        `programme from ${changes.programmeCode.from} to ${changes.programmeCode.to}`,
+      changes?.yearOfStudy &&
+        `year ${changes.yearOfStudy.from} to year ${changes.yearOfStudy.to}`,
+      changes?.academicYear &&
+        `${changes.academicYear.from} to ${changes.academicYear.to}`,
+    ].filter(Boolean);
+    return `Edited the ${list(fields.map((field) => STUDENT_FIELD_LABELS[field] ?? field))}${what.length > 0 ? `: ${what.join("; ")}` : ""}`;
+  },
   "student.status_changed": ({ from, to, reason }) =>
     `Changed the status from ${ENROLMENT_STATUS_LABELS[from]} to ${ENROLMENT_STATUS_LABELS[to]}${reason ? `: ${reason}` : ""}`,
   "fee.charged": ({ academicYear, amountPence }) =>

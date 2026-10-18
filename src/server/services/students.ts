@@ -11,6 +11,7 @@ import {
   recordYears,
   startYearOf,
 } from "@/domain/academic-year";
+import type { AuditDetails } from "@/domain/audit";
 import { type CalendarDate, fromDbDate, toDbDate } from "@/domain/college-time";
 import {
   allowedStatusChanges,
@@ -479,10 +480,11 @@ export async function updateStudent(
       await syncAccount(tx, updated);
       const fields = changedFields(before, updated);
       if (fields.length > 0) {
+        const changes = placementChanges(before, updated);
         await recordEvent(tx, staff, {
           action: "student.edited",
           studentId: id,
-          details: { fields },
+          details: { fields, ...(changes && { changes }) },
         });
       }
       // A new programme, year of study or academic year needs other modules.
@@ -517,6 +519,39 @@ function changedFields(
   if (before.yearOfStudy !== after.yearOfStudy) fields.push("yearOfStudy");
   return fields;
 }
+
+/**
+ * The old and new programme, year of study and academic year an edit
+ * changed, for the audit trail, or undefined if it changed none of them.
+ */
+function placementChanges(
+  before: StudentPlacement,
+  after: StudentPlacement,
+): AuditDetails["student.edited"]["changes"] {
+  const changes: NonNullable<AuditDetails["student.edited"]["changes"]> = {};
+  if (before.programme.code !== after.programme.code) {
+    changes.programmeCode = {
+      from: before.programme.code,
+      to: after.programme.code,
+    };
+  }
+  if (before.yearOfStudy !== after.yearOfStudy) {
+    changes.yearOfStudy = { from: before.yearOfStudy, to: after.yearOfStudy };
+  }
+  if (before.academicYear !== after.academicYear) {
+    changes.academicYear = {
+      from: before.academicYear,
+      to: after.academicYear,
+    };
+  }
+  return Object.keys(changes).length > 0 ? changes : undefined;
+}
+
+type StudentPlacement = {
+  programme: { code: string };
+  yearOfStudy: number;
+  academicYear: string;
+};
 
 type StudentDetailsRow = {
   fullName: string;

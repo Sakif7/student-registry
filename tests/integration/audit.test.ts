@@ -142,6 +142,33 @@ describe("the audit trail records", () => {
     ]);
   });
 
+  it("the programme, year and academic year an edit moved a student from and to, but not personal details", async () => {
+    const { student } = await enrolledStudent();
+    await createProgramme({ code: "BSC-AI" });
+    const staff = await sessionFor(STAFF);
+
+    await updateStudent(staff, student.studentNumber, {
+      fullName: "Oliver J. Bennett",
+      programmeCode: "BSC-AI",
+      yearOfStudy: 2,
+      academicYear: "2027/28",
+    });
+
+    const edits = (await events()).filter(
+      ({ action }) => action === "student.edited",
+    );
+    expect(edits.map(({ details }) => details)).toEqual([
+      {
+        fields: ["fullName", "programmeCode", "academicYear", "yearOfStudy"],
+        changes: {
+          programmeCode: { from: "BSC-CS", to: "BSC-AI" },
+          yearOfStudy: { from: 1, to: 2 },
+          academicYear: { from: "2026/27", to: "2027/28" },
+        },
+      },
+    ]);
+  });
+
   it("status changes, with the reason", async () => {
     const { student } = await enrolledStudent();
     const staff = await sessionFor(STAFF);
