@@ -172,6 +172,7 @@ describe("GET /api/students", () => {
           academicYear: "2026/27",
           description: "Tuition fee 2026/27",
           amountPence: 953_500,
+          standardFeePence: 953_500,
           dueDate: toDbDate("2026-10-05"),
         },
       });

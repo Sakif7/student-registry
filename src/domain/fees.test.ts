@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   accountStanding,
   allocatePayments,
+  assignFeeSchema,
   correctFeeSchema,
   defaultDueDate,
+  dueDateProblem,
   nextChargeDue,
   normalisePaymentReference,
   recordPaymentSchema,
@@ -195,6 +197,40 @@ describe("recordPaymentSchema", () => {
     expect(result.error?.issues[0]?.message).toBe(
       "Enter the bank or receipt reference",
     );
+  });
+
+  it("rejects a date before the oldest year a record can be in", () => {
+    const paidOn = (date: string) =>
+      schema.safeParse({ amountPence: 50_000, paidOn: date, reference: "B" });
+    // 2006 typed for 2026.
+    expect(paidOn("2006-10-05").error?.issues).toMatchObject([
+      {
+        path: ["paidOn"],
+        message: "Enter a date from 1 September 2023 to today",
+      },
+    ]);
+    expect(paidOn("2023-09-01").success).toBe(true);
+  });
+});
+
+describe("dueDateProblem", () => {
+  it("takes a due date from the year before the charge's to the year after", () => {
+    expect(dueDateProblem("2026/27", "2025-09-01")).toBeUndefined();
+    expect(dueDateProblem("2026/27", "2028-08-31")).toBeUndefined();
+    expect(dueDateProblem("2026/27", "2025-08-31")).toBe(
+      "Choose a due date from 1 September 2025 to 31 August 2028, around 2026/27",
+    );
+    // 2062 typed for 2026.
+    expect(dueDateProblem("2026/27", "2062-10-01")).toBeDefined();
+  });
+
+  it("is checked when a fee is assigned", () => {
+    expect(
+      assignFeeSchema.safeParse({
+        academicYear: "2026/27",
+        dueDate: "2062-10-01",
+      }).error?.issues,
+    ).toMatchObject([{ path: ["dueDate"] }]);
   });
 });
 

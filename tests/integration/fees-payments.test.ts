@@ -221,6 +221,24 @@ describe("POST /api/students/[studentNumber]/fees", () => {
     ).toBe(201);
   });
 
+  it("refuses a due date with its year typed wrongly", async () => {
+    expect(
+      await bodyOf(
+        await post(assignFee, "fees", {
+          academicYear: "2026/27",
+          dueDate: "2062-11-14",
+        }),
+      ),
+    ).toMatchObject({
+      status: 400,
+      errors: {
+        dueDate: [
+          "Choose a due date from 1 September 2025 to 31 August 2028, around 2026/27",
+        ],
+      },
+    });
+  });
+
   it("refuses a second fee for the same academic year", async () => {
     await post(assignFee, "fees", { academicYear: "2026/27" });
     const response = await post(assignFee, "fees", { academicYear: "2026/27" });
@@ -310,6 +328,18 @@ describe("POST /api/students/[studentNumber]/payments", () => {
         amountPence: ["The amount must be more than £0.00"],
         paidOn: ["The payment date can't be in the future"],
       },
+    });
+  });
+
+  it("rejects a date with its year typed wrongly", async () => {
+    const response = await post(recordPayment, "payments", {
+      amountPence: 50_000,
+      paidOn: "2006-10-05",
+      reference: "BACS 1",
+    });
+    expect(await bodyOf(response)).toMatchObject({
+      status: 400,
+      errors: { paidOn: ["Enter a date from 1 September 2023 to today"] },
     });
   });
 

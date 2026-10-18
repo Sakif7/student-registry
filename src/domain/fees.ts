@@ -2,7 +2,13 @@
 // Balances are always computed from the charges and payments, never stored.
 import { z } from "zod";
 
-import { academicYearSchema, academicYearSpan } from "./academic-year";
+import {
+  academicYearSchema,
+  academicYearSpan,
+  isAcademicYear,
+  recordYears,
+  startYearOf,
+} from "./academic-year";
 import {
   addDays,
   type CalendarDate,
@@ -243,13 +249,39 @@ export function feeDescription(
   return `Tuition fee ${academicYear}: ${programmeTitle}`;
 }
 
-/** Input for recording a payment; `today` is the college's date. */
+/**
+ * Why a due date is implausible for a charge, or undefined if it isn't: it
+ * falls from the start of the academic year before the charge's to the end
+ * of the one after, so a year typed wrongly (2062 for 2026) can't hide a
+ * debt for decades, nor make one decades overdue.
+ */
+export function dueDateProblem(
+  academicYear: string,
+  dueDate: CalendarDate,
+): string | undefined {
+  const start = startYearOf(academicYear);
+  if (dueDate >= `${start - 1}-09-01` && dueDate <= `${start + 2}-08-31`) {
+    return undefined;
+  }
+  return `Choose a due date from 1 September ${start - 1} to 31 August ${start + 2}, around ${academicYear}`;
+}
+
+/**
+ * Input for recording a payment; `today` is the college's date. A payment
+ * is dated no later than today, and no earlier than the oldest academic year
+ * a record can be in (see recordYears), so a year typed wrongly shows.
+ */
 export function recordPaymentSchema(today: CalendarDate) {
+  const earliest = academicYearSpan(recordYears(today)[0] ?? "").first;
   return z.object({
     amountPence: paymentAmountSchema,
-    paidOn: calendarDateSchema.refine((date) => date <= today, {
-      error: "The payment date can't be in the future",
-    }),
+    paidOn: calendarDateSchema
+      .refine((date) => date <= today, {
+        error: "The payment date can't be in the future",
+      })
+      .refine((date) => date >= earliest, {
+        error: `Enter a date from 1 September ${earliest.slice(0, 4)} to today`,
+      }),
     reference: z
       .string({ error: "Enter the bank or receipt reference" })
       .trim()
@@ -260,10 +292,11 @@ export function recordPaymentSchema(today: CalendarDate) {
 }
 
 /**
- * Input for assigning a fee. Without an amount the programme's standard fee
- * applies; without a due date, the default due date does.
+ * The fields of a fee being assigned. Without an amount the programme's
+ * standard fee applies; without a due date, the default due date does. The
+ * form extends these, so the check across fields is kept apart.
  */
-export const assignFeeSchema = z.object({
+export const assignFeeFields = z.object({
   academicYear: academicYearSchema,
   amountPence: chargeAmountSchema.optional(),
   dueDate: calendarDateSchema.optional(),
@@ -274,6 +307,25 @@ export const assignFeeSchema = z.object({
     .optional()
     .transform((value) => value || undefined),
 });
+
+/** Refuses a due date that isn't around the fee's year (dueDateProblem). */
+export function checkDueDateAroundYear(
+  { academicYear, dueDate }: { academicYear: string; dueDate?: string },
+  ctx: z.RefinementCtx,
+): void {
+  const problem =
+    dueDate && isAcademicYear(academicYear)
+      ? dueDateProblem(academicYear, dueDate)
+      : undefined;
+  if (problem) {
+    ctx.addIssue({ code: "custom", path: ["dueDate"], message: problem });
+  }
+}
+
+/** Input for assigning a fee: its fields, with a due date around its year. */
+export const assignFeeSchema = assignFeeFields.superRefine(
+  checkDueDateAroundYear,
+);
 
 /**
  * Input for correcting a fee charge's amount and/or due date. An empty note

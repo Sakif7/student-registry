@@ -41,6 +41,7 @@ async function charge(
       academicYear,
       description: `Tuition fee ${academicYear}`,
       amountPence,
+      standardFeePence: amountPence,
       dueDate: toDbDate(dueDate),
     },
   });

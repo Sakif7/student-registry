@@ -86,7 +86,8 @@ export function AccountSection({
                   ((charge) => (
                     <CorrectFeeDialog
                       charge={charge}
-                      standardFeePence={account.standardFeePence}
+                      // The fee it was raised at, not the programme's now.
+                      standardFeePence={charge.standardFeePence}
                     />
                   ))
                 }

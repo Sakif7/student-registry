@@ -211,13 +211,16 @@ model FeeCharge {
   id           String   @id @default(uuid(7)) @db.Uuid
   studentId    String   @map("student_id") @db.Uuid
   academicYear String   @map("academic_year")
-  description  String
-  amountPence  Int      @map("amount_pence")
-  dueDate      DateTime @map("due_date") @db.Date
+  description      String
+  amountPence      Int      @map("amount_pence")
+  /// The programme's standard fee when the charge was raised. A correction
+  /// is judged against it, as the programme's fee may have changed since.
+  standardFeePence Int      @map("standard_fee_pence")
+  dueDate          DateTime @map("due_date") @db.Date
   /// Why the amount differs from the standard fee, e.g. a scholarship.
-  note         String?
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  note             String?
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   student Student @relation(fields: [studentId], references: [id])
 

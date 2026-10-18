@@ -303,6 +303,19 @@ academic year (a database unique constraint).
   and the note giving the reason, so a scholarship down to £0 still shows what
   was waived and why. The note can be removed only once the amount is back at
   the standard fee. Saving a charge unchanged records nothing.
+- **A charge keeps the standard fee it was raised at**, and a correction is
+  judged against that, not the programme's fee now: after a fee rise, moving
+  an older charge's due date needs no note, and a charge raised at the old
+  fee reads as standard. Charges from before this was kept took their own
+  amount (or, with a note, the programme's fee then current) as standard.
+  A fee charged late for an earlier year takes the student's current
+  programme's title and fee, as which programme they were on that year isn't
+  recorded; staff correct it, with a note, if it was another.
+- **Dates a year typed wrongly would give away are refused:** a due date
+  falls from the start of the academic year before the charge's to the end
+  of the year after (2062 for 2026 would hide a debt for decades), and a
+  payment is dated from the start of the oldest year a record can be in
+  (three back) to today.
 - A charge corrected to £0 is shown as Waived, not Paid: nothing was paid.
 - The default due date is 30 days after the charge is raised, or after the
   first day of its academic year if that is later, so a fee charged ahead for

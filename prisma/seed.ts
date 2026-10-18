@@ -851,6 +851,7 @@ async function seedAccounts(
           academicYear,
           description: feeDescription(academicYear, programme.title),
           amountPence: charge.amountPence ?? programme.annualFeePence,
+          standardFeePence: programme.annualFeePence,
           dueDate: toDbDate(addDays(today, charge.dueInDays)),
           note: charge.note,
           createdAt: daysAgo(Math.max(0, 30 - charge.dueInDays)),

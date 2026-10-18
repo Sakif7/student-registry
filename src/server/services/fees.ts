@@ -15,6 +15,7 @@ import {
   assignFeeSchema,
   correctFeeSchema,
   defaultDueDate,
+  dueDateProblem,
   feeDescription,
   recordPaymentSchema,
   reversePaymentSchema,
@@ -36,6 +37,8 @@ export interface FeeChargeView {
   academicYear: string;
   description: string;
   amountPence: number;
+  /** The standard fee it was raised at, which a correction is judged by. */
+  standardFeePence: number;
   dueDate: CalendarDate;
   note: string | null;
 }
@@ -145,6 +148,7 @@ export async function assignFee(
             student.programme.title,
           ),
           amountPence,
+          standardFeePence: standardFee,
           dueDate: toDbDate(
             fee.dueDate ?? defaultDueDate(collegeToday(), fee.academicYear),
           ),
@@ -244,12 +248,13 @@ export async function correctFee(
   const charge = isId(feeId)
     ? await db().feeCharge.findUnique({
         where: { id: feeId },
-        include: { student: { include: { programme: true } } },
+        include: { student: { select: { studentNumber: true } } },
       })
     : null;
   if (!charge) throw new AppError("NOT_FOUND", "There is no such fee charge.");
 
-  const standardFee = charge.student.programme.annualFeePence;
+  // The fee the charge was raised at: the programme's may have changed since.
+  const standardFee = charge.standardFeePence;
   const amountPence = changes.amountPence ?? charge.amountPence;
   const dueDate = changes.dueDate ?? fromDbDate(charge.dueDate);
   const note = changes.note === undefined ? charge.note : changes.note;
@@ -258,6 +263,13 @@ export async function correctFee(
       note: [
         `Explain why the amount differs from the standard fee of ${formatMoney(standardFee)}`,
       ],
+    });
+  }
+  const dueDateWrong =
+    changes.dueDate && dueDateProblem(charge.academicYear, changes.dueDate);
+  if (dueDateWrong) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      dueDate: [dueDateWrong],
     });
   }
   // Saving the form unchanged corrects nothing, so the trail records nothing.
@@ -443,6 +455,7 @@ function toAccount(
     academicYear: charge.academicYear,
     description: charge.description,
     amountPence: charge.amountPence,
+    standardFeePence: charge.standardFeePence,
     dueDate: fromDbDate(charge.dueDate),
     note: charge.note,
   }));

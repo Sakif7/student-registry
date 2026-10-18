@@ -19,7 +19,11 @@ import {
 } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { type CalendarDate, calendarDateSchema } from "@/domain/college-time";
-import { assignFeeSchema, defaultDueDate } from "@/domain/fees";
+import {
+  assignFeeFields,
+  checkDueDateAroundYear,
+  defaultDueDate,
+} from "@/domain/fees";
 import {
   chargeAmountSchema,
   penceToPoundsInput,
@@ -48,12 +52,13 @@ export function AssignFeeForm({
 }) {
   const form = useForm({
     resolver: zodResolver(
-      assignFeeSchema
+      assignFeeFields
         .extend({
           amountPence: poundsField(chargeAmountSchema),
           dueDate: calendarDateSchema,
         })
         .superRefine((fee, ctx) => {
+          checkDueDateAroundYear(fee, ctx);
           if (fee.amountPence !== standardFeePence && !fee.note) {
             ctx.addIssue({
               code: "custom",

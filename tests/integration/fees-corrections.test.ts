@@ -50,6 +50,7 @@ beforeEach(async () => {
         academicYear: "2026/27",
         description: "Tuition fee 2026/27",
         amountPence: 953_500,
+        standardFeePence: 953_500,
         dueDate: toDbDate("2026-10-01"),
       },
     })
@@ -149,6 +150,37 @@ describe("PATCH /api/fees/[feeId]", () => {
       await correct({ amountPence: 953_500, note: "" }),
     );
     expect(account.charges[0]?.note).toBeNull();
+  });
+
+  it("refuses a due date with its year typed wrongly", async () => {
+    expect(
+      await bodyOf(await correct({ dueDate: "2016-11-30" })),
+    ).toMatchObject({
+      status: 400,
+      errors: {
+        dueDate: [
+          "Choose a due date from 1 September 2025 to 31 August 2028, around 2026/27",
+        ],
+      },
+    });
+  });
+
+  it("judges a correction by the standard fee it was charged at, not today's", async () => {
+    // The programme's fee rises after the charge was raised.
+    await db().programme.updateMany({ data: { annualFeePence: 979_000 } });
+
+    // Moving the due date alone needs no note.
+    expect((await correct({ dueDate: "2026-11-30" })).status).toBe(200);
+    // Today's fee is a different amount from the one it was charged at.
+    expect(await bodyOf(await correct({ amountPence: 979_000 }))).toMatchObject(
+      {
+        errors: {
+          note: [
+            "Explain why the amount differs from the standard fee of £9,535.00",
+          ],
+        },
+      },
+    );
   });
 
   it("records nothing when the charge is saved unchanged", async () => {

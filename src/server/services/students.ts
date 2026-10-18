@@ -346,6 +346,7 @@ async function insertStudent(
                       programme.title,
                     ),
                     amountPence: programme.annualFeePence,
+                    standardFeePence: programme.annualFeePence,
                     dueDate: toDbDate(
                       defaultDueDate(today, details.academicYear),
                     ),

@@ -104,7 +104,8 @@ export function CorrectFeeDialog({
           <DialogHeader>
             <DialogTitle>Correct the fee for {charge.academicYear}</DialogTitle>
             <DialogDescription>
-              Standard fee: {formatMoney(standardFeePence)} a year.
+              Charged when the standard fee was {formatMoney(standardFeePence)}{" "}
+              a year.
             </DialogDescription>
           </DialogHeader>
           <FieldGroup>

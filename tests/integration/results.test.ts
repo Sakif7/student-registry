@@ -463,6 +463,7 @@ describe("listResultsWorklist", () => {
         academicYear: "2026/27",
         description: "Tuition fee 2026/27",
         amountPence: 1_195_000,
+        standardFeePence: 1_195_000,
         dueDate: toDbDate("2026-10-09"),
       },
     });
