@@ -486,9 +486,26 @@ export async function saveMarks(
 ): Promise<AssessmentDetail> {
   const staff = requireStaff(session);
   const { marks } = parseInput(marksheetSchema, input);
-  const assessment = isId(assessmentId)
+  const found = isId(assessmentId)
     ? await db().assessment.findUnique({
         where: { id: assessmentId },
+        select: { id: true },
+      })
+    : null;
+  if (!found) throw assessmentNotFound();
+
+  try {
+    await db().$transaction(async (tx) => {
+      // One marksheet save at a time for an assessment: each then reads the
+      // marks as the last one left them, so it never updates or removes a
+      // mark that has just gone, and its audit trail says what really
+      // changed. The assessment is read under the same lock, which moving
+      // its deadline takes too: a deadline moved to another year meanwhile
+      // would change whose marks these can be.
+      await tx.$queryRaw`
+        SELECT id FROM assessments WHERE id = ${found.id}::uuid FOR UPDATE`;
+      const assessment = await tx.assessment.findUniqueOrThrow({
+        where: { id: found.id },
         select: {
           id: true,
           title: true,
@@ -496,59 +513,11 @@ export async function saveMarks(
           deadline: true,
           closedAt: true,
         },
-      })
-    : null;
-  if (!assessment) throw assessmentNotFound();
-  if (!canEnterMarks(assessment, new Date())) {
-    throw new AppError("CONFLICT", MARKS_NOT_YET_MESSAGE);
-  }
-  const academicYear = academicYearAt(assessment.deadline, collegeTimeZone());
-
-  const students = await db().student.findMany({
-    where: { studentNumber: { in: Object.keys(marks) } },
-    select: {
-      id: true,
-      studentNumber: true,
-      // On the module at the deadline: not left before it.
-      registrations: {
-        where: {
-          moduleId: assessment.moduleId,
-          academicYear,
-          OR: [{ endedAt: null }, { endedAt: { gte: assessment.deadline } }],
-        },
-        select: { id: true },
-      },
-      submissions: { where: { assessmentId }, select: { id: true } },
-      results: { where: { assessmentId }, select: { id: true, mark: true } },
-    },
-  });
-  const fieldErrors: FieldErrors = {};
-  for (const studentNumber of Object.keys(marks)) {
-    const student = students.find((s) => s.studentNumber === studentNumber);
-    if (!student) {
-      fieldErrors[`marks.${studentNumber}`] = ["There is no such student"];
-    } else if (
-      student.registrations.length === 0 &&
-      student.submissions.length === 0 &&
-      student.results.length === 0
-    ) {
-      fieldErrors[`marks.${studentNumber}`] = [
-        "This student isn't registered on the assessment's module",
-      ];
-    }
-  }
-  if (Object.keys(fieldErrors).length > 0) {
-    throw new AppError("VALIDATION", "Some marks can't be saved.", fieldErrors);
-  }
-
-  try {
-    await db().$transaction(async (tx) => {
-      // One marksheet save at a time for an assessment: each then reads the
-      // marks as the last one left them, so it never updates or removes a
-      // mark that has just gone, and its audit trail says what really
-      // changed.
-      await tx.$queryRaw`
-        SELECT id FROM assessments WHERE id = ${assessment.id}::uuid FOR UPDATE`;
+      });
+      if (!canEnterMarks(assessment, new Date())) {
+        throw new AppError("CONFLICT", MARKS_NOT_YET_MESSAGE);
+      }
+      const students = await studentsToMark(tx, assessment, Object.keys(marks));
       const current = new Map(
         (
           await tx.assessmentResult.findMany({
@@ -603,6 +572,62 @@ export async function saveMarks(
     throw error;
   }
   return getAssessment(session, assessmentId);
+}
+
+/**
+ * The students named on a marksheet, each of whom must be on the
+ * assessment's module at its deadline, or already have work or a mark for
+ * it.
+ *
+ * @throws AppError: VALIDATION, with an error per student ID that is unknown
+ *   or not on the module.
+ */
+async function studentsToMark(
+  tx: Prisma.TransactionClient,
+  assessment: { id: string; moduleId: string; deadline: Date },
+  studentNumbers: readonly string[],
+) {
+  const academicYear = academicYearAt(assessment.deadline, collegeTimeZone());
+  const students = await tx.student.findMany({
+    where: { studentNumber: { in: [...studentNumbers] } },
+    select: {
+      id: true,
+      studentNumber: true,
+      // On the module at the deadline: not left before it.
+      registrations: {
+        where: {
+          moduleId: assessment.moduleId,
+          academicYear,
+          OR: [{ endedAt: null }, { endedAt: { gte: assessment.deadline } }],
+        },
+        select: { id: true },
+      },
+      submissions: {
+        where: { assessmentId: assessment.id },
+        select: { id: true },
+      },
+      results: { where: { assessmentId: assessment.id }, select: { id: true } },
+    },
+  });
+  const fieldErrors: FieldErrors = {};
+  for (const studentNumber of studentNumbers) {
+    const student = students.find((s) => s.studentNumber === studentNumber);
+    if (!student) {
+      fieldErrors[`marks.${studentNumber}`] = ["There is no such student"];
+    } else if (
+      student.registrations.length === 0 &&
+      student.submissions.length === 0 &&
+      student.results.length === 0
+    ) {
+      fieldErrors[`marks.${studentNumber}`] = [
+        "This student isn't registered on the assessment's module",
+      ];
+    }
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    throw new AppError("VALIDATION", "Some marks can't be saved.", fieldErrors);
+  }
+  return students;
 }
 
 function assessmentNotFound(): AppError {
