@@ -107,10 +107,14 @@ async function AssessmentView({ params }: { params: Params }) {
               module={assessment.module}
               registered={registeredOn(registered, assessment.module.code)}
               calendars={calendars}
-              // Another year's students can have it while nobody has work.
-              canChangeYear={assessment.students.every(
-                ({ submission, result }) => !submission && !result,
-              )}
+              // Another year's students can have it while its deadline is
+              // still to come and nobody has work.
+              canChangeYear={
+                assessment.deadline > new Date() &&
+                assessment.students.every(
+                  ({ submission, result }) => !submission && !result,
+                )
+              }
               timeZone={timeZone}
               now={instantToWallTime(new Date(), timeZone)}
             />

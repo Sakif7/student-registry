@@ -508,6 +508,29 @@ describe("PATCH /api/assessments/[assessmentId]", () => {
     );
   });
 
+  it("keeps a deadline that has passed in its academic year, work or none", async () => {
+    // Its students were due on 10 October, and nobody submitted: work they
+    // missed, which a move to another year would erase.
+    const { id } = await insertAssessment({
+      moduleId: computingModuleId,
+      deadline: new Date("2026-10-10T16:00:00Z"),
+    });
+    expect(await update(id, { deadline: "2027-09-15T17:00" })).toMatchObject({
+      status: 400,
+      body: {
+        errors: {
+          deadline: [
+            "The deadline has passed, so keep it within 2026/27, by 31 Aug 2027: its students were due then. For another year, set a new assessment.",
+          ],
+        },
+      },
+    });
+    // Extended within its year, it stays theirs.
+    expect((await update(id, { deadline: "2026-10-30T17:00" })).status).toBe(
+      200,
+    );
+  });
+
   it("refuses an empty change, a past deadline, an unknown ID and non-staff", async () => {
     const { id } = await insertAssessment({ moduleId: computingModuleId });
     expect(await update(id, {})).toMatchObject({

@@ -356,8 +356,9 @@ export async function createAssessment(
  * Changes an assessment's title or deadline, or closes or reopens it to
  * submissions (staff only). Late flags follow the new deadline at once,
  * because lateness is worked out when read. A deadline moves to another
- * academic year, and so to that year's students, only while nothing has
- * been submitted or marked.
+ * academic year, and so to that year's students, only while it is still to
+ * come and nothing has been submitted or marked: once it has passed, its
+ * students were due then, and moving it would erase the work they missed.
  *
  * @throws AppError: VALIDATION, NOT_FOUND; CONFLICT for reopening an
  *   assessment whose academic year has ended.
@@ -385,6 +386,14 @@ export async function updateAssessment(
   const changesYear =
     changes.deadline !== undefined &&
     academicYearAt(changes.deadline, timeZone) !== academicYear;
+  const lastDay = formatDate(academicYearSpan(academicYear).last);
+  if (changesYear && assessment.deadline <= now) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      deadline: [
+        `The deadline has passed, so keep it within ${academicYear}, by ${lastDay}: its students were due then. For another year, set a new assessment.`,
+      ],
+    });
+  }
 
   let closedAt: Date | null | undefined;
   if (changes.closed === true) {
@@ -416,7 +425,7 @@ export async function updateAssessment(
       if (submissions + marks > 0) {
         throw new AppError("VALIDATION", "Some fields need correcting.", {
           deadline: [
-            `Work has been submitted or marked, so keep the deadline within ${academicYear}, by ${formatDate(academicYearSpan(academicYear).last)}: it is that year's students' work. For another year, set a new assessment.`,
+            `Work has been submitted or marked, so keep the deadline within ${academicYear}, by ${lastDay}: it is that year's students' work. For another year, set a new assessment.`,
           ],
         });
       }
