@@ -118,6 +118,62 @@ test("defers a student with a reason, kept in the status history", async ({
   ).toBeVisible();
 });
 
+test("brings a deferred student back in the year they return to, on its modules", async ({
+  page,
+}) => {
+  const thisYear = academicYearFromNow(0);
+  const nextYear = academicYearFromNow(1);
+  await page.goto(`/staff/students/${demoStudent("sofia")}`);
+  await page.getByRole("button", { name: "Change status" }).click();
+  const dialog = page.getByRole("dialog", { name: "Change status" });
+  await dialog.getByLabel("New status").selectOption("ENROLLED");
+
+  // A return names its year: this one, which Sofia's record is in, or next.
+  const returningIn = dialog.getByLabel("Returning in");
+  await expect(returningIn).toHaveValue(thisYear);
+  await expect(returningIn.getByRole("option")).toHaveText([
+    thisYear,
+    nextYear,
+  ]);
+  await returningIn.selectOption(nextYear);
+  await expect(dialog.getByLabel("Year of study")).toHaveValue("1");
+  await dialog.getByRole("button", { name: "Change status" }).click();
+  await expect(dialog).toBeHidden();
+
+  const details = page
+    .locator("[data-slot=card]")
+    .filter({ has: page.getByRole("heading", { name: "Details" }) });
+  await expect(
+    details.getByRole("definition").filter({ hasText: nextYear }),
+  ).toBeVisible();
+  await expect(details.getByText("Enrolled", { exact: true })).toBeVisible();
+
+  // Registered on the core modules of the year she returns to.
+  await page.getByRole("tab", { name: "Modules" }).click();
+  const modules = page.locator("[data-slot=card]").filter({
+    has: page.getByRole("heading", { name: `Modules in ${nextYear}` }),
+  });
+  await expect(modules.getByRole("row", { name: /BM4001/ })).toBeVisible();
+});
+
+test("warns that a returning student's sign-in stays off until turned on", async ({
+  page,
+}) => {
+  // Hannah withdrew, and her sign-in was turned off.
+  await page.goto(`/staff/students/${demoStudent("hannah")}`);
+  await page.getByRole("button", { name: "Change status" }).click();
+  const dialog = page.getByRole("dialog", { name: "Change status" });
+  await dialog.getByLabel("New status").selectOption("ENROLLED");
+  await expect(
+    dialog.getByText(/Sign-in is turned off for this student/),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Change status" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(
+    page.getByText("Status changed to Enrolled. Sign-in is still turned off."),
+  ).toBeVisible();
+});
+
 test("sorts the list by a column, and goes from a row to part of a record", async ({
   page,
 }) => {
