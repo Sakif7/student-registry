@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   ACCEPTED_DOCUMENTS,
   type AssessmentState,
+  assessmentListSchema,
   assessmentState,
   checkSubmission,
   checkUploadedFile,
   compareAssessments,
   documentKindOf,
+  filterAssessments,
   expectedToSubmit,
   isLate,
   MAX_UPLOAD_BYTES,
@@ -378,5 +380,83 @@ describe("sortAssessments", () => {
       "Essay",
       "Proposal",
     ]);
+  });
+});
+
+describe("filterAssessments", () => {
+  const listed = (
+    title: string,
+    module: { code: string; title: string },
+    academicYear: string,
+    state: AssessmentState,
+  ) => ({ title, module, academicYear, state });
+  const databases = { code: "CS4002", title: "Databases" };
+  const list = [
+    listed("SQL lab test", databases, "2026/27", "OPEN"),
+    listed("Design report", databases, "2026/27", "CLOSED"),
+    listed(
+      "Essay",
+      { code: "BM4001", title: "Management" },
+      "2025/26",
+      "CLOSED",
+    ),
+  ];
+  const titles = (filtered: readonly { title: string }[]) =>
+    filtered.map(({ title }) => title);
+
+  it("searches titles and the modules' codes and titles", () => {
+    expect(titles(filterAssessments(list, { q: "lab" }))).toEqual([
+      "SQL lab test",
+    ]);
+    expect(titles(filterAssessments(list, { q: "cs40" }))).toEqual([
+      "SQL lab test",
+      "Design report",
+    ]);
+    expect(titles(filterAssessments(list, { q: "management" }))).toEqual([
+      "Essay",
+    ]);
+  });
+
+  it("narrows to a state and an academic year, together with a search", () => {
+    expect(titles(filterAssessments(list, { state: "CLOSED" }))).toEqual([
+      "Design report",
+      "Essay",
+    ]);
+    expect(
+      titles(filterAssessments(list, { state: "CLOSED", year: "2026/27" })),
+    ).toEqual(["Design report"]);
+    expect(filterAssessments(list, { q: "essay", year: "2026/27" })).toEqual(
+      [],
+    );
+  });
+
+  it("reads the list's settings from the URL, ignoring what it can't use", () => {
+    expect(
+      assessmentListSchema.parse({
+        q: " lab ",
+        state: "CLOSED",
+        year: "2026/27",
+        page: "2",
+        sort: "deadline",
+        dir: "desc",
+      }),
+    ).toEqual({
+      q: "lab",
+      state: "CLOSED",
+      year: "2026/27",
+      page: 2,
+      sort: "deadline",
+      dir: "desc",
+    });
+    expect(
+      assessmentListSchema.parse({ state: "LOST", year: "2026", page: "x" }),
+    ).toEqual({
+      q: undefined,
+      state: undefined,
+      year: undefined,
+      page: undefined,
+      sort: undefined,
+      dir: undefined,
+    });
   });
 });

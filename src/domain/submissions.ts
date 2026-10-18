@@ -2,12 +2,14 @@
 // and when work counts as late.
 import { z } from "zod";
 
+import { academicYearSchema } from "./academic-year";
 import {
   canSubmitWork,
   type EnrolmentStatus,
   type StatusChangeLine,
   statusAt,
 } from "./enrolment";
+import { listPageSchema, listSearchSchema, matchesSearch } from "./lists";
 import { type SortDirection, sortDirectionSchema } from "./sorting";
 
 /** Largest file accepted, in bytes (10 MB). */
@@ -208,6 +210,47 @@ export const assessmentOrderSchema = z.object({
   dir: sortDirectionSchema,
 });
 export type AssessmentOrder = z.infer<typeof assessmentOrderSchema>;
+
+const ASSESSMENT_STATES = ["OPEN", "ACCEPTING_LATE", "CLOSED"] as const;
+
+/**
+ * The staff list of assessments as the URL asks for it: a search, a state,
+ * an academic year, the order and the page. Unknown values are ignored.
+ */
+export const assessmentListSchema = assessmentOrderSchema.extend({
+  q: listSearchSchema,
+  state: z.enum(ASSESSMENT_STATES).optional().catch(undefined),
+  year: academicYearSchema.optional().catch(undefined),
+  page: listPageSchema,
+});
+export type AssessmentListQuery = z.infer<typeof assessmentListSchema>;
+
+/**
+ * Narrows the staff list of assessments to a search of their titles and
+ * modules' codes and titles, a state and an academic year.
+ */
+export function filterAssessments<
+  Assessment extends {
+    title: string;
+    module: { code: string; title: string };
+    academicYear: string;
+    state: AssessmentState;
+  },
+>(
+  assessments: readonly Assessment[],
+  { q, state, year }: { q?: string; state?: AssessmentState; year?: string },
+): Assessment[] {
+  return assessments.filter(
+    (assessment) =>
+      (!state || assessment.state === state) &&
+      (!year || assessment.academicYear === year) &&
+      matchesSearch(q, [
+        assessment.title,
+        assessment.module.code,
+        assessment.module.title,
+      ]),
+  );
+}
 
 /** An assessment as the staff list shows it. */
 interface ListedAssessment {
