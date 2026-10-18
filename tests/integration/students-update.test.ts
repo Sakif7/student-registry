@@ -307,6 +307,17 @@ describe("POST /api/students/[studentNumber]/status", () => {
         ],
       },
     });
+    // Named outright, the record's own year is no different.
+    expect(await bodyOf(await back({ academicYear: "2025/26" }))).toMatchObject(
+      {
+        status: 400,
+        errors: {
+          academicYear: [
+            "2025/26 has ended: choose the academic year the student returns to",
+          ],
+        },
+      },
+    );
     expect(await bodyOf(await back({ academicYear: "2024/25" }))).toMatchObject(
       {
         errors: {

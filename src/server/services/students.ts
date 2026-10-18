@@ -832,8 +832,10 @@ function returnPlacement(
   const today = collegeToday();
   const years = returnYears(today);
   const academicYear = input.academicYear ?? current.academicYear;
+  // The record's own year, whether named or not; any other must be one of
+  // those a student can return in.
   if (
-    input.academicYear === undefined &&
+    academicYear === current.academicYear &&
     academicYearEnded(academicYear, today)
   ) {
     throw new AppError("VALIDATION", "Some fields need correcting.", {
