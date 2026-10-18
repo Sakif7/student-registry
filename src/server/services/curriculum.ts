@@ -24,6 +24,7 @@ import {
 import {
   academicYearEnded,
   academicYearOn,
+  academicYearsAround,
   isAcademicYear,
 } from "@/domain/academic-year";
 import { fromDbDate, toDbDate } from "@/domain/college-time";
@@ -512,6 +513,22 @@ export async function getAcademicYear(
   requireSession(session);
   const found = await db().academicYear.findUnique({ where: { year } });
   return found && toCalendar(found);
+}
+
+/**
+ * The semester dates of this academic year and next, those set up, by year
+ * (staff only): for saying where a deadline being set falls.
+ */
+export async function calendarsAhead(
+  session: Session | null,
+): Promise<Record<string, SemesterDates>> {
+  requireStaff(session);
+  const years = await db().academicYear.findMany({
+    where: {
+      year: { in: academicYearsAround(academicYearOn(collegeToday()), 0, 1) },
+    },
+  });
+  return Object.fromEntries(years.map((row) => [row.year, toCalendar(row)]));
 }
 
 /**

@@ -31,11 +31,14 @@ import {
   formatFileSize,
 } from "@/lib/format";
 import { collegeTimeZone, collegeToday } from "@/server/college";
+import { registeredOn } from "@/lib/deadline-notes";
 import { orNotFound } from "@/server/pages";
 import {
   type AssessmentDetail,
   getAssessment,
+  registeredByModule,
 } from "@/server/services/assessments";
+import { calendarsAhead } from "@/server/services/curriculum";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Assessment" };
@@ -68,7 +71,11 @@ export default function AssessmentPage({
 async function AssessmentView({ params }: { params: Params }) {
   const session = await requirePageRole("staff");
   const { assessmentId } = await params;
-  const assessment = await orNotFound(getAssessment(session, assessmentId));
+  const [assessment, registered, calendars] = await Promise.all([
+    orNotFound(getAssessment(session, assessmentId)),
+    registeredByModule(session),
+    calendarsAhead(session),
+  ]);
   const timeZone = collegeTimeZone();
   // Saved marks not yet published; those of students whose results are
   // withheld stay unpublished when the rest are published.
@@ -97,6 +104,13 @@ async function AssessmentView({ params }: { params: Params }) {
               assessmentId={assessment.id}
               title={assessment.title}
               deadline={instantToWallTime(assessment.deadline, timeZone)}
+              module={assessment.module}
+              registered={registeredOn(registered, assessment.module.code)}
+              calendars={calendars}
+              // Another year's students can have it while nobody has work.
+              canChangeYear={assessment.students.every(
+                ({ submission, result }) => !submission && !result,
+              )}
               timeZone={timeZone}
               now={instantToWallTime(new Date(), timeZone)}
             />

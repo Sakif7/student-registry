@@ -5,7 +5,7 @@
 // after the deadline has passed without having to move the deadline.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -31,14 +31,22 @@ import {
   deadlineFieldSchema,
 } from "@/domain/assessments";
 import type { WallTime } from "@/domain/college-time";
+import type { Semester, SemesterDates } from "@/domain/curriculum";
 import { ApiError, apiRequest } from "@/lib/api-client";
+import { deadlineNotes } from "@/lib/deadline-notes";
 import { formatDate } from "@/lib/format";
 import { refreshAfterWrite } from "@/server/actions";
+
+import { DeadlineNotes } from "./deadline-notes";
 
 export function EditAssessmentDialog({
   assessmentId,
   title,
   deadline,
+  module,
+  registered,
+  calendars,
+  canChangeYear,
   timeZone,
   now,
 }: {
@@ -46,12 +54,21 @@ export function EditAssessmentDialog({
   title: string;
   /** The current deadline as a wall-clock time in the college's time zone. */
   deadline: WallTime;
+  module: { code: string; semester: Semester };
+  /** Enrolled students on the module this year and next, by year. */
+  registered: Record<string, number>;
+  /** The semester dates of the years set up, by year. */
+  calendars: Record<string, SemesterDates>;
+  /**
+   * Whether the deadline may move to another academic year: only while
+   * nothing has been submitted or marked (see updateAssessment).
+   */
+  canChangeYear: boolean;
   timeZone: string;
   /** The college's current wall-clock time, the earliest deadline offered. */
   now: WallTime;
 }) {
   const [open, setOpen] = useState(false);
-  // A deadline can't leave its academic year (see updateAssessment).
   const academicYear = academicYearOn(deadline.slice(0, 10));
   const lastDay = academicYearSpan(academicYear).last;
   const form = useForm({
@@ -76,6 +93,12 @@ export function EditAssessmentDialog({
     defaultValues: { title, deadline },
   });
   const { errors, isSubmitting } = form.formState;
+  const typed = useWatch({ control: form.control, name: "deadline" });
+  // Only a deadline being moved has something new to say.
+  const notes =
+    typed === deadline
+      ? []
+      : deadlineNotes(typed, module, registered, calendars);
 
   async function save(values: { title: string; deadline: string }) {
     const changes = {
@@ -140,7 +163,14 @@ export function EditAssessmentDialog({
             <FormField
               id="edit-deadline"
               label="Deadline"
-              description={`In college time (${timeZone}), by ${formatDate(lastDay)}: the assessment is for ${academicYear}'s students.`}
+              description={
+                <>
+                  {canChangeYear
+                    ? `In college time (${timeZone}). Moved into another academic year, it becomes that year's students' assessment.`
+                    : `In college time (${timeZone}), by ${formatDate(lastDay)}: work has been submitted or marked, so the assessment stays with ${academicYear}'s students.`}
+                  <DeadlineNotes notes={notes} />
+                </>
+              }
               error={errors.deadline?.message}
             >
               {(control) => (
@@ -148,7 +178,7 @@ export function EditAssessmentDialog({
                   {...control}
                   type="datetime-local"
                   min={now}
-                  max={`${lastDay}T23:59`}
+                  max={canChangeYear ? undefined : `${lastDay}T23:59`}
                   className="w-fit"
                   {...form.register("deadline")}
                 />

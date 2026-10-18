@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Form } from "@/components/forms/form";
@@ -25,11 +25,22 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import { assessmentFormSchema } from "@/domain/assessments";
-import { MODULE_KIND_LABELS, SEMESTER_LABELS } from "@/domain/curriculum";
+import {
+  MODULE_KIND_LABELS,
+  SEMESTER_LABELS,
+  type SemesterDates,
+} from "@/domain/curriculum";
 import type { WallTime } from "@/domain/college-time";
 import { ApiError, apiRequest } from "@/lib/api-client";
+import {
+  deadlineNotes,
+  type RegisteredByModule,
+  registeredOn,
+} from "@/lib/deadline-notes";
 import { refreshAfterWrite } from "@/server/actions";
 import type { ProgrammeModules } from "@/server/services/assessments";
+
+import { DeadlineNotes } from "./deadline-notes";
 
 interface AssessmentValues {
   moduleCode: string;
@@ -39,11 +50,17 @@ interface AssessmentValues {
 
 export function AssessmentForm({
   programmes,
+  registered,
+  calendars,
   timeZone,
   now,
 }: {
   /** Every programme, with its modules year by year. */
   programmes: ProgrammeModules[];
+  /** Who a deadline this year or next reaches, by module. */
+  registered: RegisteredByModule;
+  /** The semester dates of the years set up, by year. */
+  calendars: Record<string, SemesterDates>;
   timeZone: string;
   /** The college's current wall-clock time, the earliest deadline offered. */
   now: WallTime;
@@ -60,6 +77,20 @@ export function AssessmentForm({
   const years = [
     ...new Set(programme?.modules.map(({ yearOfStudy }) => yearOfStudy)),
   ];
+  // Where the deadline falls, as it is typed: a year typed wrongly shows.
+  const [moduleCode, deadline] = useWatch({
+    control: form.control,
+    name: ["moduleCode", "deadline"],
+  });
+  const chosen = programme?.modules.find(({ code }) => code === moduleCode);
+  const notes = chosen
+    ? deadlineNotes(
+        deadline,
+        chosen,
+        registeredOn(registered, chosen.code),
+        calendars,
+      )
+    : [];
 
   function chooseProgramme(event: ChangeEvent<HTMLSelectElement>) {
     setProgrammeCode(event.currentTarget.value);
@@ -165,7 +196,13 @@ export function AssessmentForm({
         <FormField
           id="deadline"
           label="Deadline"
-          description={`In college time (${timeZone}). Work submitted after the deadline is accepted but marked late.`}
+          description={
+            <>
+              In college time ({timeZone}). Work submitted after the deadline is
+              accepted but marked late.
+              <DeadlineNotes notes={notes} />
+            </>
+          }
           error={errors.deadline?.message}
         >
           {(control) => (

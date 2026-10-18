@@ -12,7 +12,10 @@ import {
 } from "@/app/api/assessments/route";
 import { GET as listModules } from "@/app/api/modules/route";
 import { db } from "@/server/db";
-import { listProgrammeModules } from "@/server/services/assessments";
+import {
+  listProgrammeModules,
+  registeredByModule,
+} from "@/server/services/assessments";
 
 import {
   createAssessment as insertAssessment,
@@ -476,15 +479,26 @@ describe("PATCH /api/assessments/[assessmentId]", () => {
     });
   });
 
-  it("keeps a moved deadline within the assessment's academic year", async () => {
-    // Due 20 November 2026, so for 2026/27's students.
-    const { id } = await insertAssessment({ moduleId: computingModuleId });
+  it("moves a deadline to another academic year only while there is no work", async () => {
+    // Set for 2027 when 2026 was meant: nothing submitted yet, so it moves,
+    // and becomes 2027/28's, then back to 2026/27's.
+    const { id } = await insertAssessment({
+      moduleId: computingModuleId,
+      deadline: new Date("2027-11-20T17:00:00.000Z"),
+    });
+    expect(await update(id, { deadline: "2026-11-20T17:00" })).toMatchObject({
+      status: 200,
+      body: { assessment: { academicYear: "2026/27" } },
+    });
+
+    // Once there is work, it is that year's students' work.
+    await createSubmission({ studentId: amelia.id, assessmentId: id });
     expect(await update(id, { deadline: "2027-09-01T17:00" })).toMatchObject({
       status: 400,
       body: {
         errors: {
           deadline: [
-            "Keep the deadline within 2026/27, by 31 Aug 2027: the assessment is for that year's students. For another year, set a new assessment.",
+            "Work has been submitted or marked, so keep the deadline within 2026/27, by 31 Aug 2027: it is that year's students' work. For another year, set a new assessment.",
           ],
         },
       },
@@ -572,6 +586,23 @@ describe("listProgrammeModules", () => {
     ).toEqual(["CS5005", "DS7001"]);
     await expect(
       listProgrammeModules(await sessionFor(asStudent("SMS-2025-0001"))),
+    ).rejects.toMatchObject({ kind: "FORBIDDEN" });
+  });
+});
+
+describe("registeredByModule", () => {
+  it("counts the enrolled students a deadline this year or next reaches", async () => {
+    // Amelia, Oliver and the withdrawn Hannah are on CS4001 for 2026/27;
+    // Amelia is on it for 2027/28 too, and on 2025/26's, which isn't counted.
+    await registerStudents(computingModuleId, [amelia.id], "2027/28");
+    await registerStudents(computingModuleId, [amelia.id], "2025/26");
+
+    expect(await registeredByModule(await sessionFor(STAFF))).toEqual({
+      years: ["2026/27", "2027/28"],
+      byModule: { CS4001: { "2026/27": 2, "2027/28": 1 } },
+    });
+    await expect(
+      registeredByModule(await sessionFor(asStudent("SMS-2025-0001"))),
     ).rejects.toMatchObject({ kind: "FORBIDDEN" });
   });
 });

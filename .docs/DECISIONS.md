@@ -363,12 +363,19 @@ deadline until then.
 - A deadline must be in the future when it is set or moved. A deadline
   already past would make every submission late, and is far more likely to be
   a typo than a real intention.
-- A deadline can be moved only within its academic year. Moving it past 31
-  August would hand the assessment to the next year's students, and the
-  students who had already submitted would lose it. For another year, staff
-  set a new assessment. The same rule means a September deadline belongs to
-  the year starting that September, so a dissertation due after the summer
-  can't yet be set for the year before (see "Known limitations").
+- A deadline moves to another academic year only while nothing has been
+  submitted or marked, and the assessment then becomes that year's
+  students'. That is how a year typed wrongly (2027 for 2026) is put right,
+  as assessments are never deleted. Once there is work, the deadline stays
+  within its year: moving it past 31 August would hand the work to the next
+  year's students. For another year, staff set a new assessment. The same
+  rule means a September deadline belongs to the year starting that
+  September, so a dissertation due after the summer can't yet be set for the
+  year before (see "Known limitations").
+- As a deadline is typed, the form says the academic year it falls in, how
+  many students are registered on the module that year, and when it falls
+  outside the semester the module is taught in, so a wrong year or semester
+  shows before it is saved.
 - Deadlines are typed in college time. A time inside the hour the clocks skip
   in spring is refused with an explanation, rather than silently moved. A time
   inside the hour that happens twice in autumn means its first occurrence

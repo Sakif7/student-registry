@@ -12,7 +12,9 @@ import {
 } from "@/domain/assessments";
 import {
   academicYearAt,
+  academicYearOn,
   academicYearSpan,
+  academicYearsAround,
   yearEndedSince,
 } from "@/domain/academic-year";
 import { instantToWallTime } from "@/domain/college-time";
@@ -33,10 +35,11 @@ import {
   isLate,
 } from "@/domain/submissions";
 import type { Prisma } from "@/generated/prisma/client";
+import type { RegisteredByModule } from "@/lib/deadline-notes";
 import { formatDate } from "@/lib/format";
 
 import { recordEvent } from "../audit";
-import { collegeTimeZone } from "../college";
+import { collegeTimeZone, collegeToday } from "../college";
 import { db } from "../db";
 import {
   AppError,
@@ -173,6 +176,28 @@ export async function listProgrammeModules(
     ...programme,
     modules: modules.map(({ module, ...place }) => ({ ...module, ...place })),
   }));
+}
+
+/**
+ * How many enrolled students are registered on each module, this academic
+ * year and next: who a deadline set or moved into one of those years
+ * reaches (staff only).
+ */
+export async function registeredByModule(
+  session: Session | null,
+): Promise<RegisteredByModule> {
+  requireStaff(session);
+  const years = academicYearsAround(academicYearOn(collegeToday()), 0, 1);
+  const rows = await db().moduleRegistration.findMany({
+    where: { academicYear: { in: years }, student: { status: "ENROLLED" } },
+    select: { academicYear: true, module: { select: { code: true } } },
+  });
+  const byModule: Record<string, Record<string, number>> = {};
+  for (const { academicYear, module } of rows) {
+    const byYear = (byModule[module.code] ??= {});
+    byYear[academicYear] = (byYear[academicYear] ?? 0) + 1;
+  }
+  return { years, byModule };
 }
 
 /** Every assessment, with submission counts (staff only). */
@@ -326,9 +351,12 @@ export async function createAssessment(
 /**
  * Changes an assessment's title or deadline, or closes or reopens it to
  * submissions (staff only). Late flags follow the new deadline at once,
- * because lateness is worked out when read.
+ * because lateness is worked out when read. A deadline moves to another
+ * academic year, and so to that year's students, only while nothing has
+ * been submitted or marked.
  *
- * @throws AppError: VALIDATION, NOT_FOUND.
+ * @throws AppError: VALIDATION, NOT_FOUND; CONFLICT for reopening an
+ *   assessment whose academic year has ended.
  */
 export async function updateAssessment(
   session: Session | null,
@@ -350,19 +378,9 @@ export async function updateAssessment(
   if (!assessment) throw assessmentNotFound();
   const timeZone = collegeTimeZone();
   const academicYear = academicYearAt(assessment.deadline, timeZone);
-  if (
-    changes.deadline &&
-    academicYearAt(changes.deadline, timeZone) !== academicYear
-  ) {
-    // Its students are those registered on the module for the year of its
-    // deadline, so moving it to another year would hand it to another
-    // cohort, work already submitted and all.
-    throw new AppError("VALIDATION", "Some fields need correcting.", {
-      deadline: [
-        `Keep the deadline within ${academicYear}, by ${formatDate(academicYearSpan(academicYear).last)}: the assessment is for that year's students. For another year, set a new assessment.`,
-      ],
-    });
-  }
+  const changesYear =
+    changes.deadline !== undefined &&
+    academicYearAt(changes.deadline, timeZone) !== academicYear;
 
   let closedAt: Date | null | undefined;
   if (changes.closed === true) {
@@ -379,6 +397,26 @@ export async function updateAssessment(
     closedAt = null;
   }
   await db().$transaction(async (tx) => {
+    if (changesYear) {
+      // Its students are those registered on the module for the year of
+      // its deadline, so another year hands it to another cohort. That's
+      // how a year typed wrongly is put right, but not once there is work:
+      // the work would go with it. Locked, as submitting work shares the
+      // lock, so none can arrive while it moves.
+      await tx.$queryRaw`
+        SELECT id FROM assessments WHERE id = ${assessment.id}::uuid FOR UPDATE`;
+      const [submissions, marks] = await Promise.all([
+        tx.submission.count({ where: { assessmentId: assessment.id } }),
+        tx.assessmentResult.count({ where: { assessmentId: assessment.id } }),
+      ]);
+      if (submissions + marks > 0) {
+        throw new AppError("VALIDATION", "Some fields need correcting.", {
+          deadline: [
+            `Work has been submitted or marked, so keep the deadline within ${academicYear}, by ${formatDate(academicYearSpan(academicYear).last)}: it is that year's students' work. For another year, set a new assessment.`,
+          ],
+        });
+      }
+    }
     const updated = await tx.assessment.update({
       where: { id: assessment.id },
       data: { title: changes.title, deadline: changes.deadline, closedAt },
