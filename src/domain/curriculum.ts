@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { academicYearSpan, startYearOf } from "./academic-year";
 import { type CalendarDate, calendarDateSchema } from "./college-time";
+import { listPageSchema, listSearchSchema, matchesSearch } from "./lists";
 import { chargeAmountSchema } from "./money";
 
 export const SEMESTERS = ["FIRST", "SECOND", "ALL_YEAR"] as const;
@@ -317,4 +318,72 @@ export function semesterOn(
     return "SECOND";
   }
   return null;
+}
+
+/** The programmes list as the URL asks for it: a search and the page. */
+export const programmeListSchema = z.object({
+  q: listSearchSchema,
+  page: listPageSchema,
+});
+export type ProgrammeListQuery = z.infer<typeof programmeListSchema>;
+
+/** In the module catalogue's programme filter: the modules in no programme. */
+export const NO_PROGRAMME = "none";
+
+/**
+ * The module catalogue as the URL asks for it: a search, when modules are
+ * taught, the programme they are in (or NO_PROGRAMME), and the page. A
+ * programme code is upper case, so "none" can't be one.
+ */
+export const moduleListSchema = z.object({
+  q: listSearchSchema,
+  semester: z.enum(SEMESTERS).optional().catch(undefined),
+  programme: z
+    .string()
+    .trim()
+    .max(16)
+    .optional()
+    .catch(undefined)
+    .transform((value) => value || undefined),
+  page: listPageSchema,
+});
+export type ModuleListQuery = z.infer<typeof moduleListSchema>;
+
+/** Narrows programmes to a search of their codes and titles. */
+export function filterProgrammes<
+  Programme extends { code: string; title: string },
+>(programmes: readonly Programme[], q: string | undefined): Programme[] {
+  return programmes.filter((programme) =>
+    matchesSearch(q, [programme.code, programme.title]),
+  );
+}
+
+/**
+ * Narrows the module catalogue to a search of codes and titles, when
+ * modules are taught, and the programme they are part of (or none).
+ */
+export function filterModules<
+  Module extends {
+    code: string;
+    title: string;
+    semester: Semester;
+    programmes: readonly { code: string }[];
+  },
+>(
+  modules: readonly Module[],
+  {
+    q,
+    semester,
+    programme,
+  }: { q?: string; semester?: Semester; programme?: string },
+): Module[] {
+  return modules.filter(
+    (module) =>
+      matchesSearch(q, [module.code, module.title]) &&
+      (!semester || module.semester === semester) &&
+      (!programme ||
+        (programme === NO_PROGRAMME
+          ? module.programmes.length === 0
+          : module.programmes.some(({ code }) => code === programme))),
+  );
 }

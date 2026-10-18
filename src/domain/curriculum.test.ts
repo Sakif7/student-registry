@@ -5,8 +5,13 @@ import {
   coreCredits,
   createModuleSchema,
   createProgrammeSchema,
+  filterModules,
+  filterProgrammes,
+  moduleListSchema,
+  NO_PROGRAMME,
   optionsCanMakeUp,
   programmeChangeProblem,
+  programmeListSchema,
   semesterOn,
   type StructureEntry,
   structureEntryProblem,
@@ -248,5 +253,81 @@ describe("semesterOn", () => {
     expect(semesterOn("2027-01-25", calendar)).toBeNull();
     expect(semesterOn("2027-07-01", calendar)).toBeNull();
     expect(semesterOn("2026-09-01", calendar)).toBeNull();
+  });
+});
+
+describe("the programme and module lists", () => {
+  const modules = [
+    {
+      code: "CS4001",
+      title: "Programming Fundamentals",
+      semester: "FIRST" as const,
+      programmes: [{ code: "BSC-CS" }],
+    },
+    {
+      code: "CS4002",
+      title: "Databases",
+      semester: "SECOND" as const,
+      programmes: [{ code: "BSC-CS" }, { code: "MSC-DS" }],
+    },
+    {
+      code: "BM4009",
+      title: "Business Ethics",
+      semester: "SECOND" as const,
+      programmes: [],
+    },
+  ];
+  const codes = (list: readonly { code: string }[]) =>
+    list.map(({ code }) => code);
+
+  it("search modules' codes and titles, and narrow to a semester", () => {
+    expect(codes(filterModules(modules, { q: "data" }))).toEqual(["CS4002"]);
+    expect(codes(filterModules(modules, { q: "cs40" }))).toEqual([
+      "CS4001",
+      "CS4002",
+    ]);
+    expect(codes(filterModules(modules, { semester: "SECOND" }))).toEqual([
+      "CS4002",
+      "BM4009",
+    ]);
+  });
+
+  it("narrow modules to a programme they're part of, or to none", () => {
+    expect(codes(filterModules(modules, { programme: "MSC-DS" }))).toEqual([
+      "CS4002",
+    ]);
+    expect(codes(filterModules(modules, { programme: NO_PROGRAMME }))).toEqual([
+      "BM4009",
+    ]);
+  });
+
+  it("search programmes' codes and titles", () => {
+    const programmes = [
+      { code: "BSC-CS", title: "BSc (Hons) Computer Science" },
+      { code: "MSC-DS", title: "MSc Data Science" },
+    ];
+    expect(codes(filterProgrammes(programmes, "science"))).toEqual([
+      "BSC-CS",
+      "MSC-DS",
+    ]);
+    expect(codes(filterProgrammes(programmes, "msc"))).toEqual(["MSC-DS"]);
+  });
+
+  it("read their settings from the URL, ignoring what they can't use", () => {
+    expect(
+      moduleListSchema.parse({
+        q: " data ",
+        semester: "SECOND",
+        programme: "MSC-DS",
+        page: "2",
+      }),
+    ).toEqual({ q: "data", semester: "SECOND", programme: "MSC-DS", page: 2 });
+    expect(
+      moduleListSchema.parse({ semester: "SUMMER", programme: "" }),
+    ).toMatchObject({ semester: undefined, programme: undefined });
+    expect(programmeListSchema.parse({ q: "", page: "x" })).toEqual({
+      q: undefined,
+      page: undefined,
+    });
   });
 });
