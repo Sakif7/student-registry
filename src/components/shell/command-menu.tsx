@@ -17,6 +17,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 
+import { isSearchShortcut } from "@/lib/keyboard";
 import { useHydrated } from "@/lib/use-hydrated";
 
 import { type NavItem, navItems, type ShellRole } from "./nav";
@@ -57,7 +58,7 @@ export function CommandMenu({ role }: { role: ShellRole }) {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
+      if (isSearchShortcut(event)) {
         event.preventDefault();
         setOpen((value) => !value);
       }

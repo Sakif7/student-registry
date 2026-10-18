@@ -58,3 +58,20 @@ test("students search their own pages, and nothing of staff's", async ({
 
   await expect(page).toHaveURL("/student/results");
 });
+
+test("a browser's autofill, which sends key presses with no key, breaks nothing", async ({
+  page,
+}) => {
+  const errors: Error[] = [];
+  page.on("pageerror", (error) => errors.push(error));
+  await viewAs(page, "staff");
+  await page.goto("/staff/students");
+  await expect(page.getByRole("button", { name: /^Search…/ })).toBeEnabled();
+
+  // What Chrome sends when a saved value is chosen from its dropdown.
+  await page.evaluate(() => window.dispatchEvent(new Event("keydown")));
+
+  // Ctrl+K still opens search, and nothing went wrong.
+  await openSearch(page);
+  expect(errors).toEqual([]);
+});
