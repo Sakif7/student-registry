@@ -44,7 +44,7 @@ test("a student whose fees are overdue and results withheld is told so", async (
 
   const fees = page.getByRole("region", { name: "Fees", exact: true });
   await expect(fees).toContainText("£9,535.00 to pay");
-  await expect(fees).toContainText("£9,535.00 overdue since");
+  await expect(fees).toContainText("£9,535.00 was due on");
   await expect(
     page.getByRole("region", { name: "Latest results" }),
   ).toContainText("Your results are being withheld: Outstanding tuition fees.");

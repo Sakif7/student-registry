@@ -450,7 +450,7 @@ below are as of the day the seed runs. As staff:
 6. Back on **Dashboard**, **Overdue fees** reads "3 students owe £24,020.00 in
    total past the due date" and lists them, longest overdue first:
 
-   | Student         | Status    | Overdue   | Overdue since   |
+   | Student         | Status    | Overdue   | Was due         |
    | --------------- | --------- | --------- | --------------- |
    | Amelia Hart     | Enrolled  | £9,535.00 | 20 days overdue |
    | Kwame Mensah    | Enrolled  | £4,535.00 | 10 days overdue |

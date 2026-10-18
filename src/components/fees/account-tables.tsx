@@ -69,16 +69,17 @@ export function AccountFigures({ account }: { account: Account }) {
               icon: TriangleAlert,
               value: formatMoney(summary.overduePence),
               tone: "negative",
+              // The date it was due: it became overdue the day after.
               detail: (
                 <>
-                  Since{" "}
+                  Due{" "}
                   <span className="whitespace-nowrap">
                     {summary.overdueSince
                       ? formatDate(summary.overdueSince)
                       : ""}
                   </span>{" "}
                   <span className="whitespace-nowrap">
-                    ({formatDays(summary.daysOverdue)})
+                    ({formatDays(summary.daysOverdue)} overdue)
                   </span>
                 </>
               ),

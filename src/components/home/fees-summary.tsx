@@ -2,7 +2,7 @@
 // pay, anything overdue, and the next payment due.
 import { StandingBadge } from "@/components/fees/standing-badge";
 import { nextChargeDue } from "@/domain/fees";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatDays, formatMoney } from "@/lib/format";
 import type { Account } from "@/server/services/fees";
 
 export function FeesSummary({ account }: { account: Account }) {
@@ -20,9 +20,10 @@ export function FeesSummary({ account }: { account: Account }) {
       </p>
       {summary.overdueSince && (
         <p className="text-sm text-red-900">
-          {formatMoney(summary.overduePence)} overdue since{" "}
-          {formatDate(summary.overdueSince)}. Please pay it as soon as you can,
-          or contact the Registry.
+          {formatMoney(summary.overduePence)} was due on{" "}
+          {formatDate(summary.overdueSince)}, and is{" "}
+          {formatDays(summary.daysOverdue)} overdue. Please pay it as soon as
+          you can, or contact the Registry.
         </p>
       )}
       {next && (

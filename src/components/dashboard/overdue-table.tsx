@@ -52,7 +52,7 @@ export function OverdueTable({
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Overdue</TableHead>
             {/* Set apart from the amount, which ends against it. */}
-            <TableHead className="pl-8">Overdue since</TableHead>
+            <TableHead className="pl-8">Was due</TableHead>
             <TableHead className="text-right">Balance</TableHead>
           </TableRow>
         </TableHeader>

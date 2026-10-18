@@ -21,6 +21,7 @@ import {
   formatCount,
   formatDate,
   formatDateOf,
+  formatDays,
   formatMoney,
 } from "@/lib/format";
 import type { Account } from "@/server/services/fees";
@@ -130,8 +131,10 @@ function feesFact(account: Account): SummaryFact {
         ...fact,
         value: `${formatMoney(summary.overduePence)} overdue`,
         tone: "negative",
+        // The date it was due: it became overdue the day after.
         detail:
-          summary.overdueSince && `Since ${formatDate(summary.overdueSince)}`,
+          summary.overdueSince &&
+          `Due ${formatDate(summary.overdueSince)}, ${formatDays(summary.daysOverdue)} ago`,
       };
     case "DUE": {
       const next = nextChargeDue(account.charges);
