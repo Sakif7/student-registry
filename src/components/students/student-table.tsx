@@ -4,9 +4,9 @@
 import Link from "next/link";
 
 import { StandingBadge } from "@/components/fees/standing-badge";
+import { Pagination } from "@/components/lists/pagination";
 import { SortableHead } from "@/components/sortable-head";
 import { StatusBadge } from "@/components/status-badge";
-import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -38,8 +38,6 @@ export function StudentTable({ page }: { page: StudentPage }) {
     );
   }
 
-  const first = (page.page - 1) * page.pageSize + 1;
-  const last = first + page.items.length - 1;
   return (
     <>
       <Table>
@@ -112,68 +110,12 @@ export function StudentTable({ page }: { page: StudentPage }) {
         </TableBody>
       </Table>
 
-      <nav
-        aria-label="Pages"
-        className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm"
-      >
-        <p className="text-muted-foreground" aria-live="polite">
-          Showing {first}–{last} of {page.total}{" "}
-          {page.total === 1 ? "student" : "students"}
-        </p>
-        {page.pageCount > 1 && (
-          <div className="flex items-center gap-2">
-            <PageLink
-              filters={page.filters}
-              page={page.page - 1}
-              disabled={page.page <= 1}
-            >
-              Previous
-            </PageLink>
-            <span>
-              Page {page.page} of {page.pageCount}
-            </span>
-            <PageLink
-              filters={page.filters}
-              page={page.page + 1}
-              disabled={page.page >= page.pageCount}
-            >
-              Next
-            </PageLink>
-          </div>
-        )}
-      </nav>
+      <Pagination
+        page={page}
+        noun="student"
+        hrefFor={(number) => studentListHref({ ...page.filters, page: number })}
+      />
     </>
-  );
-}
-
-function PageLink({
-  filters,
-  page,
-  disabled,
-  children,
-}: {
-  filters: StudentFilters;
-  page: number;
-  disabled: boolean;
-  children: string;
-}) {
-  // The size of the page count between the links (text-sm).
-  const style = buttonVariants({ variant: "outline" });
-  if (disabled) {
-    return (
-      <span aria-disabled="true" className={`${style} opacity-50`}>
-        {children}
-      </span>
-    );
-  }
-  return (
-    <Link
-      href={studentListHref({ ...filters, page })}
-      scroll={false}
-      className={style}
-    >
-      {children}
-    </Link>
   );
 }
 

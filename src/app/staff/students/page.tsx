@@ -48,10 +48,15 @@ async function Filters({ searchParams }: { searchParams: SearchParams }) {
   const params = firstValues(await searchParams);
   const programmes = await listProgrammes(session);
   const currentYear = academicYearOn(collegeToday());
+  // Remount when the filters change, so the selects show the ones applied,
+  // but not as the search does: the search box keeps its own text while
+  // you type.
+  const settled = new URLSearchParams(params);
+  settled.delete("q");
+  settled.delete("page");
   return (
-    // Remount when the URL changes, so the fields show the applied filters.
     <StudentFilterBar
-      key={new URLSearchParams(params).toString()}
+      key={settled.toString()}
       filters={studentFiltersSchema.parse(params)}
       programmes={programmes}
       academicYears={academicYearsAround(currentYear, 3, 1)}

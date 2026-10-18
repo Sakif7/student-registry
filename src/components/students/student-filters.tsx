@@ -2,14 +2,15 @@
 
 // Search and filters for the student list. It is a GET form, so the filters
 // live in the URL: a filtered view can be bookmarked or shared, Back undoes a
-// change, and the form still works without JavaScript. With JavaScript,
-// <Form> navigates client-side and the selects apply as soon as they change.
+// change, and the form still works without JavaScript. With JavaScript, the
+// search follows typing (see LiveSearch), and the selects apply as soon as
+// they change.
 import Form from "next/form";
 import { type ChangeEvent, useId } from "react";
 import Link from "next/link";
 
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { LiveSearch } from "@/components/lists/live-search";
+import { buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   NativeSelect,
@@ -50,23 +51,7 @@ export function StudentFilterBar({
       {/* Searching and filtering keep the list's order. */}
       {filters.sort && <input type="hidden" name="sort" value={filters.sort} />}
       {filters.dir && <input type="hidden" name="dir" value={filters.dir} />}
-      <div className="grid w-full gap-1.5 sm:w-auto">
-        <Label htmlFor={`${id}q`}>Search</Label>
-        <div className="flex gap-2">
-          <Input
-            id={`${id}q`}
-            name="q"
-            type="search"
-            maxLength={100}
-            defaultValue={filters.q}
-            placeholder="Name, student ID or email"
-            className="min-w-0 flex-1 sm:w-64 sm:flex-none"
-          />
-          <Button type="submit" variant="outline">
-            Search
-          </Button>
-        </div>
-      </div>
+      <LiveSearch placeholder="Name, student ID or email" />
 
       <div className="grid w-full gap-1.5 sm:w-auto">
         <Label htmlFor={`${id}programme`}>Programme</Label>

@@ -66,14 +66,18 @@ test("refuses an email address another student already uses", async ({
 
 test("finds students by name and filters them by status", async ({ page }) => {
   await page.goto("/staff/students");
-  await page.getByLabel("Search").fill("grace");
-  // Exactly: the search in the top bar is "Search…".
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page).toHaveURL(/q=grace/);
+  // The list follows the typing, with no button to press.
+  const search = page.getByRole("searchbox", { name: "Search" });
+  await search.pressSequentially("grac");
+  await expect(page).toHaveURL(/q=grac/);
   await expect(
     page.getByRole("link", { name: "Grace Thompson" }),
   ).toBeVisible();
   await expect(page.getByText("Showing 1–1 of 1 student")).toBeVisible();
+  // Typing on keeps what was typed while the list catches up.
+  await search.pressSequentially("e");
+  await expect(page).toHaveURL(/q=grace/);
+  await expect(search).toHaveValue("grace");
 
   await page.goto("/staff/students?status=WITHDRAWN");
   await expect(
