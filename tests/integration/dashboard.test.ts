@@ -130,6 +130,15 @@ describe("getDashboard", () => {
       overduePence: 1_407_000,
       notYetDuePence: 953_500,
     });
+    // Last year's fees, paid first, for chasing after 1 September.
+    expect(
+      (await getDashboard(await sessionFor(STAFF), { year: "2025/26" })).fees,
+    ).toEqual({
+      chargedPence: 953_500,
+      paidPence: 953_500,
+      overduePence: 0,
+      notYetDuePence: 0,
+    });
   });
 
   it("lists open assessments soonest first, and those past the deadline oldest first", async () => {
@@ -229,6 +238,23 @@ describe("getDashboard", () => {
       MERIT: 1,
       DISTINCTION: 1,
     });
+
+    // Last year's, asked for: in reach while its resits are marked.
+    const lastYear = await getDashboard(await sessionFor(STAFF), {
+      year: "2025/26",
+    });
+    expect(lastYear.academicYear).toBe("2025/26");
+    expect(lastYear.marks).toEqual({
+      FAIL: 0,
+      PASS: 1,
+      MERIT: 0,
+      DISTINCTION: 0,
+    });
+    // Anything odd shows this year.
+    expect(
+      (await getDashboard(await sessionFor(STAFF), { year: "2025/27" }))
+        .academicYear,
+    ).toBe("2026/27");
   });
 
   it("lists overdue accounts, longest overdue first, withdrawn students included", async () => {

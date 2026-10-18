@@ -5,7 +5,11 @@
 // and the overdue worklist.
 import "server-only";
 
-import { academicYearOn, academicYearSpan } from "@/domain/academic-year";
+import {
+  academicYearOn,
+  academicYearSpan,
+  yearQuerySchema,
+} from "@/domain/academic-year";
 import { type CalendarDate, fromDbDate, toDbDate } from "@/domain/college-time";
 import { ENROLMENT_STATUSES, type EnrolmentStatus } from "@/domain/enrolment";
 import { summariseYearFees, type YearFees } from "@/domain/fees";
@@ -112,14 +116,21 @@ export interface Dashboard {
   creditsToChoose: CreditsToChoose[];
 }
 
-/** The dashboard's figures, charts and worklists (staff only). */
+/**
+ * The dashboard's figures, charts and worklists (staff only). The year's
+ * fees and marks are this academic year's unless `year` asks for another,
+ * so last year's stay in reach while its fees are chased and its resits
+ * marked, after 1 September resets this year's.
+ */
 export async function getDashboard(
   session: Session | null,
+  input: unknown = {},
 ): Promise<Dashboard> {
   requireStaff(session);
   const now = new Date();
   const today = collegeToday();
-  const academicYear = academicYearOn(today);
+  const academicYear =
+    yearQuerySchema.parse(input).year ?? academicYearOn(today);
   const [
     students,
     overdue,

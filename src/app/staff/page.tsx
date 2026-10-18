@@ -28,19 +28,24 @@ import { OpenAssessments } from "@/components/dashboard/open-assessments";
 import { OverdueTable } from "@/components/dashboard/overdue-table";
 import { ProgrammeChart } from "@/components/dashboard/programme-chart";
 import { Worklist } from "@/components/dashboard/worklist";
+import { YearSelect } from "@/components/dashboard/year-select";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
 import { formatCount, formatDateOf, formatMoney } from "@/lib/format";
-import { collegeTimeZone } from "@/server/college";
+import { collegeTimeZone, collegeToday } from "@/server/college";
+import { firstValues } from "@/server/pages";
 import { getDashboard } from "@/server/services/dashboard";
 import { countStillInEndedYears } from "@/server/services/progression";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Registry dashboard" };
 
-export default function StaffDashboardPage() {
+export default function StaffDashboardPage({
+  searchParams,
+}: PageProps<"/staff">) {
   return (
     <>
       <PageHeader
@@ -52,19 +57,30 @@ export default function StaffDashboardPage() {
         }
       />
       <Suspense fallback={<DashboardSkeleton />}>
-        <Dashboard />
+        <Dashboard searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function Dashboard() {
+async function Dashboard({
+  searchParams,
+}: {
+  searchParams: PageProps<"/staff">["searchParams"];
+}) {
   const session = await requirePageRole("staff");
   const [dashboard, notMovedOn] = await Promise.all([
-    getDashboard(session),
+    getDashboard(session, firstValues(await searchParams)),
     countStillInEndedYears(session),
   ]);
   const timeZone = collegeTimeZone();
+  // This year and the two before, and any other asked for.
+  const years = [
+    ...new Set([
+      ...academicYearsAround(academicYearOn(collegeToday()), 2, 0),
+      dashboard.academicYear,
+    ]),
+  ].sort();
   const {
     academicYear,
     fees,
@@ -110,6 +126,14 @@ async function Dashboard() {
           </AlertDescription>
         </Alert>
       )}
+      <div className="flex justify-end">
+        <YearSelect
+          action="/staff"
+          label="Year's fees and marks"
+          year={academicYear}
+          years={years}
+        />
+      </div>
       <Figures
         figures={[
           {

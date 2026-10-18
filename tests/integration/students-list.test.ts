@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as listStudents } from "@/app/api/students/route";
 import { toDbDate } from "@/domain/college-time";
 import { db } from "@/server/db";
+import { listStudentAcademicYears } from "@/server/services/students";
 
 import { createProgramme, createStudent } from "../helpers/factories";
 import {
@@ -11,6 +12,7 @@ import {
   asStudent,
   bodyOf,
   routeContext,
+  sessionFor,
   STAFF,
   type Viewer,
 } from "../helpers/requests";
@@ -257,6 +259,28 @@ describe("sorting the list", () => {
       "Hannah Kowalski",
       "Mohammed Al-Farsi",
       "Oliver Bennett",
+    ]);
+  });
+});
+
+describe("listStudentAcademicYears", () => {
+  it("offers every year a record is in, beside the years around today", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-15T11:00:00.000Z"));
+    // A record from long ago stays findable by its year.
+    await createStudent({
+      studentNumber: "SMS-2019-0001",
+      academicYear: "2019/20",
+      status: "WITHDRAWN",
+    });
+
+    expect(await listStudentAcademicYears(await sessionFor(STAFF))).toEqual([
+      "2019/20",
+      "2023/24",
+      "2024/25",
+      "2025/26",
+      "2026/27",
+      "2027/28",
     ]);
   });
 });

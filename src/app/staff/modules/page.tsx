@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { academicYearOn } from "@/domain/academic-year";
+import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
 import {
   filterModules,
   MODULE_KIND_LABELS,
@@ -67,11 +67,16 @@ async function Modules({
   const session = await requirePageRole("staff");
   const params = firstValues(await searchParams);
   const query = moduleListSchema.parse(params);
+  const current = academicYearOn(collegeToday());
+  const academicYear = query.year ?? current;
   const [modules, programmes] = await Promise.all([
-    listModuleSummaries(session),
+    listModuleSummaries(session, academicYear),
     listProgrammeSummaries(session),
   ]);
-  const academicYear = academicYearOn(collegeToday());
+  // This year and the two before, and any other asked for.
+  const academicYears = [
+    ...new Set([...academicYearsAround(current, 2, 0), academicYear]),
+  ].sort();
   const page = paginate(filterModules(modules, query), query.page);
   if (modules.length === 0) {
     return (
@@ -85,7 +90,12 @@ async function Modules({
   }
   return (
     <>
-      <ModuleFilterBar query={query} programmes={programmes} />
+      <ModuleFilterBar
+        query={query}
+        programmes={programmes}
+        academicYear={academicYear}
+        academicYears={academicYears}
+      />
       {page.total === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <p className="font-medium">No modules match these filters.</p>
@@ -190,6 +200,7 @@ function moduleListHref(query: ModuleListQuery): string {
     q: query.q,
     semester: query.semester,
     programme: query.programme,
+    year: query.year,
     page: query.page && query.page > 1 ? query.page : undefined,
   });
 }

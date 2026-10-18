@@ -4,7 +4,11 @@
 // choose). Each academic year has two semesters, with dates set by staff.
 import { z } from "zod";
 
-import { academicYearSpan, startYearOf } from "./academic-year";
+import {
+  academicYearSchema,
+  academicYearSpan,
+  startYearOf,
+} from "./academic-year";
 import { type CalendarDate, calendarDateSchema } from "./college-time";
 import { listPageSchema, listSearchSchema, matchesSearch } from "./lists";
 import { chargeAmountSchema } from "./money";
@@ -408,6 +412,8 @@ export const moduleListSchema = z.object({
     .optional()
     .catch(undefined)
     .transform((value) => value || undefined),
+  /** The academic year whose students are counted; this one if none. */
+  year: academicYearSchema.optional().catch(undefined),
   page: listPageSchema,
 });
 export type ModuleListQuery = z.infer<typeof moduleListSchema>;

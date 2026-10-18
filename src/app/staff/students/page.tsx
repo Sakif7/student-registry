@@ -8,11 +8,13 @@ import { StudentFilterBar } from "@/components/students/student-filters";
 import { StudentTable } from "@/components/students/student-table";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
 import { studentFiltersSchema } from "@/domain/students";
-import { collegeToday } from "@/server/college";
 import { firstValues } from "@/server/pages";
-import { listProgrammes, listStudents } from "@/server/services/students";
+import {
+  listProgrammes,
+  listStudentAcademicYears,
+  listStudents,
+} from "@/server/services/students";
 import { requirePageRole } from "@/server/session";
 
 export const metadata: Metadata = { title: "Students" };
@@ -46,13 +48,15 @@ export default function StudentsPage({
 async function Filters({ searchParams }: { searchParams: SearchParams }) {
   const session = await requirePageRole("staff");
   const params = firstValues(await searchParams);
-  const programmes = await listProgrammes(session);
-  const currentYear = academicYearOn(collegeToday());
+  const [programmes, academicYears] = await Promise.all([
+    listProgrammes(session),
+    listStudentAcademicYears(session),
+  ]);
   return (
     <StudentFilterBar
       filters={studentFiltersSchema.parse(params)}
       programmes={programmes}
-      academicYears={academicYearsAround(currentYear, 3, 1)}
+      academicYears={academicYears}
     />
   );
 }

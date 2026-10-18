@@ -8,6 +8,8 @@ import { hashPassword } from "better-auth/crypto";
 
 import {
   academicYearEnded,
+  academicYearOn,
+  academicYearsAround,
   chooseAcademicYearFrom,
   recordYears,
   returnYears,
@@ -124,6 +126,27 @@ const recordInclude = {
 type StudentWithRelations = Prisma.StudentGetPayload<{
   include: typeof recordInclude;
 }>;
+
+/**
+ * The academic years the student list can be filtered by, oldest first:
+ * every year a record is in, and the years around today, so a filter
+ * doesn't fall off the list as the years move on (staff only).
+ */
+export async function listStudentAcademicYears(
+  session: Session | null,
+): Promise<string[]> {
+  requireStaff(session);
+  const rows = await db().student.findMany({
+    distinct: ["academicYear"],
+    select: { academicYear: true },
+  });
+  return [
+    ...new Set([
+      ...rows.map(({ academicYear }) => academicYear),
+      ...academicYearsAround(academicYearOn(collegeToday()), 3, 1),
+    ]),
+  ].sort();
+}
 
 /** Every programme, for forms and filters. */
 export async function listProgrammes(

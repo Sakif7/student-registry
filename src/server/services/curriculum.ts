@@ -358,12 +358,16 @@ export async function removeProgrammeModule(
   return getProgramme(session, code);
 }
 
-/** Every module, by code (staff only). */
+/**
+ * Every module, by code, with how many enrolled students take it in an
+ * academic year: this one, unless another is given (staff only).
+ */
 export async function listModuleSummaries(
   session: Session | null,
+  year?: string,
 ): Promise<ModuleSummary[]> {
   requireStaff(session);
-  const academicYear = academicYearOn(collegeToday());
+  const academicYear = year ?? academicYearOn(collegeToday());
   const [modules, everRegistered] = await Promise.all([
     db().module.findMany({
       include: {

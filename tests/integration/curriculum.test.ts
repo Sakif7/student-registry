@@ -411,6 +411,16 @@ describe("modules", () => {
         creditsLocked: false,
       },
     ]);
+    // Last year's students, asked for.
+    expect(
+      (await listModuleSummaries(await sessionFor(STAFF), "2025/26")).map(
+        ({ code, registeredCount }) => [code, registeredCount],
+      ),
+    ).toEqual([
+      ["CS4001", 1],
+      ["CS4002", 0],
+      ["CS4006", 0],
+    ]);
     await expect(
       listModuleSummaries(await sessionFor(asStudent(first.studentNumber))),
     ).rejects.toMatchObject({ kind: "FORBIDDEN" });

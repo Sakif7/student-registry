@@ -40,10 +40,16 @@ export function ProgrammeFilterBar({ query }: { query: ProgrammeListQuery }) {
 export function ModuleFilterBar({
   query,
   programmes,
+  academicYear,
+  academicYears,
 }: {
   query: ModuleListQuery;
   /** Every programme, for the programme filter. */
   programmes: { code: string; title: string }[];
+  /** The year whose students are counted. */
+  academicYear: string;
+  /** The years that can be counted, oldest first. */
+  academicYears: readonly string[];
 }) {
   const applyNow = (event: ChangeEvent<HTMLSelectElement>) =>
     event.currentTarget.form?.requestSubmit();
@@ -102,6 +108,26 @@ export function ModuleFilterBar({
           <NativeSelectOption value={NO_PROGRAMME}>
             In no programme
           </NativeSelectOption>
+        </NativeSelect>
+      </div>
+
+      {/* Not a filter: which year's students the list counts. */}
+      <div className="grid w-full gap-1.5 sm:w-auto">
+        <Label htmlFor={`${id}year`}>Students in</Label>
+        <NativeSelect
+          className="w-full sm:w-fit"
+          id={`${id}year`}
+          name="year"
+          // Remounts when the year changes elsewhere (Back), to show it.
+          key={academicYear}
+          defaultValue={academicYear}
+          onChange={applyNow}
+        >
+          {academicYears.map((year) => (
+            <NativeSelectOption key={year} value={year}>
+              {year}
+            </NativeSelectOption>
+          ))}
         </NativeSelect>
       </div>
 

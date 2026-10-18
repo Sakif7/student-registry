@@ -176,6 +176,14 @@ export const academicYearSchema = z
     error: "Use the format 2026/27, with consecutive years",
   });
 
+/**
+ * A page's figures for one academic year, as the URL asks for them with
+ * `year`: any well-formed year, or none (this year) for anything else.
+ */
+export const yearQuerySchema = z.object({
+  year: academicYearSchema.optional().catch(undefined),
+});
+
 /** An academic year as a web address shows it: "2026/27" → "2026-27". */
 export function academicYearSlug(academicYear: string): string {
   return academicYear.replace("/", "-");

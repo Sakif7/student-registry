@@ -1179,6 +1179,11 @@ Every list page has a search, filters that suit its contents, and pages of
   them would mean computing every student's account on every visit.
 - Each row has a menu that opens the record on a given tab (Fees, Results,
   History or Sign-in), or emails the student.
+- The academic year filter offers every year a record is in, as well as
+  the years around today, so last year's students stay one choice away
+  after 1 September and an old bookmark's year still shows as chosen.
+- The module catalogue counts each module's students in this academic
+  year, or another chosen with **Students in**.
 
 ### The assessments list
 
@@ -1216,6 +1221,10 @@ things stand, and what needs doing.
     to the programme (the old status counts live on in that legend);
   - the academic year's fees: paid, overdue and not yet due;
   - the year's marks by classification;
+  - the year's figures are this academic year's unless **Year's fees and
+    marks** picks one of the two before (kept in the address, `?year=`): on
+    1 September this year's start empty, while last year's fees are still
+    being chased and its resits marked;
   - the assessments open for submissions, with how many of the students
     expected have submitted.
 - **Needs attention:** five worklists, each showing the first five items,
