@@ -10,7 +10,27 @@ import {
   formatDeadlineAway,
   formatFileSize,
   formatMoney,
+  formatPlacement,
 } from "./format";
+
+describe("formatPlacement", () => {
+  it("names the year a student is in, or the one they completed in", () => {
+    expect(
+      formatPlacement({
+        status: "ENROLLED",
+        yearOfStudy: 2,
+        academicYear: "2026/27",
+      }),
+    ).toBe("Year 2 · 2026/27");
+    expect(
+      formatPlacement({
+        status: "COMPLETED",
+        yearOfStudy: 3,
+        academicYear: "2025/26",
+      }),
+    ).toBe("Completed in 2025/26, in year 3");
+  });
+});
 
 describe("formatMoney", () => {
   it("formats pence as pounds sterling", () => {

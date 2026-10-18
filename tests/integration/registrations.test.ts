@@ -40,6 +40,7 @@ const YEAR = "2026/27";
 
 interface ModulesBody {
   modules: {
+    currentSemester: string | null;
     registeredCredits: number;
     changes: { allowed: boolean; message?: string };
     registered: {
@@ -554,6 +555,31 @@ describe("moving a student", () => {
     await registerStudents(moduleIds.CS4001, [student.id], "2025/26");
 
     expect((await modules(student.studentNumber)).registered).toEqual([]);
+  });
+});
+
+describe("the semester on now", () => {
+  it("is worked out from today's date, so it moves on at midnight", async () => {
+    const { studentNumber } = await enrol();
+    await db().academicYear.create({
+      data: {
+        year: YEAR,
+        semester1Start: toDbDate("2026-09-21"),
+        semester1End: toDbDate("2027-01-22"),
+        semester2Start: toDbDate("2027-02-01"),
+        semester2End: toDbDate("2027-06-11"),
+      },
+    });
+    const now = async (instant: string) => {
+      vi.setSystemTime(new Date(instant));
+      return (await modules(studentNumber)).currentSemester;
+    };
+
+    expect(await now("2026-10-15T11:00:00.000Z")).toBe("FIRST");
+    // The last minute of 22 January, then the gap before semester 2.
+    expect(await now("2027-01-22T23:59:00.000Z")).toBe("FIRST");
+    expect(await now("2027-01-23T00:01:00.000Z")).toBeNull();
+    expect(await now("2027-02-01T00:01:00.000Z")).toBe("SECOND");
   });
 });
 

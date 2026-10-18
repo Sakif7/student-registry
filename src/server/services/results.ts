@@ -5,6 +5,7 @@
 // here, on the server, not in the page.
 import "server-only";
 
+import { academicYearAt } from "@/domain/academic-year";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import type { AccountStanding } from "@/domain/fees";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@/domain/results";
 
 import { recordEvent } from "../audit";
-import { collegeToday } from "../college";
+import { collegeTimeZone, collegeToday } from "../college";
 import { db } from "../db";
 import { AppError, parseInput } from "../errors";
 import { isId } from "../ids";
@@ -28,6 +29,11 @@ import { summariseAccounts } from "./fees";
 export interface StudentResult {
   assessment: { id: string; title: string; deadline: Date };
   module: { code: string; title: string };
+  /**
+   * The academic year of the assessment's deadline, which tells apart the
+   * marks of a module taken twice, as by a student repeating a year.
+   */
+  academicYear: string;
   mark: number;
   classification: Classification;
   /** Null until staff publish it. Students only ever see published marks. */
@@ -103,6 +109,7 @@ export async function getResults(
     .map(({ assessment: { module, ...assessment }, ...result }) => ({
       assessment,
       module,
+      academicYear: academicYearAt(assessment.deadline, collegeTimeZone()),
       mark: result.mark,
       classification: classify(result.mark),
       publishedAt: result.publishedAt,

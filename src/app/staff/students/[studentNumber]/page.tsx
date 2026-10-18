@@ -36,7 +36,7 @@ import {
   recordYears,
   returnYears,
 } from "@/domain/academic-year";
-import { formatDateOf, formatDateTime } from "@/lib/format";
+import { formatDateOf, formatDateTime, formatPlacement } from "@/lib/format";
 import { collegeTimeZone, collegeToday } from "@/server/college";
 import { firstValues, orNotFound } from "@/server/pages";
 import { getStudentHistory } from "@/server/services/activity";
@@ -119,7 +119,7 @@ async function StudentRecordView({ params, searchParams }: Props) {
         breadcrumbs={[{ label: "Students", href: "/staff/students" }]}
         eyebrow={<span className="font-mono">{student.studentNumber}</span>}
         title={student.fullName}
-        description={`${student.programme.title} · Year ${student.yearOfStudy} · ${student.academicYear}`}
+        description={`${student.programme.title} · ${formatPlacement(student)}`}
         actions={
           <>
             <EditDetailsDialog

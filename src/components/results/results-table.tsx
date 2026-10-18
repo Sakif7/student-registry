@@ -33,6 +33,7 @@ export function ResultsTable({
       <TableHeader>
         <TableRow>
           <TableHead>Assessment</TableHead>
+          <TableHead>Year</TableHead>
           <TableHead className="text-right">Mark</TableHead>
           <TableHead>Result</TableHead>
           {staff && <TableHead>Published</TableHead>}
@@ -56,6 +57,10 @@ export function ResultsTable({
                 <span className="font-mono">{result.module.code}</span>{" "}
                 {result.module.title}
               </div>
+            </TableCell>
+            {/* Tells apart the marks of a module taken twice. */}
+            <TableCell className="tabular-nums">
+              {result.academicYear}
             </TableCell>
             <TableCell className="text-right tabular-nums">
               {result.mark}

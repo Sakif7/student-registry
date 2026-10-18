@@ -118,10 +118,13 @@ function yearFacts(modules: StudentModules): SummaryFact[] {
       ).length,
       "module",
     );
+  // The one on now says so, worked out from today's date by the server.
+  const now = (semester: Semester) =>
+    modules.currentSemester === semester ? " (now)" : "";
   return [
     credits,
     {
-      label: "Semester 1",
+      label: `Semester 1${now("FIRST")}`,
       icon: CalendarDays,
       value: (
         <DateRange from={calendar.semester1Start} to={calendar.semester1End} />
@@ -129,7 +132,7 @@ function yearFacts(modules: StudentModules): SummaryFact[] {
       detail: `${taught("FIRST")} taught`,
     },
     {
-      label: "Semester 2",
+      label: `Semester 2${now("SECOND")}`,
       icon: CalendarDays,
       value: (
         <DateRange from={calendar.semester2Start} to={calendar.semester2End} />

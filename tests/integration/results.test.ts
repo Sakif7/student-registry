@@ -159,12 +159,14 @@ describe("GET /api/students/[studentNumber]/results", () => {
       results: [
         {
           assessment: { title: "Exam" },
+          academicYear: "2026/27",
           mark: 38,
           classification: "FAIL",
           publishedAt: null,
         },
         {
           assessment: { title: "Essay" },
+          academicYear: "2026/27",
           mark: 72,
           classification: "DISTINCTION",
           publishedAt: PUBLISHED_AT.toISOString(),

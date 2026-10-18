@@ -118,6 +118,21 @@ export function formatDeadlineAway(
   return formatDaysAway(daysBetween(dateOf(now), dateOf(deadline)));
 }
 
+/**
+ * Where a student is in their programme, for a page's header: "Year 2 ·
+ * 2026/27", or, once they have completed, the year they finished in, so it
+ * doesn't read as the year they're in now.
+ */
+export function formatPlacement(student: {
+  status: string;
+  yearOfStudy: number;
+  academicYear: string;
+}): string {
+  return student.status === "COMPLETED"
+    ? `Completed in ${student.academicYear}, in year ${student.yearOfStudy}`
+    : `Year ${student.yearOfStudy} · ${student.academicYear}`;
+}
+
 /** A count and its noun, e.g. "1 student", "3 students", "2 people". */
 export function formatCount(
   count: number,

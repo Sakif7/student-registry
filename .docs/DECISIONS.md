@@ -269,6 +269,9 @@ reversed at once.
   modules. Staff add an option that fits the credits left, or drop one,
   and can undo either from the message that confirms it. The record's
   header shows the credits, flagged while some are left to choose.
+- **The semester on now is marked,** worked out from the calendar each time
+  the page is read, so it moves on at midnight with nothing stored that
+  could go stale.
 - **Students have a My modules page** with the same view. While their
   academic year lets students choose, they add and drop their options
   there, and their home page asks them to choose while credits are left;
@@ -490,6 +493,9 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
 - Saves of one assessment's marks happen one at a time, each reading the
   marks as the last one left them, so two at once can't trip over each
   other, and the audit trail's "from" is always the mark that was there.
+- Each result shows the academic year of its assessment, for staff and the
+  student, so the marks of a module taken twice, by a student repeating a
+  year, can be told apart.
 
 ### Publishing and withholding
 
@@ -1030,7 +1036,13 @@ one after another. It is now a header and tabs.
 
 - **The header** names the student, with their programme, year of study and
   academic year, and holds the two actions on the record as a whole: editing
-  the details and changing the status.
+  the details and changing the status. A completed student's reads
+  "Completed in 2025/26, in year 3", so their last year isn't taken for the
+  one they're in. Students see the same line on their home page.
+- **The details** give the intake (the academic year the student ID was
+  issued for, which it records for good), the year of study out of the
+  programme's years, and the academic year, so the years between read
+  plainly: SMS-2023-0001, in year 3 of 3, completed in 2025/26.
 - **A summary under it** gives the facts staff check first, one to a cell
   (see "Summaries at the top of a page"): status and since when, the year's
   credits, fees (what is overdue or due), results (withheld, or how many

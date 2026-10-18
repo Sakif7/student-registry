@@ -5,8 +5,16 @@
 // a registration with work stays on the record.
 import "server-only";
 
-import { academicYearAt, academicYearEnded } from "@/domain/academic-year";
-import type { ModuleKind, Semester } from "@/domain/curriculum";
+import {
+  academicYearAt,
+  academicYearEnded,
+  academicYearOn,
+} from "@/domain/academic-year";
+import {
+  type ModuleKind,
+  type Semester,
+  semesterOn,
+} from "@/domain/curriculum";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   checkDrop,
@@ -73,6 +81,12 @@ export interface StudentModules {
   options: ModuleOption[];
   /** The academic year's semesters, if staff have set them up. */
   calendar: AcademicYearCalendar | null;
+  /**
+   * The semester today falls in, worked out from the calendar each time it
+   * is read, so it moves on at midnight; null between semesters, or when
+   * the student's year isn't the current one.
+   */
+  currentSemester: "FIRST" | "SECOND" | null;
   /** Whether the viewer may add and drop optional modules now, and if not, why. */
   changes: Permission;
   /** Earlier years' registrations, newest first. */
@@ -208,6 +222,7 @@ export async function getStudentModules(
     registered,
     options,
     calendar,
+    currentSemester: currentSemesterOf(student.academicYear, calendar),
     changes,
     history: [...earlier]
       .sort(([a], [b]) => b.localeCompare(a))
@@ -641,6 +656,17 @@ function changesFor(
     return { allowed: false, message: CHOOSING_CLOSED };
   }
   return { allowed: true };
+}
+
+/** The semester today falls in, if the academic year is the current one. */
+function currentSemesterOf(
+  academicYear: string,
+  calendar: AcademicYearCalendar | null,
+): "FIRST" | "SECOND" | null {
+  const today = collegeToday();
+  return calendar && academicYearOn(today) === academicYear
+    ? semesterOn(today, calendar)
+    : null;
 }
 
 /** Refuses any change to the modules of a year that has ended. */

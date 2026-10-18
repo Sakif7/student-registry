@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ENROLMENT_STATUS_LABELS } from "@/domain/enrolment";
+import { intakeOf } from "@/domain/student-number";
 import { ageOn } from "@/domain/students";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { StudentRecord } from "@/server/services/students";
@@ -43,7 +44,17 @@ export function StudentDetailsCard({
         <span className="font-mono">{student.programme.code}</span>)
       </span>,
     ],
-    ["Academic year", student.academicYear],
+    // The intake the ID records, so the years between read plainly.
+    ["Intake", intakeOf(student.studentNumber) ?? "Not known"],
+    [
+      "Year of study",
+      `Year ${student.yearOfStudy} of ${student.programme.years}`,
+    ],
+    [
+      // A completed student's year is the one they finished in.
+      student.status === "COMPLETED" ? "Completed in" : "Academic year",
+      student.academicYear,
+    ],
     ["Status", <StatusBadge key="status" status={student.status} />],
     ["Record created", formatDateTime(student.enrolledAt, timeZone)],
   ];

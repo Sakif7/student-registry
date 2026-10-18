@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { formatStudentNumber, isStudentNumber } from "./student-number";
+import {
+  formatStudentNumber,
+  intakeOf,
+  isStudentNumber,
+} from "./student-number";
+
+describe("intakeOf", () => {
+  it("reads back the intake an ID was issued for", () => {
+    expect(intakeOf("SMS-2023-0001")).toBe("2023/24");
+    expect(intakeOf("SMS-2026-10000")).toBe("2026/27");
+    expect(intakeOf("2023-0001")).toBeNull();
+  });
+});
 
 describe("formatStudentNumber", () => {
   it("pads the sequence to four digits", () => {

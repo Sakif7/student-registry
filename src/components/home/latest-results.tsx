@@ -50,8 +50,9 @@ export function LatestResults({
           <div className="min-w-0">
             <p className="text-sm font-medium">{result.assessment.title}</p>
             <p className="text-xs text-muted-foreground">
-              <span className="font-mono">{result.module.code}</span> ·
-              published {formatDateOf(result.publishedAt, timeZone)}
+              <span className="font-mono">{result.module.code}</span> ·{" "}
+              {result.academicYear} · published{" "}
+              {formatDateOf(result.publishedAt, timeZone)}
             </p>
           </div>
           <div className="text-right">

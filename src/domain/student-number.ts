@@ -1,6 +1,8 @@
 // Student IDs: "SMS-{intake year}-{sequence}", e.g. SMS-2026-0001. The intake
 // year is the start year of the academic year the student first enrols into.
 
+import { formatAcademicYear } from "./academic-year";
+
 const STUDENT_NUMBER = /^SMS-\d{4}-\d{4,}$/;
 
 /**
@@ -25,4 +27,15 @@ export function formatStudentNumber(
 /** True for a well-formed student ID, such as "SMS-2026-0001". */
 export function isStudentNumber(value: string): boolean {
   return STUDENT_NUMBER.test(value);
+}
+
+/**
+ * The intake a student ID records: the academic year the student was first
+ * enrolled into, written into the ID when it was issued, e.g. "2023/24" for
+ * SMS-2023-0001. An ID never changes, so it stays a record of the intake
+ * whatever the student's current year; null for a malformed ID.
+ */
+export function intakeOf(studentNumber: string): string | null {
+  const match = /^SMS-(\d{4})-\d{4,}$/.exec(studentNumber);
+  return match ? formatAcademicYear(Number(match[1])) : null;
 }

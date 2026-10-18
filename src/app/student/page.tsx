@@ -19,6 +19,7 @@ import { StudentAssessmentsTable } from "@/components/submissions/student-assess
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { EnrolmentStatus } from "@/domain/enrolment";
+import { formatPlacement } from "@/lib/format";
 import { collegeTimeZone } from "@/server/college";
 import { orNotFound } from "@/server/pages";
 import { getAccount } from "@/server/services/fees";
@@ -88,7 +89,7 @@ async function Home() {
           </span>
         }
         title={student.fullName}
-        description={`${student.programme.title} · ${student.academicYear}`}
+        description={`${student.programme.title} · ${formatPlacement(student)}`}
       />
       {note && (
         <Alert
