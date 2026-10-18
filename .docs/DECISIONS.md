@@ -1184,6 +1184,11 @@ How the figures are worked out:
   conversion, and adding up registrations in each student's own academic
   year. Instants go in as ISO text with a cast: the PostgreSQL adapter
   sends a `Date` without its offset, to be read in the session's time zone.
+- **Every connection uses UTC.** For the same reason, each connection to
+  PostgreSQL (the app's, the seed's and the end-to-end tests') sets its
+  session time zone to UTC (`src/lib/postgres.ts`). The Docker database
+  runs in UTC already, but one installed on a machine set to London time
+  doesn't, and would otherwise store every instant an hour early in summer.
 
 How the charts are drawn:
 

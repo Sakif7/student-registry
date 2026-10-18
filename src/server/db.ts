@@ -5,6 +5,7 @@ import "server-only";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "@/generated/prisma/client";
+import { SESSION_OPTIONS } from "@/lib/postgres";
 
 import { env } from "./env";
 
@@ -21,6 +22,7 @@ export function db(): PrismaClient {
       connectionString: env().DATABASE_URL,
       // node-postgres otherwise waits forever for a free connection.
       connectionTimeoutMillis: 5_000,
+      options: SESSION_OPTIONS,
     }),
   });
   return globalForPrisma.prisma;

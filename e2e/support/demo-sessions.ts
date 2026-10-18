@@ -7,6 +7,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "@/generated/prisma/client";
 import { DEMO_STAFF } from "@/lib/demo-accounts";
+import { SESSION_OPTIONS } from "@/lib/postgres";
 
 import { assertTestDatabaseUrl } from "../../tests/helpers/test-database";
 import {
@@ -22,6 +23,7 @@ async function main(): Promise<void> {
   const prisma = new PrismaClient({
     adapter: new PrismaPg({
       connectionString: assertTestDatabaseUrl(process.env.DATABASE_URL),
+      options: SESSION_OPTIONS,
     }),
   });
   try {

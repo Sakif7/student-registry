@@ -33,6 +33,7 @@ import { formatStudentNumber } from "@/domain/student-number";
 import { ACCEPTED_DOCUMENTS } from "@/domain/submissions";
 import { type Prisma, PrismaClient } from "@/generated/prisma/client";
 import { DEMO_PASSWORD, DEMO_STAFF, DEMO_STUDENTS } from "@/lib/demo-accounts";
+import { SESSION_OPTIONS } from "@/lib/postgres";
 
 import { sampleDocx, samplePdf } from "./sample-documents";
 
@@ -465,7 +466,7 @@ async function main(): Promise<void> {
   }
 
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg({ connectionString, options: SESSION_OPTIONS }),
   });
   try {
     const now = new Date();
