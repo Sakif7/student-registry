@@ -6,6 +6,8 @@
 // stopped.
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import { academicYearSpan } from "@/domain/academic-year";
 import {
   type CalendarDate,
@@ -54,6 +56,11 @@ export interface ProgressionList {
   targets: string[];
   query: ProgressionQuery & { to: string };
   page: ListPage<ProgressionRow>;
+  /**
+   * Which students the list holds, on every page, as a fingerprint that
+   * moving them on sends back (see progressStudents).
+   */
+  listed: string;
 }
 
 /** What moving students on did. */
@@ -82,7 +89,11 @@ export async function listToProgress(
   const to =
     parsed.to && targets.includes(parsed.to) ? parsed.to : (targets[0] ?? "");
   const where = toProgressWhere(to, parsed);
-  const total = await db().student.count({ where });
+  const listed = await db().student.findMany({
+    where,
+    select: { studentNumber: true, academicYear: true, yearOfStudy: true },
+  });
+  const total = listed.length;
   const pageCount = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
   const page = Math.min(Math.max(parsed.page ?? 1, 1), pageCount);
   const students = await db().student.findMany({
@@ -120,7 +131,28 @@ export async function listToProgress(
       pageCount,
       pageSize: LIST_PAGE_SIZE,
     },
+    listed: fingerprint(listed),
   };
+}
+
+/**
+ * Who a list of students to move on holds, as a short fingerprint of each
+ * one's ID, academic year and year of study. Moving them on compares it
+ * with the list as it is then, so a student who joined it meanwhile is never
+ * moved unseen, even if another left and the count stayed the same.
+ */
+function fingerprint(
+  students: readonly {
+    studentNumber: string;
+    academicYear: string;
+    yearOfStudy: number;
+  }[],
+): string {
+  const text = students
+    .map((s) => `${s.studentNumber} ${s.academicYear} ${s.yearOfStudy}`)
+    .sort()
+    .join("\n");
+  return createHash("sha256").update(text).digest("base64url").slice(0, 22);
 }
 
 /**
@@ -172,11 +204,12 @@ export async function progressStudents(
     select: {
       id: true,
       studentNumber: true,
+      academicYear: true,
       yearOfStudy: true,
       programme: { select: { years: true } },
     },
   });
-  if (students.length !== request.expected) {
+  if (fingerprint(students) !== request.listed) {
     throw new AppError(
       "CONFLICT",
       `The students to move on have changed since you looked: there ${students.length === 1 ? "is" : "are"} now ${students.length}. Reload the page to check them, then move them on.`,

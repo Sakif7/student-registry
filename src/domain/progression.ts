@@ -101,16 +101,20 @@ export type ProgressionQuery = z.infer<typeof progressionQuerySchema>;
 
 /**
  * Moving students on: the year, the same search and filters as the page,
- * the number of students the page showed for them (so a change made in the
- * meantime is caught), and any steps staff changed, by student ID; everyone
- * else takes their suggested step.
+ * which students the page listed for them (its `listed` fingerprint, so a
+ * change made in the meantime is caught, even one that leaves the count as
+ * it was), and any steps staff changed, by student ID; everyone else takes
+ * their suggested step.
  */
 export const progressionRequestSchema = z.object({
   to: academicYearSchema,
   q: listSearchSchema,
   programme: z.string().trim().toUpperCase().min(1).optional(),
   year: z.coerce.number().int().min(1).max(10).optional(),
-  expected: z.number().int().min(0),
+  listed: z
+    .string({ error: "Reload the page to see who is to move on" })
+    .trim()
+    .min(1, "Reload the page to see who is to move on"),
   steps: z
     .record(z.string().trim().toUpperCase(), z.enum(PROGRESSION_STEPS))
     .default({}),

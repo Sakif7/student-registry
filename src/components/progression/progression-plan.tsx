@@ -3,7 +3,7 @@
 // The students to move on, a page at a time, each with the step they take
 // next, and the button that moves them all on. A step staff change is kept
 // here while they page through the list or narrow it, and sent with the
-// rest; everyone else takes the step shown. The request carries how many
+// rest; everyone else takes the step shown. The request carries which
 // students the list held, so a change made meanwhile is caught, not moved.
 import Link from "next/link";
 import { useState } from "react";
@@ -138,6 +138,8 @@ export function ProgressionPlan({ list }: { list: ProgressionList }) {
             q: query.q,
             programme: query.programme,
             year: query.year,
+            // Who was listed: if anyone has changed, nobody moves unseen.
+            listed: list.listed,
             steps,
           }}
           onDone={() => setSteps({})}
@@ -169,8 +171,7 @@ function MoveOnButton({
       const { outcome } = await apiRequest<{ outcome: ProgressionOutcome }>(
         "POST",
         "/api/progression",
-        // The number listed: if it has changed, nobody moves unseen.
-        { ...request, expected: total },
+        request,
       );
       toast.success(describeOutcome(outcome, to));
       setOpen(false);

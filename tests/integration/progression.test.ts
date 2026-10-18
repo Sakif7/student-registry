@@ -30,6 +30,7 @@ const YEAR_START = "2026-08-31T23:00:00.000Z";
 
 interface ListBody {
   to: string;
+  listed: string;
   page: {
     total: number;
     items: {
@@ -102,6 +103,11 @@ async function post(body: unknown, session: Viewer | null = STAFF) {
   return { status: response.status, body: await bodyOf(response) };
 }
 
+/** What the page sends back when moving students on: who it listed. */
+async function listedFor(query = "") {
+  return (await list(query)).body.listed;
+}
+
 const student = (studentNumber: string) =>
   db().student.findUniqueOrThrow({
     where: { studentNumber },
@@ -153,7 +159,7 @@ describe("POST /api/progression", () => {
   it("moves each student on with their step, or leaves them", async () => {
     const { status, body } = await post({
       to: "2026/27",
-      expected: 4,
+      listed: await listedFor(),
       steps: { "SMS-2025-0002": "repeat", "sms-2024-0001": "leave" },
     });
 
@@ -238,28 +244,56 @@ describe("POST /api/progression", () => {
   });
 
   it("moves only the students the filters list", async () => {
-    expect(await post({ to: "2026/27", year: 1, expected: 2 })).toMatchObject({
-      body: { outcome: { movedUp: 2 } },
-    });
+    expect(
+      await post({
+        to: "2026/27",
+        year: 1,
+        listed: await listedFor("?year=1"),
+      }),
+    ).toMatchObject({ body: { outcome: { movedUp: 2 } } });
     expect((await list()).body.page.total).toBe(2);
   });
 
-  it("moves no one if the students listed have changed since", async () => {
-    expect(await post({ to: "2026/27", expected: 3 })).toMatchObject({
+  it("moves no one if the students listed have changed since, even if their number hasn't", async () => {
+    const listed = await listedFor();
+    const changed = (now: number) => ({
       status: 409,
       body: {
-        detail:
-          "The students to move on have changed since you looked: there are now 4. Reload the page to check them, then move them on.",
+        detail: `The students to move on have changed since you looked: there are now ${now}. Reload the page to check them, then move them on.`,
       },
     });
-    expect((await list()).body.page.total).toBe(4);
+    // One leaves the list.
+    await db().student.update({
+      where: { studentNumber: "SMS-2025-0002" },
+      data: { status: "WITHDRAWN" },
+    });
+    expect(await post({ to: "2026/27", listed })).toMatchObject(changed(3));
+    // And another joins it: four again, but not the four listed.
+    await db().student.update({
+      where: { studentNumber: "SMS-2025-0003" },
+      data: { academicYear: "2025/26" },
+    });
+    expect(await post({ to: "2026/27", listed })).toMatchObject(changed(4));
+    expect((await list()).body.page.items).toMatchObject([
+      { studentNumber: "SMS-2025-0001" },
+      { studentNumber: "SMS-2024-0001" },
+      { studentNumber: "SMS-2025-0003" },
+      { studentNumber: "SMS-2023-0001" },
+    ]);
+    // Without saying who was listed, nobody moves either.
+    expect(await post({ to: "2026/27" })).toMatchObject({
+      status: 400,
+      body: {
+        errors: { listed: ["Reload the page to see who is to move on"] },
+      },
+    });
   });
 
   it("refuses a step that isn't open to a student, moving no one", async () => {
     expect(
       await post({
         to: "2026/27",
-        expected: 4,
+        listed: await listedFor(),
         steps: { "SMS-2023-0001": "next" },
       }),
     ).toMatchObject({
@@ -273,7 +307,7 @@ describe("POST /api/progression", () => {
     expect(
       await post({
         to: "2026/27",
-        expected: 4,
+        listed: await listedFor(),
         steps: { "SMS-2025-0001": "complete" },
       }),
     ).toMatchObject({
@@ -288,7 +322,9 @@ describe("POST /api/progression", () => {
   });
 
   it("moves students on to this year, or next only from August", async () => {
-    expect(await post({ to: "2027/28", expected: 0 })).toMatchObject({
+    expect(
+      await post({ to: "2027/28", listed: await listedFor() }),
+    ).toMatchObject({
       status: 400,
       body: {
         errors: {
