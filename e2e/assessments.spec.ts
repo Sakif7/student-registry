@@ -170,3 +170,23 @@ test("staff sort the assessments by a column, either way", async ({ page }) => {
   // DS7002 comes first.
   await expect(first).toHaveText("Data pipeline design");
 });
+
+test("staff search and filter the assessments, keeping the order", async ({
+  page,
+}) => {
+  await viewAs(page, "staff");
+  await page.goto("/staff/assessments?sort=title&dir=asc");
+  await page
+    .getByRole("searchbox", { name: "Search" })
+    .pressSequentially("report");
+  await expect(page).toHaveURL(/q=report/);
+  await page.getByLabel("State").selectOption("CLOSED");
+
+  await expect(page.getByText("Showing 1–2 of 2 assessments")).toBeVisible();
+  await expect(page.locator("tbody tr td:first-child a")).toHaveText([
+    "Machine learning report",
+    "Software design report",
+  ]);
+  // The order stays with the search and the filter.
+  await expect(page).toHaveURL(/sort=title/);
+});

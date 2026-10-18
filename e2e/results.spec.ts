@@ -145,3 +145,19 @@ test("the results list opens a student's Results tab", async ({ page }) => {
     page.getByRole("tab", { name: "Results", selected: true }),
   ).toBeVisible();
 });
+
+test("the Results page lists only the students whose results are withheld", async ({
+  page,
+}) => {
+  await viewAs(page, "staff");
+  await page.goto("/staff/results");
+  const students = page.getByRole("region", { name: "Students with marks" });
+  await students.getByLabel("Show").selectOption("withheld");
+
+  await expect(page).toHaveURL(/show=withheld/);
+  // Kwame's, withheld earlier in this file; Amelia's hold was lifted.
+  await expect(students.getByText("Showing 1–1 of 1 student")).toBeVisible();
+  await expect(
+    students.getByRole("link", { name: "Kwame Mensah" }),
+  ).toBeVisible();
+});

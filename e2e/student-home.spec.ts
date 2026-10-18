@@ -55,3 +55,17 @@ test("a student whose fees are overdue and results withheld is told so", async (
     page.getByRole("heading", { level: 1, name: "My fees" }),
   ).toBeVisible();
 });
+
+test("a student searches their own assessments", async ({ page }) => {
+  await viewAs(page, demoStudent("priya"));
+  await page.goto("/student/assessments");
+  await page
+    .getByRole("searchbox", { name: "Search" })
+    .pressSequentially("lab");
+
+  await expect(page).toHaveURL(/q=lab/);
+  await expect(page.getByText("Showing 1–1 of 1 assessment")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Systems lab report" }),
+  ).toBeVisible();
+});

@@ -43,3 +43,20 @@ test("staff see who changed what, on the record and in Activity", async ({
     newest.getByRole("link", { name: "Kwame Mensah" }),
   ).toBeVisible();
 });
+
+test("staff find the changes to one student, of one kind", async ({ page }) => {
+  await viewAs(page, "staff");
+  await page.goto("/staff/activity");
+  await page.getByLabel("Kind of change").selectOption("fees");
+  await page
+    .getByRole("searchbox", { name: "Search" })
+    .pressSequentially("kwame");
+  await expect(page).toHaveURL(/q=kwame/);
+
+  const rows = page.locator("tbody tr");
+  await expect(rows.first()).toContainText("Kwame Mensah");
+  for (const row of await rows.all()) {
+    await expect(row).toContainText("Kwame Mensah");
+    await expect(row).toContainText(/fee|payment/);
+  }
+});
