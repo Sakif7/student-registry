@@ -150,7 +150,7 @@ export async function getDashboard(
     yearMarks(academicYear),
     resultsToPublish(),
     activationsAwaited(now),
-    creditsStillToChoose(),
+    creditsStillToChoose(academicYearOn(today)),
   ]);
 
   return {
@@ -440,9 +440,15 @@ async function activationsAwaited(now: Date): Promise<AwaitingActivation[]> {
 
 /**
  * Enrolled students whose modules come to fewer credits than their
- * programme's year carries, in the student's own academic year.
+ * programme's year carries, in the student's own academic year. A year that
+ * has ended is left out: its modules can't change, and its students are to
+ * be moved on instead.
+ *
+ * @param currentYear - The academic year under way, e.g. "2026/27".
  */
-async function creditsStillToChoose(): Promise<CreditsToChoose[]> {
+async function creditsStillToChoose(
+  currentYear: string,
+): Promise<CreditsToChoose[]> {
   // Registrations are matched on the student's own academic year, which
   // Prisma's relation filters can't express.
   const rows = await db().$queryRaw<
@@ -463,7 +469,7 @@ async function creditsStillToChoose(): Promise<CreditsToChoose[]> {
       ON r.student_id = s.id AND r.academic_year = s.academic_year
       AND r.ended_at IS NULL
     LEFT JOIN modules m ON m.id = r.module_id
-    WHERE s.status = 'ENROLLED'
+    WHERE s.status = 'ENROLLED' AND s.academic_year >= ${currentYear}
     GROUP BY s.id, p.id
     HAVING COALESCE(sum(m.credits), 0) < p.credits_per_year
     ORDER BY credits_left DESC, s.student_number`;

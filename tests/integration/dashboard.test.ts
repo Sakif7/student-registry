@@ -504,17 +504,23 @@ describe("getDashboard", () => {
     const full = await student("Oliver Bennett");
     const short = await student("Priya Nair");
     const none = await student("Kwame Mensah");
-    const lastYear = await student("Liam O'Connor", {
-      academicYear: "2025/26",
+    const nextYear = await student("Liam O'Connor", {
+      academicYear: "2027/28",
     });
     const withdrawn = await student("Hannah Kowalski", {
       status: "WITHDRAWN",
     });
+    // Still in 2025/26, which has ended: their modules can't change, so they
+    // are to be moved on, not to choose options.
+    const notMovedOn = await student("Tomasz Nowak", {
+      academicYear: "2025/26",
+    });
     await registerStudents(core.id, [full.id, short.id, withdrawn.id]);
     await registerStudents(option.id, [full.id]);
-    // Liam's session is 2025/26: a registration for 2026/27 doesn't count.
-    await registerStudents(core.id, [lastYear.id], "2025/26");
-    await registerStudents(option.id, [lastYear.id]);
+    // Liam's session is 2027/28: a registration for 2026/27 doesn't count.
+    await registerStudents(core.id, [nextYear.id], "2027/28");
+    await registerStudents(option.id, [nextYear.id]);
+    await registerStudents(core.id, [notMovedOn.id], "2025/26");
 
     const { creditsToChoose } = await getDashboard(await sessionFor(STAFF));
 
@@ -532,7 +538,7 @@ describe("getDashboard", () => {
     expect(creditsToChoose).toEqual([
       listed(none, "Kwame Mensah", 120),
       listed(short, "Priya Nair", 30),
-      listed(lastYear, "Liam O'Connor", 30),
+      listed(nextYear, "Liam O'Connor", 30),
     ]);
   });
 
