@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 
 import {
   createAssessment,
+  createModule,
   createProgramme,
   createStudent,
 } from "../helpers/factories";
@@ -71,6 +72,38 @@ describe("database constraints", () => {
     await expect(
       createStudent({ resultsWithheldAt: new Date() }),
     ).rejects.toThrow("students_results_hold_check");
+  });
+
+  it("rejects a charge whose standard fee is negative", async () => {
+    const student = await createStudent();
+    await expect(
+      db().feeCharge.create({
+        data: {
+          studentId: student.id,
+          academicYear: "2026/27",
+          description: "Tuition fee 2026/27",
+          amountPence: 0,
+          standardFeePence: -1,
+          dueDate: new Date("2026-10-01T00:00:00.000Z"),
+        },
+      }),
+    ).rejects.toThrow("fee_charges_standard_fee_pence_check");
+  });
+
+  it("rejects a module ended before it was registered", async () => {
+    const student = await createStudent();
+    const { id: moduleId } = await createModule();
+    await expect(
+      db().moduleRegistration.create({
+        data: {
+          studentId: student.id,
+          moduleId,
+          academicYear: "2026/27",
+          registeredAt: new Date("2026-09-01T00:00:00.000Z"),
+          endedAt: new Date("2026-08-31T23:59:59.000Z"),
+        },
+      }),
+    ).rejects.toThrow("module_registrations_ended_after_registered_check");
   });
 
   it("rejects a status change that keeps the same status", async () => {
