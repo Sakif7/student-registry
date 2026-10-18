@@ -60,8 +60,9 @@ export function EditAssessmentDialog({
   /** The semester dates of the years set up, by year. */
   calendars: Record<string, SemesterDates>;
   /**
-   * Whether the deadline may move to another academic year: only while
-   * nothing has been submitted or marked (see updateAssessment).
+   * Whether the deadline may move to another academic year: only while it
+   * is still to come and nothing has been submitted or marked (see
+   * updateAssessment).
    */
   canChangeYear: boolean;
   timeZone: string;
@@ -167,7 +168,12 @@ export function EditAssessmentDialog({
                 <>
                   {canChangeYear
                     ? `In college time (${timeZone}). Moved into another academic year, it becomes that year's students' assessment.`
-                    : `In college time (${timeZone}), by ${formatDate(lastDay)}: work has been submitted or marked, so the assessment stays with ${academicYear}'s students.`}
+                    : `In college time (${timeZone}), by ${formatDate(lastDay)}: ${
+                        // Wall times in one zone compare as text.
+                        deadline <= now
+                          ? "its deadline has passed"
+                          : "work has been submitted or marked"
+                      }, so the assessment stays with ${academicYear}'s students.`}
                   <DeadlineNotes notes={notes} />
                 </>
               }
