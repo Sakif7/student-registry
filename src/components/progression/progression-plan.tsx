@@ -128,9 +128,7 @@ export function ProgressionPlan({ list }: { list: ProgressionList }) {
       <Pagination page={page} noun="student" hrefFor={hrefFor} />
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <p className="text-sm text-muted-foreground">
-          {Object.keys(steps).length > 0
-            ? `You've changed ${formatCount(Object.keys(steps).length, "student")}'s step; the rest take the one shown.`
-            : "Each student takes the step shown unless you change it."}
+          {changedSteps(Object.keys(steps).length)}
         </p>
         <MoveOnButton
           to={to}
@@ -214,6 +212,16 @@ function MoveOnButton({
       </DialogContent>
     </Dialog>
   );
+}
+
+/** How many steps staff have changed, with the possessive in its place. */
+function changedSteps(changed: number): string {
+  if (changed === 0) {
+    return "Each student takes the step shown unless you change it.";
+  }
+  const whose =
+    changed === 1 ? "1 student's step" : `${changed} students' steps`;
+  return `You've changed ${whose}; the rest take the one shown.`;
 }
 
 /** What moving students on did, in a sentence. */
