@@ -73,8 +73,10 @@ const SUBMISSION_FIELDS = {
 } satisfies Prisma.SubmissionSelect;
 
 /**
- * The assessments on a student's programme (and any others they have
- * submitted to), with their own work, for staff or the student themselves.
+ * A student's assessments, with their own work, for staff or the student
+ * themselves: those of the modules they were registered on, for the years
+ * they were registered, and any others they submitted to. Being on a
+ * module's programme isn't enough.
  *
  * @throws AppError: NOT_FOUND; UNAUTHENTICATED or FORBIDDEN.
  */
@@ -99,8 +101,8 @@ export async function listStudentAssessments(
 /**
  * One assessment as the signed-in student sees it.
  *
- * @throws AppError: NOT_FOUND, including for an assessment that isn't on the
- *   student's programme; UNAUTHENTICATED or FORBIDDEN.
+ * @throws AppError: NOT_FOUND, including for an assessment that isn't the
+ *   student's (see takes); UNAUTHENTICATED or FORBIDDEN.
  */
 export async function getStudentAssessment(
   session: Session | null,

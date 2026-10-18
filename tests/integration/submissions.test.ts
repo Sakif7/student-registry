@@ -502,6 +502,35 @@ describe("GET /api/students/[studentNumber]/assessments", () => {
     ).toEqual(["Coursework 1"]);
   });
 
+  it("leaves out the assessments of other years' modules on the student's programme", async () => {
+    // A year 3 student on Amelia's programme, taking a year 3 module. Being
+    // on the programme doesn't make CS4001, a year 1 module, theirs.
+    const { id: programmeId } = await db().programme.findUniqueOrThrow({
+      where: { code: "BSC-CS" },
+    });
+    const finalYear = await createModule({
+      code: "CS6001",
+      title: "Final year project",
+      programmeId,
+      yearOfStudy: 3,
+    });
+    await createAssessment({ title: "Dissertation", moduleId: finalYear.id });
+    const finalist = await createStudent({
+      studentNumber: "SMS-2024-0001",
+      programmeId,
+      yearOfStudy: 3,
+    });
+    await registerStudents(finalYear.id, [finalist.id]);
+    const viewer = asStudent("SMS-2024-0001");
+
+    const { body } = await list("SMS-2024-0001", viewer);
+
+    expect(
+      (body.assessments as { title: string }[]).map(({ title }) => title),
+    ).toEqual(["Dissertation"]);
+    expect((await upload(pdf(), { session: viewer })).status).toBe(404);
+  });
+
   it("says why a student can't submit", async () => {
     expect(
       await list("SMS-2026-0003", asStudent("SMS-2026-0003")),
