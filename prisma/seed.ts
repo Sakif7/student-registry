@@ -532,7 +532,7 @@ async function main(): Promise<void> {
     });
     await seedHolds(prisma, students, story);
     const logins = await seedLogins(prisma, students, now, story);
-    const events = await seedAuditTrail(prisma, currentYear);
+    const events = await seedAuditTrail(prisma, currentYear, timeZone);
     console.log(
       `Seeded ${PROGRAMMES.length} programmes, ${MODULES.length} modules, ${Object.keys(students).length} students, ${registrations} module registrations, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions, ${work.marks} marks and ${events} audit events.`,
     );
@@ -1331,6 +1331,7 @@ async function seedLogins(
 async function seedAuditTrail(
   prisma: PrismaClient,
   currentYear: number,
+  timeZone: string,
 ): Promise<number> {
   const [jane, tom, elena] = await Promise.all(
     DEMO_STAFF.map(async ({ email }) => {
@@ -1386,8 +1387,8 @@ async function seedAuditTrail(
       });
     }
 
-    // Jane moved them on at the start of each year they went up, just before
-    // its modules were registered.
+    // Jane moved them on as each year they went up began: a minute before
+    // its modules were registered, at midnight on 1 September.
     const member = (Object.values(CAST) as CastMember[]).find(
       ({ email }) => email === student.email,
     );
@@ -1403,7 +1404,7 @@ async function seedAuditTrail(
         const from = years[index - 1];
         if (!from) continue;
         const academicYear = formatAcademicYear(currentYear - to.yearsAgo);
-        const moved = toDbDate(academicYearSpan(academicYear).first);
+        const moved = yearStartsAt(academicYear, timeZone);
         add(jane, new Date(moved.getTime() - 60 * 1000), {
           action: "student.edited",
           studentId,
