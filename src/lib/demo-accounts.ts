@@ -65,6 +65,12 @@ export const DEMO_STUDENTS = [
     role: "student",
     note: "Completed, with published results",
   },
+  {
+    name: "Tomasz Nowak",
+    email: "tomasz.nowak@student.example",
+    role: "student",
+    note: "Not yet moved on from last year",
+  },
 ] as const satisfies readonly DemoAccount[];
 
 /** The logins the sign-in page offers: two staff, then the students. */

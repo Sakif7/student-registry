@@ -4,7 +4,11 @@ import { execSync } from "node:child_process";
 
 import { expect, type Page } from "@playwright/test";
 
-import { academicYearOn, startYearOf } from "@/domain/academic-year";
+import {
+  academicYearOn,
+  formatAcademicYear,
+  startYearOf,
+} from "@/domain/academic-year";
 import { addDays, todayIn } from "@/domain/college-time";
 
 import { SESSION_COOKIE } from "../../tests/helpers/session-cookie";
@@ -75,6 +79,11 @@ export function currentIntakeYear(): number {
   return startYearOf(academicYearOn(todayIn(TIME_ZONE)));
 }
 
+/** An academic year from the current one, e.g. "2026/27" for 0. */
+export function academicYearFromNow(years: number): string {
+  return formatAcademicYear(currentIntakeYear() + years);
+}
+
 /**
  * A student number from the demo data, for this year's intake (the seed
  * numbers students relative to the current academic year).
@@ -104,6 +113,7 @@ const DEMO_STUDENTS = {
   hannah: [5, 0],
   chloe: [6, 0],
   arjun: [7, 0],
+  tomasz: [3, 1],
 } as const;
 
 /** A demo student's ID, e.g. demoStudent("oliver") → "SMS-2026-0001". */

@@ -294,8 +294,15 @@ interface CastMember {
    * registered on their year's core modules too.
    */
   options: readonly ModuleCode[];
-  /** Their registrations the academic year before, if they were here. */
-  previousYear?: { yearOfStudy: number; options: readonly ModuleCode[] };
+  /**
+   * Their years before their current session, the latest first: the year
+   * of study and the options they took. Each year's core modules are
+   * registered too, and each move to the next year is in the audit trail.
+   */
+  earlierYears?: readonly {
+    yearOfStudy: number;
+    options: readonly ModuleCode[];
+  }[];
   /** Status changes, oldest first; the first is the status at creation. */
   history: { status: EnrolmentStatus; daysAgo: number; reason?: string }[];
   /**
@@ -320,7 +327,7 @@ const CAST = {
     sessionYearsAgo: 0,
     yearOfStudy: 2,
     options: ["CS5004"],
-    previousYear: { yearOfStudy: 1, options: ["CS4004", "CS4005"] },
+    earlierYears: [{ yearOfStudy: 1, options: ["CS4004", "CS4005"] }],
     history: [{ status: "ENROLLED", daysAgo: 400 }],
   },
   kwame: {
@@ -332,7 +339,7 @@ const CAST = {
     sessionYearsAgo: 0,
     yearOfStudy: 2,
     options: ["BM5004"],
-    previousYear: { yearOfStudy: 1, options: ["BM4004", "BM4005"] },
+    earlierYears: [{ yearOfStudy: 1, options: ["BM4004", "BM4005"] }],
     history: [{ status: "ENROLLED", daysAgo: 395 }],
   },
   mohammed: {
@@ -344,6 +351,11 @@ const CAST = {
     sessionYearsAgo: 1,
     yearOfStudy: 3,
     options: ["CS6002", "CS6004"],
+    // Three years, so his record shows how he got to year 3.
+    earlierYears: [
+      { yearOfStudy: 2, options: ["CS5004"] },
+      { yearOfStudy: 1, options: ["CS4004", "CS4005"] },
+    ],
     history: [
       { status: "ENROLLED", daysAgo: 1135 },
       { status: "COMPLETED", daysAgo: 110 },
@@ -444,6 +456,19 @@ const CAST = {
     history: [{ status: "ENROLLED", daysAgo: 35 }],
     login: "pending",
   },
+  // Not yet moved on from last year: awaiting a resit decision, so the new
+  // year's modules, assessments and fee don't reach him (see Progression).
+  tomasz: {
+    fullName: "Tomasz Nowak",
+    email: "tomasz.nowak@student.example",
+    dateOfBirth: "2006-03-14",
+    programme: "BSC-CS",
+    intakeYearsAgo: 1,
+    sessionYearsAgo: 1,
+    yearOfStudy: 1,
+    options: ["CS4004", "CS4005"],
+    history: [{ status: "ENROLLED", daysAgo: 405 }],
+  },
 } satisfies Record<string, CastMember>;
 
 type CastKey = keyof typeof CAST;
@@ -501,7 +526,7 @@ async function main(): Promise<void> {
     });
     await seedHolds(prisma, students, now);
     const logins = await seedLogins(prisma, students, now);
-    const events = await seedAuditTrail(prisma);
+    const events = await seedAuditTrail(prisma, currentYear);
     console.log(
       `Seeded ${PROGRAMMES.length} programmes, ${MODULES.length} modules, ${Object.keys(students).length} students, ${registrations} module registrations, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions, ${work.marks} marks and ${events} audit events.`,
     );
@@ -671,16 +696,12 @@ async function seedStudents(
         yearOfStudy: member.yearOfStudy,
         options: member.options,
       },
-      ...(member.previousYear
-        ? [
-            {
-              academicYear: formatAcademicYear(
-                currentYear - member.sessionYearsAgo - 1,
-              ),
-              ...member.previousYear,
-            },
-          ]
-        : []),
+      ...(member.earlierYears ?? []).map((year, index) => ({
+        academicYear: formatAcademicYear(
+          currentYear - member.sessionYearsAgo - 1 - index,
+        ),
+        ...year,
+      })),
     ];
     for (const year of years) {
       const structure = PROGRAMMES.find(
@@ -766,8 +787,15 @@ const ACCOUNTS: Record<CastKey, SeedAccount> = {
     ],
   },
   mohammed: {
-    charges: [{ yearsAgo: 1, dueInDays: -390 }],
+    // A fee for each of his three years, each paid.
+    charges: [
+      { yearsAgo: 3, dueInDays: -1120 },
+      { yearsAgo: 2, dueInDays: -755 },
+      { yearsAgo: 1, dueInDays: -390 },
+    ],
     payments: [
+      { amountPence: 953_500, daysAgo: 1125, reference: "BACS MAF 2023" },
+      { amountPence: 953_500, daysAgo: 760, reference: "BACS MAF 2024" },
       { amountPence: 953_500, daysAgo: 395, reference: "BACS MAF 2025" },
     ],
   },
@@ -820,6 +848,13 @@ const ACCOUNTS: Record<CastKey, SeedAccount> = {
   arjun: {
     charges: [{ yearsAgo: 0, dueInDays: 5 }],
     payments: [],
+  },
+  // Last year's fee, paid; this year's isn't charged until he moves on.
+  tomasz: {
+    charges: [{ yearsAgo: 1, dueInDays: -375 }],
+    payments: [
+      { amountPence: 953_500, daysAgo: 380, reference: "SLC TN 2025" },
+    ],
   },
 };
 
@@ -1258,7 +1293,10 @@ async function seedLogins(
  * enrolment, Tom Reid fees, and Elena Petrova assessments and results; each
  * student submits their own work.
  */
-async function seedAuditTrail(prisma: PrismaClient): Promise<number> {
+async function seedAuditTrail(
+  prisma: PrismaClient,
+  currentYear: number,
+): Promise<number> {
   const [jane, tom, elena] = await Promise.all(
     DEMO_STAFF.map(async ({ email }) => {
       const user = await prisma.user.findUniqueOrThrow({ where: { email } });
@@ -1311,6 +1349,41 @@ async function seedAuditTrail(prisma: PrismaClient): Promise<number> {
           reason: change.reason,
         },
       });
+    }
+
+    // Jane moved them on at the start of each year they went up, just before
+    // its modules were registered.
+    const member = (Object.values(CAST) as CastMember[]).find(
+      ({ email }) => email === student.email,
+    );
+    if (member) {
+      const years = [
+        { yearOfStudy: member.yearOfStudy, yearsAgo: member.sessionYearsAgo },
+        ...(member.earlierYears ?? []).map(({ yearOfStudy }, index) => ({
+          yearOfStudy,
+          yearsAgo: member.sessionYearsAgo + 1 + index,
+        })),
+      ].reverse();
+      for (const [index, to] of years.entries()) {
+        const from = years[index - 1];
+        if (!from) continue;
+        const academicYear = formatAcademicYear(currentYear - to.yearsAgo);
+        const moved = toDbDate(academicYearSpan(academicYear).first);
+        add(jane, new Date(moved.getTime() - 60 * 1000), {
+          action: "student.edited",
+          studentId,
+          details: {
+            fields: ["academicYear", "yearOfStudy"],
+            changes: {
+              academicYear: {
+                from: formatAcademicYear(currentYear - from.yearsAgo),
+                to: academicYear,
+              },
+              yearOfStudy: { from: from.yearOfStudy, to: to.yearOfStudy },
+            },
+          },
+        });
+      }
     }
 
     // Jane registers students on their modules: the core ones on enrolment,

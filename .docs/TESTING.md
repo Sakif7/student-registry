@@ -69,7 +69,7 @@ starting point at any time.
 
 ### Demo data
 
-The seed loads three programmes, a catalogue of 35 modules and ten
+The seed loads three programmes, a catalogue of 35 modules and eleven
 fictitious students. Dates are relative to the day the seed runs. The IDs
 below assume the 2026/27 academic year; in a later year the years in them
 move on by the same amount.
@@ -85,19 +85,26 @@ move on by the same amount.
 - **Registrations:** each student is registered on their year's core
   modules and options that make up the year's credits, except Priya (105 of
   120 credits) and Arjun (165 of 180), who still have an option to choose.
+  Students in a later year have their earlier years too: Mohammed has all
+  three, each with its modules, its fee paid, and his moves between years
+  in the audit trail.
 
-| Student           | ID            | Programme                     | Year | Status    | Fees (on the day the seed runs)                                |
-| ----------------- | ------------- | ----------------------------- | ---- | --------- | -------------------------------------------------------------- |
-| Mohammed Al-Farsi | SMS-2023-0001 | BSc (Hons) Computer Science   | 3    | Completed | Paid in full                                                   |
-| Amelia Hart       | SMS-2025-0001 | BSc (Hons) Computer Science   | 2    | Enrolled  | This year's £9,535.00 overdue by 20 days                       |
-| Kwame Mensah      | SMS-2025-0002 | BA (Hons) Business Management | 2    | Enrolled  | £4,535.00 overdue by 10 days after a part-payment              |
-| Oliver Bennett    | SMS-2026-0001 | BSc (Hons) Computer Science   | 1    | Enrolled  | Paid in full                                                   |
-| Priya Natarajan   | SMS-2026-0002 | BSc (Hons) Computer Science   | 1    | Enrolled  | Paid in full                                                   |
-| Sofia Rossi       | SMS-2026-0003 | BA (Hons) Business Management | 1    | Deferred  | Deferred 12 days ago; fee corrected to £0.00 with a note       |
-| Liam O'Connor     | SMS-2026-0004 | MSc Data Science              | 1    | Enrolled  | Overpaid: £250.00 in credit                                    |
-| Hannah Kowalski   | SMS-2026-0005 | MSc Data Science              | 1    | Withdrawn | Withdrew 8 days ago; still owes £9,950.00, overdue by 6 days   |
-| Chloé Dubois      | SMS-2026-0006 | BA (Hons) Business Management | 1    | Enrolled  | Paid in full after a payment recalled by the bank was reversed |
-| Arjun Mehta       | SMS-2026-0007 | MSc Data Science              | 1    | Enrolled  | £11,950.00 due in 5 days, not yet overdue                      |
+| Student           | ID            | Programme                     | Year | Status    | Fees (on the day the seed runs)                                 |
+| ----------------- | ------------- | ----------------------------- | ---- | --------- | --------------------------------------------------------------- |
+| Mohammed Al-Farsi | SMS-2023-0001 | BSc (Hons) Computer Science   | 3    | Completed | Paid in full                                                    |
+| Amelia Hart       | SMS-2025-0001 | BSc (Hons) Computer Science   | 2    | Enrolled  | This year's £9,535.00 overdue by 20 days                        |
+| Kwame Mensah      | SMS-2025-0002 | BA (Hons) Business Management | 2    | Enrolled  | £4,535.00 overdue by 10 days after a part-payment               |
+| Oliver Bennett    | SMS-2026-0001 | BSc (Hons) Computer Science   | 1    | Enrolled  | Paid in full                                                    |
+| Priya Natarajan   | SMS-2026-0002 | BSc (Hons) Computer Science   | 1    | Enrolled  | Paid in full                                                    |
+| Sofia Rossi       | SMS-2026-0003 | BA (Hons) Business Management | 1    | Deferred  | Deferred 12 days ago; fee corrected to £0.00 with a note        |
+| Liam O'Connor     | SMS-2026-0004 | MSc Data Science              | 1    | Enrolled  | Overpaid: £250.00 in credit                                     |
+| Hannah Kowalski   | SMS-2026-0005 | MSc Data Science              | 1    | Withdrawn | Withdrew 8 days ago; still owes £9,950.00, overdue by 6 days    |
+| Chloé Dubois      | SMS-2026-0006 | BA (Hons) Business Management | 1    | Enrolled  | Paid in full after a payment recalled by the bank was reversed  |
+| Arjun Mehta       | SMS-2026-0007 | MSc Data Science              | 1    | Enrolled  | £11,950.00 due in 5 days, not yet overdue                       |
+| Tomasz Nowak      | SMS-2025-0003 | BSc (Hons) Computer Science   | 1    | Enrolled  | Last year's fee paid; this year's not charged until he moves on |
+
+Tomasz is still in last year (2025/26): awaiting a resit decision, he
+hasn't been moved on to this year (see scenario 18).
 
 Assessments come in every state. Each is for the students registered on its
 module in the academic year of its deadline: first-years, second-years or
@@ -131,7 +138,7 @@ password `demo-password-2026`:
 | Arjun Mehta     | `arjun.mehta@student.example`                                                                                                | No: the account isn't activated yet |
 | Hannah Kowalski | `hannah.kowalski@student.example`                                                                                            | No: sign-in is turned off           |
 
-The sign-in page lists five of these accounts with a **Use** button that fills
+The sign-in page lists six of these accounts with a **Use** button that fills
 in the form.
 
 Several scenarios move between staff and a student. Stay signed in as staff
@@ -416,14 +423,16 @@ year's fee is overdue after a £5,000.00 card payment.
 Reset the demo data first with `npm run db:seed`, because the days overdue
 below are as of the day the seed runs. As staff:
 
-1. Open **Dashboard**. The figures read 7 enrolled students (10 on record),
+1. Open **Dashboard**. A notice at the top reads "1 enrolled student is
+   still in an earlier year than 2026/27", with a link to move them on
+   (scenario 18). The figures read 8 enrolled students (11 on record),
    £24,020.00 of overdue fees (3 students), 3 marks to publish (3 students;
    1 held), 1 piece of work to mark, and 1 student waiting for activation.
-   **Students by programme** shows Enrolled 7, Deferred 1, Withdrawn 1 and
+   **Students by programme** shows Enrolled 8, Deferred 1, Withdrawn 1 and
    Completed 1, and under **MSc Data Science** "2 enrolled · 1 withdrawn".
    Select **Withdrawn**: the student list opens filtered to Withdrawn and
    shows Hannah Kowalski. Back on the dashboard, select **BSc (Hons)
-   Computer Science**: the list shows that programme's four students.
+   Computer Science**: the list shows that programme's five students.
 2. **Fees for** the current academic year reads 56% collected: paid
    £47,555.00, overdue £24,020.00, not yet due £11,950.00, of £83,525.00
    charged. Hovering over the ring shows each part's amount.
@@ -734,6 +743,32 @@ As Priya:
 3. Open <http://localhost:3000/no-such-page>, signed in or not. **Page not
    found** appears in the look of the sign-in page, with **Go to the Student
    Registry**, which leads to your own pages, or to sign in.
+
+### 18. Moving students on to a new academic year
+
+Reset the demo data first with `npm run db:seed`. As staff:
+
+1. Open Tomasz Nowak's record (SMS-2025-0003). A notice says "2025/26 has
+   ended": he hasn't been moved on, so this year's modules, assessments and
+   fee don't reach him. As Tomasz, his home page says the same.
+2. Select **Move them on** (or **Progression** in the sidebar). The list
+   holds Tomasz alone: "Year 1 · 2025/26", next step **Year 2**. Open the
+   select: **Repeat year 1** and **Leave for now** are the other choices; a
+   final-year student's suggested step would be **Complete**. Choose
+   **Repeat year 1**: the foot says "You've changed 1 student's step".
+   Choose **Year 2** again.
+3. Select **Move 1 student on to 2026/27** and confirm. The message reads
+   "Moved on to 2026/27: 1 student up a year." The list is now empty, and
+   the dashboard's notice has gone.
+4. Open Tomasz's record. The header reads "Year 2 · 2026/27"; **Modules**
+   lists this year's year-2 core modules, with last year's below; **Fees**
+   holds the 2026/27 fee, due 30 days from today; **History** shows the move,
+   "year 1 to year 2; 2025/26 to 2026/27", with the registrations and the
+   fee.
+5. Open Mohammed Al-Farsi's record (SMS-2023-0001). The details read
+   "Intake 2023/24", "Year 3 of 3" and "Completed in 2025/26"; the header
+   "Completed in 2025/26, in year 3". **Modules** shows his three years,
+   **Fees** a paid fee for each, and **History** his moves between years.
 
 ## Trying the API with curl
 
