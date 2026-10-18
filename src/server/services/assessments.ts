@@ -189,7 +189,11 @@ export async function registeredByModule(
   requireStaff(session);
   const years = academicYearsAround(academicYearOn(collegeToday()), 0, 1);
   const rows = await db().moduleRegistration.findMany({
-    where: { academicYear: { in: years }, student: { status: "ENROLLED" } },
+    where: {
+      academicYear: { in: years },
+      endedAt: null,
+      student: { status: "ENROLLED" },
+    },
     select: { academicYear: true, module: { select: { code: true } } },
   });
   const byModule: Record<string, Record<string, number>> = {};
@@ -496,8 +500,13 @@ export async function saveMarks(
     select: {
       id: true,
       studentNumber: true,
+      // On the module at the deadline: not left before it.
       registrations: {
-        where: { moduleId: assessment.moduleId, academicYear },
+        where: {
+          moduleId: assessment.moduleId,
+          academicYear,
+          OR: [{ endedAt: null }, { endedAt: { gte: assessment.deadline } }],
+        },
         select: { id: true },
       },
       submissions: { where: { assessmentId }, select: { id: true } },
@@ -622,6 +631,7 @@ async function expectedStudents(
       academicYear: true,
       studentId: true,
       registeredAt: true,
+      endedAt: true,
       student: {
         select: {
           status: true,
@@ -640,10 +650,11 @@ async function expectedStudents(
       cohort.id,
       new Set(
         registered
-          .filter(({ registeredAt, student }) =>
+          .filter(({ registeredAt, endedAt, student }) =>
             expectedToSubmit(
               {
                 registeredAt,
+                endedAt,
                 status: student.status,
                 history: student.statusChanges,
               },

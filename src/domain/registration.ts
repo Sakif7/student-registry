@@ -15,13 +15,18 @@ export interface Registered {
    * of its deadlines passed while they were on it: it stays, either way.
    */
   hasWork: boolean;
+  /** They left it during the year, keeping its work (see ended). */
+  ended: boolean;
 }
 
 /**
  * What registering a student for their programme and year of study changes:
  * the core modules they lack are added, and modules outside the year's
- * structure are dropped, unless the student has work for them. Optional
- * modules in the structure stay as they are.
+ * structure are dropped, or, if the student has work for them, ended: the
+ * work stays, but later deadlines and the year's credits leave them out. A
+ * module ended before and back in the structure, as when a student returns
+ * to their programme, is resumed. Optional modules in the structure stay as
+ * they are.
  *
  * @param structure - The modules of the student's programme in their year of
  *   study.
@@ -30,17 +35,26 @@ export interface Registered {
 export function registrationChanges(
   structure: readonly { moduleId: string; kind: ModuleKind }[],
   registered: readonly Registered[],
-): { add: string[]; drop: string[] } {
+): { add: string[]; drop: string[]; end: string[]; resume: string[] } {
   const inStructure = new Set(structure.map((entry) => entry.moduleId));
   const isRegistered = new Set(registered.map((entry) => entry.moduleId));
+  const outside = registered.filter(
+    (entry) => !inStructure.has(entry.moduleId) && !entry.ended,
+  );
   return {
     add: structure
       .filter(
         (entry) => entry.kind === "CORE" && !isRegistered.has(entry.moduleId),
       )
       .map((entry) => entry.moduleId),
-    drop: registered
-      .filter((entry) => !inStructure.has(entry.moduleId) && !entry.hasWork)
+    drop: outside
+      .filter((entry) => !entry.hasWork)
+      .map((entry) => entry.moduleId),
+    end: outside
+      .filter((entry) => entry.hasWork)
+      .map((entry) => entry.moduleId),
+    resume: registered
+      .filter((entry) => entry.ended && inStructure.has(entry.moduleId))
       .map((entry) => entry.moduleId),
   };
 }
@@ -106,11 +120,16 @@ export function checkDrop(input: {
   return { allowed: true };
 }
 
-/** The credits of the modules a student is registered on. */
+/**
+ * The credits of the modules a student is registered on, leaving out any
+ * they left during the year.
+ */
 export function registeredCredits(
-  registered: readonly { credits: number }[],
+  registered: readonly { credits: number; ended?: boolean }[],
 ): number {
-  return registered.reduce((total, entry) => total + entry.credits, 0);
+  return registered
+    .filter((entry) => !entry.ended)
+    .reduce((total, entry) => total + entry.credits, 0);
 }
 
 /**

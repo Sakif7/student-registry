@@ -239,6 +239,15 @@ describe("describeEvent", () => {
       },
       "Dropped CS4004 Mathematics for Computing for 2026/27",
     ],
+    [
+      "registration.ended",
+      {
+        moduleCode: "CS4004",
+        moduleTitle: "Mathematics for Computing",
+        academicYear: "2026/27",
+      },
+      "Ended CS4004 Mathematics for Computing for 2026/27, keeping its work",
+    ],
   ])("describes %s", (action, details, sentence) => {
     expect(describeEvent(action, details)).toBe(sentence);
   });

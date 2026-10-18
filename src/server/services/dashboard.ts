@@ -461,6 +461,7 @@ async function creditsStillToChoose(): Promise<CreditsToChoose[]> {
     JOIN programmes p ON p.id = s.programme_id
     LEFT JOIN module_registrations r
       ON r.student_id = s.id AND r.academic_year = s.academic_year
+      AND r.ended_at IS NULL
     LEFT JOIN modules m ON m.id = r.module_id
     WHERE s.status = 'ENROLLED'
     GROUP BY s.id, p.id

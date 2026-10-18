@@ -10,11 +10,13 @@ import {
 import { toDbDate } from "@/domain/college-time";
 import { DROP_REFUSED_WITHOUT_REASON } from "@/domain/registration";
 import { db } from "@/server/db";
+import { getAssessment } from "@/server/services/assessments";
 import {
   changeStatus,
   createStudent,
   updateStudent,
 } from "@/server/services/students";
+import { listStudentAssessments } from "@/server/services/submissions";
 
 import {
   createAssessment,
@@ -47,6 +49,7 @@ interface ModulesBody {
       code: string;
       kind: string | null;
       hasWork: boolean;
+      endedOn: string | null;
       drop: { allowed: boolean; message?: string };
     }[];
     options: { code: string; fits: boolean }[];
@@ -555,6 +558,63 @@ describe("moving a student", () => {
     await registerStudents(moduleIds.CS4001, [student.id], "2025/26");
 
     expect((await modules(student.studentNumber)).registered).toEqual([]);
+  });
+});
+
+describe("a module left during the year", () => {
+  it("keeps its work, but not its later deadlines or credits, until the student returns to it", async () => {
+    const student = await makeStudent({ programmeId });
+    const staff = await sessionFor(STAFF);
+    // Registered as the year began, on year 1's core modules.
+    await registerStudents(moduleIds.CS4001, [student.id]);
+    await registerStudents(moduleIds.CS4002, [student.id]);
+    const handedIn = await createAssessment({
+      moduleId: moduleIds.CS4002,
+      deadline: new Date("2026-10-08T16:00:00.000Z"),
+    });
+    await createSubmission({
+      studentId: student.id,
+      assessmentId: handedIn.id,
+    });
+    const later = await createAssessment({
+      moduleId: moduleIds.CS4002,
+      deadline: new Date("2026-11-20T17:00:00.000Z"),
+    });
+
+    // Moved into year 2 mid-year: CS4002, with work, is left, not dropped.
+    await updateStudent(staff, student.studentNumber, { yearOfStudy: 2 });
+
+    const now = await modules(student.studentNumber);
+    expect(now.registered.map(({ code, endedOn }) => [code, endedOn])).toEqual([
+      ["CS4002", "2026-10-15"],
+      ["CS5001", null],
+    ]);
+    expect(now.registeredCredits).toBe(60);
+    // Still expected for the work handed in, but not for the later deadline.
+    expect((await getAssessment(staff, handedIn.id)).expectedCount).toBe(1);
+    expect((await getAssessment(staff, later.id)).expectedCount).toBe(0);
+    expect(
+      (
+        await listStudentAssessments(
+          await sessionFor(asStudent(student.studentNumber)),
+          student.studentNumber,
+        )
+      ).map(({ id }) => id),
+    ).toEqual([handedIn.id]);
+    expect(
+      await db().auditEvent.count({ where: { action: "registration.ended" } }),
+    ).toBe(1);
+
+    // Back in year 1, it is theirs again.
+    await updateStudent(staff, student.studentNumber, { yearOfStudy: 1 });
+    expect(
+      (await modules(student.studentNumber)).registered.map(
+        ({ code, endedOn }) => [code, endedOn],
+      ),
+    ).toEqual([
+      ["CS4001", null],
+      ["CS4002", null],
+    ]);
   });
 });
 

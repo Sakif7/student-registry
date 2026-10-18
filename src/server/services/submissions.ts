@@ -166,11 +166,13 @@ export async function submitWork(
         WHERE id = ${assessmentId}::uuid
         FOR SHARE`;
       if (!assessment) throw assessmentNotFound();
+      // On the module at the deadline: not left before it.
       const registration = await tx.moduleRegistration.findFirst({
         where: {
           studentId: student.id,
           moduleId: assessment.module_id,
           academicYear: academicYearAt(assessment.deadline, collegeTimeZone()),
+          OR: [{ endedAt: null }, { endedAt: { gte: assessment.deadline } }],
         },
         select: { id: true },
       });
@@ -336,7 +338,7 @@ function assessmentInclude(student: StudentForSubmissions) {
       include: {
         registrations: {
           where: { studentId: student.id },
-          select: { academicYear: true },
+          select: { academicYear: true, endedAt: true },
         },
       },
     },
@@ -351,11 +353,16 @@ type AssessmentForStudent = Prisma.AssessmentGetPayload<{
   include: ReturnType<typeof assessmentInclude>;
 }>;
 
-/** The student was registered on the module for the assessment's year. */
+/**
+ * The student was registered on the module for the assessment's year, and
+ * hadn't left it before the deadline.
+ */
 function registeredFor(assessment: AssessmentForStudent): boolean {
   const year = academicYearAt(assessment.deadline, collegeTimeZone());
   return assessment.module.registrations.some(
-    (registration) => registration.academicYear === year,
+    (registration) =>
+      registration.academicYear === year &&
+      (!registration.endedAt || registration.endedAt >= assessment.deadline),
   );
 }
 

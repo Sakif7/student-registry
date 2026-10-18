@@ -380,7 +380,11 @@ export async function listModuleSummaries(
         _count: {
           select: {
             registrations: {
-              where: { academicYear, student: { status: "ENROLLED" } },
+              where: {
+                academicYear,
+                endedAt: null,
+                student: { status: "ENROLLED" },
+              },
             },
           },
         },

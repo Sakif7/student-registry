@@ -15,6 +15,7 @@ import {
   type Semester,
   semesterOn,
 } from "@/domain/curriculum";
+import { type CalendarDate, instantToWallTime } from "@/domain/college-time";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   checkDrop,
@@ -53,6 +54,11 @@ export interface StudentModule {
   kind: ModuleKind | null;
   /** The student has submitted work, or has a mark, for it this year. */
   hasWork: boolean;
+  /**
+   * The day the student left it during the year, keeping its work: its
+   * later deadlines aren't theirs and its credits no longer count.
+   */
+  endedOn: CalendarDate | null;
   /** Whether the viewer may drop it, and if not, why. */
   drop: Permission;
 }
@@ -98,6 +104,9 @@ export interface StudentModules {
 
 const CHOOSING_CLOSED =
   "Choosing modules isn't open just now. Contact the Registry to change your modules.";
+
+/** Why a module left during the year can't be dropped. */
+const ENDED = "Left during the year: its work stays on the record.";
 
 /**
  * Why the modules of a year that has ended can't change: they are history,
@@ -152,10 +161,13 @@ export async function getStudentModules(
     (registration) => registration.academicYear === student.academicYear,
   );
   const credits = registeredCredits(
-    current.map(({ module }) => ({ credits: module.credits })),
+    current.map(({ module, endedAt }) => ({
+      credits: module.credits,
+      ended: endedAt !== null,
+    })),
   );
   const registered = current
-    .map(({ module }): StudentModule => {
+    .map(({ module, endedAt }): StudentModule => {
       const kind = kinds.get(module.id) ?? null;
       const verdict = checkDrop({
         status: student.status,
@@ -170,14 +182,19 @@ export async function getStudentModules(
         semester: module.semester,
         kind,
         hasWork: (own ? work.known : work.all).has(module.id),
-        drop: !changes.allowed
-          ? changes
-          : verdict.allowed
-            ? verdict
-            : {
-                allowed: false,
-                message: dropRefusal(verdict.reason, own, work, module.id),
-              },
+        endedOn: endedAt
+          ? instantToWallTime(endedAt, collegeTimeZone()).slice(0, 10)
+          : null,
+        drop: endedAt
+          ? { allowed: false, message: ENDED }
+          : !changes.allowed
+            ? changes
+            : verdict.allowed
+              ? verdict
+              : {
+                  allowed: false,
+                  message: dropRefusal(verdict.reason, own, work, module.id),
+                },
       };
     })
     .sort(bySemesterThenCode);
@@ -273,15 +290,28 @@ export async function registerOnModule(
     }
     const current = await tx.moduleRegistration.findMany({
       where: { studentId: student.id, academicYear: student.academicYear },
-      select: { moduleId: true, module: { select: { credits: true } } },
+      select: {
+        id: true,
+        moduleId: true,
+        endedAt: true,
+        module: { select: { credits: true } },
+      },
     });
     const credits = registeredCredits(
-      current.map(({ module: registered }) => registered),
+      current.map(({ module: registered, endedAt }) => ({
+        credits: registered.credits,
+        ended: endedAt !== null,
+      })),
+    );
+    // One left earlier this year is resumed rather than registered again.
+    const ended = current.find(
+      (entry) => entry.moduleId === found.id && entry.endedAt !== null,
     );
     const verdict = checkRegistration({
       status: student.status,
       kind,
-      alreadyRegistered: current.some((entry) => entry.moduleId === found.id),
+      alreadyRegistered:
+        !ended && current.some((entry) => entry.moduleId === found.id),
       registeredCredits: credits,
       moduleCredits: found.credits,
       creditsPerYear: student.programme.creditsPerYear,
@@ -297,13 +327,20 @@ export async function registerOnModule(
       );
     }
 
-    await tx.moduleRegistration.create({
-      data: {
-        studentId: student.id,
-        moduleId: found.id,
-        academicYear: student.academicYear,
-      },
-    });
+    if (ended) {
+      await tx.moduleRegistration.update({
+        where: { id: ended.id },
+        data: { endedAt: null },
+      });
+    } else {
+      await tx.moduleRegistration.create({
+        data: {
+          studentId: student.id,
+          moduleId: found.id,
+          academicYear: student.academicYear,
+        },
+      });
+    }
     await recordEvent(tx, viewer, {
       action: "registration.added",
       studentId: student.id,
@@ -357,6 +394,7 @@ export async function dropModule(
         `Not registered on ${code} this academic year.`,
       );
     }
+    if (registration.endedAt) throw new AppError("CONFLICT", ENDED);
     const structure = await structureFor(tx, student);
     const work = await modulesWithWork(tx, student, student.academicYear);
     const verdict = checkDrop({
@@ -438,7 +476,11 @@ type StudentToSync = {
   resultsWithheldAt: Date | null;
 };
 
-/** Adds the year's missing core modules, and drops those outside it. */
+/**
+ * Adds the year's missing core modules, and drops those outside it, or ends
+ * them, keeping their work, if the student has some (see
+ * registrationChanges).
+ */
 async function syncYear(
   tx: Prisma.TransactionClient,
   actor: Session,
@@ -453,12 +495,13 @@ async function syncYear(
     }),
     modulesWithWork(tx, student, student.academicYear),
   ]);
-  const registered: Registered[] = current.map(({ module }) => ({
+  const registered: Registered[] = current.map(({ module, endedAt }) => ({
     moduleId: module.id,
     credits: module.credits,
     hasWork: work.all.has(module.id) || work.due.has(module.id),
+    ended: endedAt !== null,
   }));
-  const { add, drop } = registrationChanges(structure, registered);
+  const { add, drop, end, resume } = registrationChanges(structure, registered);
   const modules = new Map(
     [
       ...structure.map((entry) => entry.module),
@@ -494,6 +537,32 @@ async function syncYear(
       module: modules.get(moduleId),
       academicYear: student.academicYear,
     });
+  }
+  // Ended or resumed now: deadlines from here on follow it. Never ended
+  // before it began, should the app's clock lag the database's.
+  const now = Date.now();
+  for (const registration of current) {
+    const moduleId = registration.moduleId;
+    const ending = end.includes(moduleId);
+    if (!ending && !resume.includes(moduleId)) continue;
+    await tx.moduleRegistration.update({
+      where: { id: registration.id },
+      data: {
+        endedAt: ending
+          ? new Date(Math.max(now, registration.registeredAt.getTime()))
+          : null,
+      },
+    });
+    await recordRegistrationEvent(
+      tx,
+      actor,
+      ending ? "registration.ended" : "registration.added",
+      {
+        studentId: student.id,
+        module: modules.get(moduleId),
+        academicYear: student.academicYear,
+      },
+    );
   }
 }
 
@@ -539,7 +608,7 @@ async function dropLaterYears(
 async function recordRegistrationEvent(
   tx: Prisma.TransactionClient,
   actor: Session,
-  action: "registration.added" | "registration.dropped",
+  action: "registration.added" | "registration.dropped" | "registration.ended",
   event: {
     studentId: string;
     module: { code: string; title: string } | undefined;
@@ -607,6 +676,7 @@ async function modulesWithWork(
       select: {
         moduleId: true,
         registeredAt: true,
+        endedAt: true,
         module: { select: { assessments: { select: { deadline: true } } } },
       },
     }),
@@ -618,12 +688,14 @@ async function modulesWithWork(
   const visible = results.filter((result) =>
     isVisibleToStudent(result, student.resultsWithheldAt !== null),
   );
+  // Deadlines while they were on the module: from registering to leaving.
   const due = registrations
-    .filter(({ registeredAt, module }) =>
+    .filter(({ registeredAt, endedAt, module }) =>
       module.assessments.some(
         ({ deadline }) =>
           deadline < now &&
           deadline >= registeredAt &&
+          (!endedAt || deadline <= endedAt) &&
           academicYearAt(deadline, timeZone) === academicYear,
       ),
     )

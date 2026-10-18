@@ -200,7 +200,12 @@ That isn't how a registry works, so the curriculum is now modelled.
   transaction:
   - the core modules they lack are added;
   - modules from outside the year are dropped, unless the student has
-    submitted work or has a mark for them that year, which keeps them;
+    work for them that year (submitted, marked, or a deadline passed while
+    they were on it): those are ended instead, as after a change of
+    programme mid-year. The work stays on the record, but deadlines after
+    the end aren't the student's, they no longer see or submit to them,
+    and the module's credits no longer count; the Modules tab marks it
+    "Left" with the date. Back in the year's structure, it resumes;
   - options in the year stay as they are;
   - registrations of earlier academic years stay, as the student's history;
   - registrations of a later academic year, which only moving a student

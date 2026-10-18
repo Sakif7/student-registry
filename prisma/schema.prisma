@@ -112,8 +112,12 @@ model ModuleRegistration {
   studentId    String   @map("student_id") @db.Uuid
   moduleId     String   @map("module_id") @db.Uuid
   /// E.g. "2026/27".
-  academicYear String   @map("academic_year")
-  registeredAt DateTime @default(now()) @map("registered_at") @db.Timestamptz(3)
+  academicYear String    @map("academic_year")
+  registeredAt DateTime  @default(now()) @map("registered_at") @db.Timestamptz(3)
+  /// Set when the student left a module they had work in, e.g. on changing
+  /// programme mid-year: the work stays, but deadlines after it aren't
+  /// theirs, and its credits no longer count.
+  endedAt      DateTime? @map("ended_at") @db.Timestamptz(3)
 
   student Student @relation(fields: [studentId], references: [id])
   module  Module  @relation(fields: [moduleId], references: [id])

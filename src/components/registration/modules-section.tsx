@@ -195,7 +195,13 @@ function RegisteredCard({
                   </TableCell>
                   <TableCell>{SEMESTER_LABELS[module.semester]}</TableCell>
                   <TableCell>
-                    {module.kind ? (
+                    {module.endedOn ? (
+                      // Left during the year: its work stays, its credits
+                      // no longer count.
+                      <Badge variant="outline">
+                        Left {formatDate(module.endedOn)}
+                      </Badge>
+                    ) : module.kind ? (
                       <Badge
                         variant={
                           module.kind === "CORE" ? "default" : "secondary"

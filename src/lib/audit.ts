@@ -110,6 +110,8 @@ const DESCRIBE: Describe = {
     `Registered on ${moduleCode} ${moduleTitle} for ${academicYear}`,
   "registration.dropped": ({ moduleCode, moduleTitle, academicYear }) =>
     `Dropped ${moduleCode} ${moduleTitle} for ${academicYear}`,
+  "registration.ended": ({ moduleCode, moduleTitle, academicYear }) =>
+    `Ended ${moduleCode} ${moduleTitle} for ${academicYear}, keeping its work`,
 };
 
 /** Every kind of event the trail records. */

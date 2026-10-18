@@ -121,6 +121,12 @@ export interface AuditDetails {
     moduleTitle: string;
     academicYear: string;
   };
+  /** Left during the year, keeping its work, e.g. on changing programme. */
+  "registration.ended": {
+    moduleCode: string;
+    moduleTitle: string;
+    academicYear: string;
+  };
 }
 
 export type AuditAction = keyof AuditDetails;

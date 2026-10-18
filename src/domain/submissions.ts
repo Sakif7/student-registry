@@ -160,12 +160,16 @@ export function assessmentState(
 export function expectedToSubmit(
   student: {
     registeredAt: Date;
+    /** When they left the module during the year, if they did. */
+    endedAt?: Date | null;
     status: EnrolmentStatus;
     history: readonly StatusChangeLine[];
   },
   deadline: Date,
   now: Date,
 ): boolean {
+  // Left the module before the deadline: the work wasn't theirs to do.
+  if (student.endedAt && student.endedAt < deadline) return false;
   if (now <= deadline) return canSubmitWork(student.status);
   if (student.registeredAt > deadline) return false;
   const status =
