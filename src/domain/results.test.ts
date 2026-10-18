@@ -4,10 +4,12 @@ import {
   canEnterMarks,
   classify,
   countByClassification,
+  filterResultsStudents,
   isVisibleToStudent,
   markFieldSchema,
   markSchema,
   marksheetSchema,
+  resultsListSchema,
   withholdResultsSchema,
 } from "./results";
 
@@ -146,5 +148,66 @@ describe("markFieldSchema", () => {
     expect(markFieldSchema.safeParse(text).error?.issues[0]?.message).toBe(
       message,
     );
+  });
+});
+
+describe("filterResultsStudents", () => {
+  const student = (
+    fullName: string,
+    publishedCount: number,
+    unpublishedCount: number,
+    withheld = false,
+  ) => ({
+    fullName,
+    studentNumber: `SMS-2026-000${fullName.length}`,
+    publishedCount,
+    unpublishedCount,
+    withheld: withheld ? { reason: "Outstanding tuition fees" } : null,
+  });
+  const students = [
+    student("Oliver Bennett", 1, 1),
+    student("Amelia Hart", 1, 0, true),
+    student("Kwame Mensah", 2, 0),
+    student("Chloé Dubois", 0, 1, true),
+  ];
+  const names = (list: readonly { fullName: string }[]) =>
+    list.map(({ fullName }) => fullName);
+
+  it("lists those with marks to publish, withheld, or all published", () => {
+    expect(names(filterResultsStudents(students, { show: "publish" }))).toEqual(
+      ["Oliver Bennett"],
+    );
+    expect(
+      names(filterResultsStudents(students, { show: "withheld" })),
+    ).toEqual(["Amelia Hart", "Chloé Dubois"]);
+    expect(
+      names(filterResultsStudents(students, { show: "published" })),
+    ).toEqual(["Kwame Mensah"]);
+  });
+
+  it("searches names and student IDs, with or without a filter", () => {
+    expect(
+      names(filterResultsStudents(students, { q: "chloe\u0301" })),
+    ).toEqual(["Chloé Dubois"]);
+    expect(
+      names(filterResultsStudents(students, { q: "hart", show: "publish" })),
+    ).toEqual([]);
+    expect(filterResultsStudents(students, {})).toHaveLength(4);
+  });
+
+  it("reads the page's two lists from the URL, ignoring what it can't use", () => {
+    expect(
+      resultsListSchema.parse({
+        aq: "lab",
+        apage: "2",
+        q: "oliver",
+        show: "publish",
+        page: "3",
+      }),
+    ).toEqual({ aq: "lab", apage: 2, q: "oliver", show: "publish", page: 3 });
+    expect(resultsListSchema.parse({ show: "all", page: "-1" })).toMatchObject({
+      show: undefined,
+      page: undefined,
+    });
   });
 });

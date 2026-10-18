@@ -1,6 +1,8 @@
 // Marks and results: classification, and what a student is allowed to see.
 import { z } from "zod";
 
+import { listPageSchema, listSearchSchema, matchesSearch } from "./lists";
+
 export type Classification = "FAIL" | "PASS" | "MERIT" | "DISTINCTION";
 
 /** Lowest mark for each classification; anything below Pass is a Fail. */
@@ -140,6 +142,68 @@ export function isVisibleToStudent(
   resultsWithheld: boolean,
 ): boolean {
   return !resultsWithheld && result.publishedAt !== null;
+}
+
+/** Which students the Results page lists, besides a search. */
+export const RESULTS_LIST_SHOWS = ["publish", "withheld", "published"] as const;
+export type ResultsListShow = (typeof RESULTS_LIST_SHOWS)[number];
+
+export const RESULTS_LIST_SHOW_LABELS: Record<ResultsListShow, string> = {
+  publish: "Marks to publish",
+  withheld: "Results withheld",
+  published: "All published",
+};
+
+/**
+ * The Results page's two lists as the URL asks for them: the assessments
+ * with marks to publish (aq, apage) and the students with marks (q, show,
+ * page). Unknown values are ignored.
+ */
+export const resultsListSchema = z.object({
+  aq: listSearchSchema,
+  apage: listPageSchema,
+  q: listSearchSchema,
+  show: z.enum(RESULTS_LIST_SHOWS).optional().catch(undefined),
+  page: listPageSchema,
+});
+export type ResultsListQuery = z.infer<typeof resultsListSchema>;
+
+/**
+ * Narrows the Results page's students to a search of their names and IDs,
+ * and to those with marks to publish, with results withheld, or with every
+ * mark published.
+ */
+export function filterResultsStudents<
+  Student extends {
+    fullName: string;
+    studentNumber: string;
+    publishedCount: number;
+    unpublishedCount: number;
+    withheld: object | null;
+  },
+>(
+  students: readonly Student[],
+  { q, show }: { q?: string; show?: ResultsListShow },
+): Student[] {
+  return students.filter((student) => {
+    if (!matchesSearch(q, [student.fullName, student.studentNumber])) {
+      return false;
+    }
+    switch (show) {
+      case "publish":
+        return student.unpublishedCount > 0 && !student.withheld;
+      case "withheld":
+        return student.withheld !== null;
+      case "published":
+        return (
+          !student.withheld &&
+          student.unpublishedCount === 0 &&
+          student.publishedCount > 0
+        );
+      default:
+        return true;
+    }
+  });
 }
 
 export type MarkInput = z.infer<typeof markSchema>;
