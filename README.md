@@ -58,12 +58,18 @@ case, with exact inputs and expected results.
     semester;
   - each programme's structure: the core modules and the options of each
     year of study;
-  - academic years with their semester dates;
+  - academic years with their semester dates; dates that have passed stay
+    as they were, and a year that has ended is read-only;
   - staff pages to set all of this up, under Curriculum in the sidebar;
   - students registered on modules each year: core modules automatically,
     options by staff (or by students, while staff allow it), within the
     year's credits;
-  - assessments go to the students registered on the module that year.
+  - assessments go to the students registered on the module that year; a
+    module a student leaves mid-year keeps the work already done for it;
+  - moving a year's students on to the next academic year together: up a
+    year or repeating one (registered on the new year's modules and charged
+    its fee), completing, or left for now while a resit is decided, with a
+    notice on every record still in a year that has ended.
 - **Fees and payments:**
   - a fee per programme and academic year, with corrections;
   - payments with amount, date and reference, corrected by reversal;
@@ -99,14 +105,16 @@ case, with exact inputs and expected results.
     student's sign-in off, which signs them out everywhere;
   - every page and API call checks the role.
 - **Dashboard:** the day's figures; charts of students by programme and
-  status, the academic year's fees and its marks; worklists of what needs
-  attention (marks to publish, work to mark, assessments past their
-  deadline, accounts waiting for activation, options still to choose); the
-  overdue fees; and the assessments open for submissions.
-- **Student view:** a home page with the next deadline, fees and latest
-  results, and every assessment still taking work; pages for their modules
-  (where they choose options while staff allow it), assessments and
-  submissions, results, fees and the student's own record.
+  status, and the fees and marks of this academic year or an earlier one;
+  worklists of what needs attention (marks to publish, work to mark,
+  assessments past their deadline, accounts waiting for activation, options
+  still to choose); the overdue fees; the assessments open for submissions;
+  and a notice of any students still to move on to the new year.
+- **Student view:** a home page with their year of study, the next
+  deadline, fees and latest results, and every assessment still taking
+  work; pages for their modules (with the semester under way marked, and
+  options to choose while staff allow it), assessments and submissions,
+  results by academic year, fees and the student's own record.
 - **Interface:** an app shell with a sidebar of the section's pages, which
   collapses to icons or, on a phone, slides in; breadcrumbs on deeper pages;
   a menu for one's account and signing out; a search (Ctrl/⌘+K) for pages,
@@ -320,6 +328,7 @@ means the student whose record it is.
 | PUT, DELETE | `/api/students/{number}/results/hold`        | Staff         | Withhold results with a reason; lift the hold                       |
 | GET         | `/api/students/{number}/history`             | Staff         | Everything done to a student's record, and by whom                  |
 | GET         | `/api/activity`                              | Staff         | The audit trail: every change, newest first (`page`)                |
+| GET, POST   | `/api/progression`                           | Staff         | Students still to move on to a year (`to`); move them on            |
 
 ## Documentation
 
@@ -389,7 +398,7 @@ brief and from decisions agreed before any code was written.
   results, it traced the question through the server, the pages and the
   development database before answering: nothing leaked, because that
   student's results had never been withheld.
-- **A final audit looked for the edge cases nobody had named.** Eight
+- **An audit then looked for the edge cases nobody had named.** Eight
   reviewer agents each took one area of the finished app: enrolment, fees,
   assessments and late work, marks and results, the curriculum, the API's
   edges, concerns that cut across them (races, time, email, sessions), and
@@ -401,9 +410,27 @@ brief and from decisions agreed before any code was written.
   session tokens; a burst of simultaneous guesses could beat the lock; a
   reversed payment's reference couldn't be used for the real transfer;
   last year's assessments counted nobody as due; and moving a deadline past
-  31 August handed an assessment to the next year's students. Larger gaps a registry would notice, such as Student Finance
-  instalments, fee liability on withdrawal and exam boards, are listed in
+  31 August handed an assessment to the next year's students. Larger gaps a
+  registry would notice, such as Student Finance instalments, fee liability
+  on withdrawal and exam boards, are listed in
   [DECISIONS.md](.docs/DECISIONS.md) rather than half-built.
+- **A last review looked at time passing.** The owner asked about semester
+  dates in the past, students moving up a year, and whether the student ID
+  format was too simple. The agent checked each question against the code
+  before changing anything: a student's year was stored, and nothing moved
+  anyone on, so on 1 September everyone would have stayed in the year
+  before. The owner chose a progression page and a calendar that keeps what
+  has passed, and kept the ID format, with its limits written down. Three
+  more reviewer agents then looked only at what happens as time passes, and
+  each of their nineteen findings was fixed with a test. The demo data and
+  the end-to-end tests were also run as if it were early September and late
+  August, with the app, the seed, the tests and the database on a shifted
+  clock. Seeded as if on 3 September, the demo put work in a year its
+  students weren't registered in; it now stays inside the year, and the
+  whole end-to-end suite passes on both dates. Updating the owner's
+  interview guide afterwards, agents re-reading the changed code raised
+  nine more problems, among them a deadlock that a new race test then
+  showed; all are fixed.
 - **Guardrails were set for the agent.**
   - Dependencies may only be installed through npm, never hand-edited.
   - Destructive database commands are off-limits, and tests may only touch

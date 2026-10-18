@@ -1817,3 +1817,157 @@ filter applied from elsewhere, and the search builds its address from the
 form's fields as they are, so a filter whose navigation is still on its
 way isn't dropped either. The same race was then reproduced and checked
 in a browser.
+
+## As time passes: years, semesters and the people in them
+
+**What the AI did:** the owner asked whether the edge cases had really all
+been checked, and named five: semester dates set in the past; a year 3
+student seeing a year 1 assessment; semesters and years moving on by
+themselves; Mohammed Al-Farsi in year 3 in 2025/26, two years after he
+started; and student IDs that might be too simple for a real college. The AI
+checked each against the code:
+
+- a semester could be given dates that had passed, and a year that had
+  ended could still be changed;
+- a year 3 student never saw a year 1 module's work, since an assessment
+  goes to the students registered on its module in its year, but no test
+  pinned that down;
+- the semester a student sees is worked out from today, so it moves on by
+  itself, but a student's academic year and year of study are stored, and
+  nothing moved them on: on 1 September every student would have stayed in
+  the year before;
+- Mohammed's record was consistent, but showed only his final year;
+- the ID format follows the example in the brief.
+
+The owner chose to lock what has passed in the calendar, to move students on
+from a progression page, to keep the ID format and write down its limits,
+and to have a second review run alongside the fixes. Three review agents
+looked at what happens as time passes: the turn of the academic year, a
+student's life from enrolment to completion, and dates in general. Between
+them they found nineteen problems, and the owner asked for all of them to be
+fixed, the minor ones included.
+
+**What changed,** in 34 commits:
+
+- **The calendar:** dates that have passed stay as they were, a new date
+  can't be in the past, and a year that has ended is read-only, where "Let
+  students choose" can only be switched off. The trail keeps the old and new
+  dates.
+- **Years that have ended:** their registrations never change, and students
+  can no longer change their own modules in them. A change of programme or
+  year of study, or a return to Enrolled, moves the record into a year that
+  hasn't ended; the status dialog asks which, and warns when the student's
+  sign-in is still turned off. Only a final-year student can complete, and a
+  completed record's programme and years are locked.
+- **Missed work:** a module can't be dropped once one of its deadlines has
+  passed while the student was on it, and no work is taken for an
+  assessment whose year has ended.
+- **Deadlines:** one set in the wrong year can move to another while nothing
+  has been submitted or marked, and the form says which year a deadline
+  falls in, who is registered then and which semester it is in. "In N days"
+  is only used beyond 48 hours, so a deadline never reads further away than
+  it is.
+- **The database connection:** the adapter sends a date without its offset,
+  so a PostgreSQL installed on a machine set to London time would have
+  stored every instant an hour early in summer. Every connection now uses
+  UTC.
+- **Fees:** each charge keeps the standard fee it was raised at, and a
+  correction is judged against that rather than today's fee. Due and payment
+  dates must fall around the fee's year, so a mistyped year shows, and an
+  overdue fee names the date it was due.
+- **Students:** a school leaver born in August can enrol (16 by the 31
+  August before the year), and from 1 August enrolment suggests the coming
+  year. The APIs accept only the academic years the forms offer, and the
+  trail keeps a student's old and new programme, year of study and academic
+  year.
+- **Which year is which:** results show their academic year, students see
+  their year of study, and on their modules page the semester under way,
+  and the record shows the intake and the year a student completed in.
+- **Moving students on:** a progression page moves a year's students on
+  together: up a year, repeating one or completing, or left for now while a
+  resit is decided. A student moving into the new year is registered on its
+  modules, dated from its start, and charged its fee. Every record still in
+  a year that has ended carries a notice, and so does the dashboard.
+- **Earlier years:** the dashboard and the modules page show an earlier
+  year on request, and the student list's year filter offers the years on
+  record.
+- **Leaving a module mid-year:** after a change of programme, a module with
+  work in it is ended rather than dropped. Its work and marks stay, later
+  deadlines aren't the student's, its credits stop counting, and the record
+  says when they left it.
+- **Demo data:** Mohammed has all three years, and Tomasz Nowak hasn't been
+  moved on, so the progression page has someone to move. The seed's
+  deadlines, submissions and marks run from three weeks back to three weeks
+  on, which near 1 September put work in a year its students weren't
+  registered in. Within three weeks of the turn of the year they are now
+  squeezed toward today to fit inside it, in the same order.
+
+**Checked by:** a unit or integration test for each fix; the standard-fee
+migration applied to a copy of the development data, with its backfill
+compared, and the schema and migrations compared for drift after each
+change; the seed run as if on ten dates across the year, from 00:30 on 1
+September to 23:30 on 31 August and both clock changes, with an SQL check of
+what it wrote, which finds 20 problems in the old seed on 3 September and
+none in the new one; the whole end-to-end suite run as if on 3 September and
+26 August, with the app, the seed, the test runner and the test database all
+on a shifted clock, where all 71 tests passed once a stale expectation was
+fixed (below); the unit and integration suites run with the clock moved 40,
+315 and 400 days ahead, the database's clock included, all 794 tests
+passing each time; `npm run check`; and the full suite, with 503 unit, 291
+integration and 71 end-to-end tests passing, and 94% of statements covered.
+
+**Caught along the way:**
+
+- the age check added for school leavers refused edits to an old record, a
+  2019/20 student born in 2004. It now applies only when the date of birth
+  or the year changes;
+- Zod 4 runs a refinement after a failed check, so a malformed year gave two
+  messages, and `.extend()` throws on a schema with refinements, so the fee
+  form's fields and the check across them are kept apart;
+- ending a module at the moment of a change could put its end before the
+  date it was registered from, which a database CHECK refuses. It ends at
+  the later of the two;
+- with enrolment suggesting the coming year in August, the end-to-end test
+  that expects this year's next ID would have failed every August. It now
+  chooses the year, and the assessment journey keeps its own deadline inside
+  the year;
+- Tomasz, added to the demo data for the progression page, sorts first by
+  name going down, which broke an expectation in the enrolment spec. Only
+  the progression spec had been run when he was added; the whole suite, run
+  on a shifted clock, found it;
+- the first run of the end-to-end suite on a shifted clock failed on
+  `Date.UTC`: Next.js wraps `Date` for Cache Components, copying only its
+  own static methods, which the experiment's stand-in had inherited.
+
+**A last look, from the walkthrough:** the owner's interview guide explains
+every file, so eight agents brought it up to date, each re-reading its share
+of the changed code. Their questions led to nine more fixes:
+
+- a request naming a record's own ended year could still return a student
+  to Enrolled in it: the form never sends one, but the API accepted it;
+- the edit form checked the new age rule on every save, where the API
+  checks it only when the date of birth or year changes, so an older record
+  couldn't be corrected from the dialog;
+- moving students on compared only how many students the page had listed,
+  so one who joined the list as another left would have been moved unseen.
+  The page now sends back a fingerprint of who it listed;
+- a deadline that had passed, with nobody's work in, could still move to
+  another year, erasing the work its students had missed;
+- marks were checked against the assessment's year before taking the lock
+  that moving its deadline also takes;
+- students in a year that had ended were listed with options to choose,
+  which they no longer could;
+- starting the demo's registrations at college midnight had left the
+  seeded move-up events, still timed from midnight UTC, an hour after them;
+- "You've changed 2 students's step";
+- and one the agents only suspected: charging a fee by hand while the
+  student was being moved on. The race test written for it failed every
+  time, with a deadlock rather than the error expected, and passes since
+  charging a fee takes the student's lock first.
+
+Five of the fixes come with a test that was seen failing before the fix,
+and the two new database constraints got the tests they lacked. The same
+reading found four manual test scenarios, a README line and the number of
+demo accounts in DECISIONS.md out of date, all corrected, and two limits
+now written down there: a module taken up again in the same year, and a
+record entered late for last year.

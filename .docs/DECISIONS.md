@@ -47,6 +47,26 @@ the scope.
 - An ID never changes once issued, even when the student's academic year
   changes on deferral or progression.
 
+The format follows the example the brief gives. Reviewed against how
+registries number students, it has limits, kept as they are:
+
+- **No check digit:** a mistyped ID, with two digits swapped, names another
+  student rather than none. Staff search by ID or name and see the name and
+  programme on every record, so a slip shows. A check digit (Luhn, or ISO 7064
+  as on IBANs) would catch most typos, at the cost of a format the brief
+  doesn't use.
+- **Ten thousand in one intake:** the sequence widens to five digits instead
+  of failing, but IDs sort as text, so `SMS-2026-10000` would list between
+  `SMS-2026-1000` and `SMS-2026-1001`. That is several times a large
+  college's yearly intake.
+- **What an ID tells:** the intake year, which staff want to see, and
+  roughly how many enrolled that year. An ID is never a key to anything:
+  every page and API checks the signed-in role, and a student only sees
+  their own record, so knowing or guessing an ID gives nothing.
+- **The intake year stays the first enrolment's:** a student who defers or
+  repeats a year keeps their ID, so the year in it can differ from their
+  current cohort. The record shows both (Intake, and Academic year).
+
 ### Academic year
 
 Written `2026/27` and stored as text, with a format check in the database. A
@@ -58,7 +78,9 @@ Staff choose a student's academic year from a window around today, and the
 API refuses others, as the forms offer no others:
 
 - a new student is enrolled into last year (a record entered late), this
-  year or next;
+  year or next. A record entered for last year gets no modules, as that
+  year has ended and its registrations are history; like anyone else left
+  in an ended year, it waits on the progression page;
 - a record moves to, and a fee is charged for, a year from three back (to
   correct a record) to next year. A record can always keep the year it
   has, however old, and be charged for it.
@@ -303,9 +325,11 @@ Staff move them on instead, a year's students at a time.
   through the list and narrow it, like the other lists, with a live search
   and filters by programme and year of study.
 - **One button moves them all on,** after a confirmation: every student the
-  list holds for its filters, each taking their step. The request carries
-  how many students the list held, and nobody moves if that has changed
-  (409), as with publishing marks.
+  list holds for its filters, each taking their step. The page carries a
+  fingerprint of who the list holds, on every page (each student's ID,
+  academic year and year of study), and the request sends it back: nobody
+  moves if the list has changed (409). A count alone, as publishing marks
+  uses, would miss a student who joined the list as another left.
 - **Each student moves in a transaction of their own,** under a lock on
   their record, with what an edit or a status change would do: into the
   new year and year of study, registered on its core modules, charged its
@@ -351,6 +375,10 @@ academic year (a database unique constraint).
   and the note giving the reason, so a scholarship down to £0 still shows what
   was waived and why. The note can be removed only once the amount is back at
   the standard fee. Saving a charge unchanged records nothing.
+- **Charging a fee takes a lock on the student's record**, the one moving
+  them on to a new year takes before charging its fee. Without it, the two
+  at once could each wait on the other's charge until the database failed
+  one of them; with it, the second finds the charge there.
 - **A charge keeps the standard fee it was raised at**, and a correction is
   judged against that, not the programme's fee now: after a fee rise, moving
   an older charge's due date needs no note, and a charge raised at the old
@@ -424,12 +452,12 @@ deadline until then.
 - A deadline must be in the future when it is set or moved. A deadline
   already past would make every submission late, and is far more likely to be
   a typo than a real intention.
-- A deadline moves to another academic year only while nothing has been
-  submitted or marked, and the assessment then becomes that year's
-  students'. That is how a year typed wrongly (2027 for 2026) is put right,
-  as assessments are never deleted. Once there is work, the deadline stays
-  within its year: moving it past 31 August would hand the work to the next
-  year's students. For another year, staff set a new assessment. The same
+- A deadline moves to another academic year only while it is still to
+  come and nothing has been submitted or marked, and the assessment then
+  becomes that year's students'. That is how a year typed wrongly (2027 for 2026) is put right, as assessments are never deleted. Once there is work,
+  the deadline stays within its year: moving it past 31 August would hand
+  the work to the next year's students. Once it has passed, it stays too:
+  its students were due then, and a move would erase the work they missed. For another year, staff set a new assessment. The same
   rule means a September deadline belongs to the year starting that
   September, so a dissertation due after the summer can't yet be set for the
   year before (see "Known limitations").
@@ -531,6 +559,9 @@ never stored: Fail below 40, Pass from 40, Merit from 60, Distinction from 70.
 - Saves of one assessment's marks happen one at a time, each reading the
   marks as the last one left them, so two at once can't trip over each
   other, and the audit trail's "from" is always the mark that was there.
+  The assessment itself is read under that lock too, which moving its
+  deadline also takes, so marks are always checked against the students of
+  the year it is in.
 - Each result shows the academic year of its assessment, for staff and the
   student, so the marks of a module taken twice, by a student repeating a
   year, can be told apart.
@@ -814,7 +845,7 @@ site.
   activated yet, and sign-in is turned off for Hannah Kowalski, who has
   withdrawn.
 - With `SHOW_DEMO_ACCOUNTS=true`, as in `.env.example`, the sign-in page
-  lists two staff and three students with the password. The variable is off
+  lists two staff and four students with the password. The variable is off
   unless set, so a deployment that forgets it shows nothing.
 
 ### Testing sign-in
@@ -1246,7 +1277,9 @@ things stand, and what needs doing.
     new one. Students who have left aren't chased to activate.
   - Options to choose: enrolled students whose modules come to fewer
     credits than their year carries, in their own academic year, most
-    credits left first. Each opens on the student's Modules tab.
+    credits left first. Each opens on the student's Modules tab. A student
+    still in a year that has ended isn't listed: its modules can't change,
+    and the notice above asks for them to be moved on.
 - **Overdue fees,** the worklist from before, unchanged.
 
 How the figures are worked out:
@@ -1579,6 +1612,11 @@ unused `mysql2` driver inside the Prisma CLI, so it isn't reachable either.
   deadline came before then counts none of them. Re-dating those
   registrations from the start of their academic year would fix it. New
   databases and the demo data aren't affected.
+- **A module left and taken up again in the same year:** a registration
+  has one start and one end, so when a student who left a module returns
+  to it, the end is cleared, and deadlines that fell while they were away
+  count as theirs again, reading as missing work. Keeping each period on
+  the module as a row of its own would fix it.
 
 ### Registry practice not modelled yet
 

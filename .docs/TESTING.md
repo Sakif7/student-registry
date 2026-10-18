@@ -55,8 +55,8 @@ scan of every kind of page.
 
 ### Coverage
 
-`npm test` writes a coverage report for `src/domain`, `src/server` and
-`src/app/api`. Open `coverage/index.html` in a browser for line-by-line detail.
+`npm test` writes a coverage report for `src/domain`, `src/server`, `src/lib`
+and `src/app/api`. Open `coverage/index.html` in a browser for line-by-line detail.
 The run fails if lines, branches, functions or statements drop below 80%.
 React components aren't measured: their behaviour is covered by the end-to-end
 tests.
@@ -221,7 +221,7 @@ As staff:
    | Email                   | `Grace.Thompson@Student.Example`                                  |
    | Date of birth           | 12 March 2005 (the date picker uses your browser's format)        |
    | Programme               | BSc (Hons) Computer Science                                       |
-   | Academic year           | 2026/27 (the default)                                             |
+   | Academic year           | 2026/27 (the default; from 1 August, the coming year)             |
    | Enrolment status        | Enrolled (the default)                                            |
    | Send an activation link | On. In the demo it starts off, with the demo password set instead |
 
@@ -238,10 +238,13 @@ As staff:
    `GRACE.THOMPSON@student.example` and the same other details. Select
    **Enrol student**. "Another student already uses this email address" appears
    under **Email**, and no record is created.
-5. Enter a date of birth less than 16 years ago. "Students must be at least 16"
-   appears under **Date of birth**.
+5. Enter a date of birth that makes the student 16 only after 31 August
+   2026, such as 1 September 2010. "Students must be 16 by 31 August 2026,
+   before 2026/27 begins" appears under **Date of birth**: a school leaver
+   born on 31 August 2010 can enrol.
 6. Choose **2025/26** as the academic year and enrol a new student. Their ID
-   starts with **SMS-2025-** and continues that year's sequence (0003).
+   starts with **SMS-2025-** and continues that year's sequence (0004, after
+   Amelia, Kwame and Tomasz).
 7. Open Mailpit at <http://localhost:8025>. The email "Activate your Student
    Registry account" to Grace holds a link. Open it in a private window and
    choose a password: "Your account is ready". Sign in there as
@@ -283,8 +286,8 @@ As staff:
 
 ### 3. Finding students
 
-As staff, open **Students**. The list shows every student by name, 11 after
-scenario 2, or 10 on fresh demo data.
+As staff, open **Students**. The list shows every student by name: 11 on
+fresh demo data, or 14 after scenario 2.
 
 1. Type `har` in **Search**, without pressing anything. A moment after you
    stop typing, only **Amelia Hart** is listed, and the box keeps your text
@@ -319,9 +322,11 @@ again. The summary above the tabs gives Oliver's status, modules, fees,
 results and sign-in: select **Fees** in it and the Fees tab opens, with the
 focus on that tab.
 
-1. Select **Change status**. Each status says what the change means before
-   it is made: **Completed** that it is final, **Withdrawn** that the fee
-   stays as it is and needs reviewing. Choose **Deferred** and select
+1. Select **Change status**. **Completed** isn't offered: Oliver is in year
+   1 of 3, and only a student in the final year of their programme can
+   complete it. Each status says what the change means before it is made:
+   **Withdrawn** that the fee stays as it is and needs reviewing. Choose
+   **Deferred** and select
    **Change status** without a reason. The label reads "Reason (required)"
    and the error "Give a reason for deferral or withdrawal" appears.
 2. Enter the reason `Family circumstances` and select **Change status**. The
@@ -329,8 +334,10 @@ focus on that tab.
    status history gains "Enrolled → Deferred · Family circumstances". **Change
    status** now offers only **Enrolled** and **Withdrawn**.
 3. Select **Students** in the sidebar. Oliver shows as Deferred. Open the
-   record, change the status back to **Enrolled**, then press the browser's
-   **Back** button. The list shows Oliver as **Enrolled**: pages visited
+   record and change the status back to **Enrolled**: the dialog asks which
+   academic year he returns in (this one or next, never one that has ended)
+   and in which year of study; keep this year and year 1. Then press the
+   browser's **Back** button. The list shows Oliver as **Enrolled**: pages visited
    earlier never show stale data after a change.
 4. Open **Mohammed Al-Farsi** (Completed). **Change status** can't be
    selected: a completed record's status can no longer change.
@@ -503,7 +510,9 @@ As staff:
    never happens. Choose another time." appears under **Deadline**: that night
    UK clocks jump from 01:00 to 02:00. A date in the past is refused too: "The
    deadline must be in the future".
-4. Choose a date about four weeks ahead at 17:00 and select **Set
+4. Choose a date about four weeks ahead at 17:00. Below the field, a note
+   says which academic year it falls in and who that reaches: "Falls in
+   2026/27: 2 students are registered on CS4002 that year." Select **Set
    assessment**. The summary at the top of the assessment's page shows the
    **Deadline** with its weekday and time zone, such as "Fri 20 Nov 2026,
    17:00 GMT" (BST in summer), **Submissions** **Open**, **Submitted** "0 of
@@ -512,11 +521,15 @@ As staff:
    Amelia Hart, a second-year, isn't on the module.
 5. Select **Edit title or deadline**, move the deadline a week later and save.
    The page shows the new deadline. Open it again and try 1 September next
-   year: "Keep the deadline within 2026/27, by 31 Aug 2027: the assessment is
-   for that year's students…" appears, because a September deadline would
-   hand the assessment to the next year's students. Cancel. **Activity**
-   lists the change as "Edited the assessment “SQL lab test”: deadline moved
-   from … to …".
+   year: the note reads "Falls in 2027/28: no student is registered on
+   CS4002 that year yet." With nothing submitted or marked, a deadline set
+   in the wrong year can still be put right, so saving would hand the
+   assessment to next year's students. Cancel instead. Once work has been
+   submitted (scenario 10), the same move is refused: "Work has been
+   submitted or marked, so keep the deadline within 2026/27, by 31 Aug 2027:
+   it is that year's students' work. For another year, set a new
+   assessment." **Activity** lists the first change as "Edited the
+   assessment “SQL lab test”: deadline moved from … to …".
 6. Select **Close to submissions**. A dialog asks you to confirm, with
    **Cancel** focused. Confirm: the assessment shows **Closed** with the time
    it closed, and the message offers **Undo**. Select it: the assessment is
