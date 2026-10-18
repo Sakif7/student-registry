@@ -939,6 +939,8 @@ shell, as in most business applications:
   students only for the words they were found for: stale results let Enter
   open a student who didn't match. Like a form, the button is
   `aria-disabled` until React has hydrated it and can hear the shortcut.
+  The shortcut checks a key press has a key before reading it: choosing a
+  saved value from a browser's autofill sends key presses without one.
 - **On a phone,** every page fits the screen's width: a wide table scrolls
   inside its own box, and the rest wraps or stacks. A record's tabs scroll
   sideways in one row, fading at an edge with more beyond it, and the open
@@ -1006,6 +1008,51 @@ has been submitted, and the marks), the Modules tab and My modules (credits
 and both semesters), and the Fees tab and My fees (charged, paid, the
 balance with where the account stands, and what is overdue).
 
+### Searching and paging lists
+
+Every list page has a search, filters that suit its contents, and pages of
+20 (the activity log, 50):
+
+| List                       | Search                              | Filters                                           |
+| -------------------------- | ----------------------------------- | ------------------------------------------------- |
+| Students                   | name, student ID or email           | programme, status, academic year                  |
+| Assessments                | title, module code or module        | state, academic year                              |
+| Results: assessments       | title, module code or module        | (only those with marks waiting)                   |
+| Results: students          | name or student ID                  | marks to publish, results withheld, all published |
+| Activity                   | the student (name or ID), who acted | kind of change                                    |
+| Programmes                 | code or title                       |                                                   |
+| Modules                    | code or title                       | when taught, programme (or none)                  |
+| My assessments, My results | assessment or module                | state; classification                             |
+
+- **Searches are live:** a moment after typing stops (300 ms), the search
+  goes into the address and the server narrows the list, so a search can
+  still be bookmarked or shared and the server stays the one that filters.
+  Typing replaces the address rather than adding to the browser's history,
+  so Back leaves the list instead of undoing a letter at a time. The box
+  keeps its text while the list catches up, and follows the address when
+  it changes from elsewhere (Back, "Clear filters"). It is never
+  remounted, so nothing typed is lost: only a select remounts, to show a
+  filter applied from elsewhere. Its address is built from the form's
+  fields as they are, so a filter chosen a moment before typing is kept
+  even while its own navigation is still on its way. The form still works
+  without JavaScript, and Enter searches at once.
+- **Selects apply at once,** as a GET form, so Back undoes a filter.
+- **One search rule:** every search matches part of a word, ignoring case,
+  how accented letters were typed, and which apostrophe a name holds. In
+  the database, typed `%` and `_` are characters, not wildcards.
+- **Settings live in the address,** and sorting and page links keep them.
+  A changed search or filter goes back to the first page, and a page past
+  the end shows the last one. The Results page has two lists, so each has
+  its own search and page in the address (`aq` and `apage` for the
+  assessments).
+- **Where it's done:** students and the activity log are searched and paged
+  in the database. The other lists are read whole and narrowed by pure
+  functions in `src/domain`, as they stay in the hundreds; a list that grew
+  past that would move into the query, as the student list's did.
+- **Short lists inside a record** (a student's fees, modules, results and
+  history, a programme's structure) aren't paged: they are one record's
+  few rows, and the record's tabs load together.
+
 ### The student list
 
 - Column headings sort the list: name, student ID, programme, academic year
@@ -1026,10 +1073,21 @@ balance with where the account stands, and what is overdue).
 - Column headings sort the list by title, module, deadline, state or
   how much has been submitted (the share of the students expected), either
   way, with the order in the address as on the student list.
-- The list isn't paged, so it is sorted after it is read, by a pure
-  function in `src/domain/submissions.ts`. Ties keep the usual order: open
-  assessments first, soonest deadline first, then the rest, most recent
-  deadline first. Sorting by state is that usual order, and the default.
+- The list is read whole, then searched, filtered, sorted and cut into
+  pages by pure functions in `src/domain/submissions.ts` and
+  `src/domain/lists.ts`. Ties keep the usual order: open assessments
+  first, soonest deadline first, then the rest, most recent deadline
+  first. Sorting by state is that usual order, and the default.
+
+### Setting an assessment
+
+- Staff choose a programme, then one of its modules, listed year by year
+  with when it is taught and whether it is core or optional. A long list
+  of every module gave no sign of which programme each belonged to.
+- The programme only narrows the choice. An assessment belongs to a
+  module, and is for every student registered on it that year, whichever
+  programme they are on; a module two programmes share is listed under
+  both.
 
 ### The dashboard
 

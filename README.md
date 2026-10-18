@@ -74,7 +74,9 @@ case, with exact inputs and expected results.
   - students upload a PDF or Word document, checked by its content, and can
     replace it until the deadline;
   - late work is accepted and flagged until staff close the assessment;
-  - a list of assessments with sortable columns.
+  - a list of assessments to search, filter by state and year, sort and
+    page;
+  - a module chosen by programme when setting an assessment.
 - **Marks and results:**
   - marks from 0 to 100, classified Fail, Pass (40+), Merit (60+) and
     Distinction (70+);
@@ -111,8 +113,11 @@ case, with exact inputs and expected results.
   actions and students; a summary of the key facts at the top of a
   record, a programme, an assessment and an account; each student's record
   in tabs (overview, modules, fees, assessments, results, history,
-  sign-in), opened from its summary too, with its actions in dialogs; and
-  Undo for actions that can be reversed straight away.
+  sign-in), opened from its summary too, with its actions in dialogs;
+  Undo for actions that can be reversed straight away; and every list
+  (students, assessments, results, activity, programmes, modules, and a
+  student's own assessments and results) searched as you type, filtered and
+  paged, with its settings in the address.
 - **Audit trail:** every change records who made it and when, in the same
   transaction, and the trail can't be edited. Staff see it on each
   student's record and in an Activity log.

@@ -276,8 +276,10 @@ As staff:
 As staff, open **Students**. The list shows every student by name, 11 after
 scenario 2, or 10 on fresh demo data.
 
-1. Type `har` in **Search** and press Enter. Only **Amelia Hart** is listed.
-   The URL now holds the search, so the view can be bookmarked.
+1. Type `har` in **Search**, without pressing anything. A moment after you
+   stop typing, only **Amelia Hart** is listed, and the box keeps your text
+   and focus. The URL now holds the search, so the view can be bookmarked;
+   Back leaves the list rather than undoing a letter at a time.
 2. Search for `sms-2026-0005`. Searching by student ID ignores case, and finds
    **Hannah Kowalski**.
 3. Select **Clear filters**, then choose **Withdrawn** under **Status**. The list
@@ -478,9 +480,13 @@ As staff:
    Management essay (BM4001) first. Select it again for the reverse order,
    then **State** to return to the usual one.
 2. Select **Set an assessment**, then **Set assessment** without filling
-   anything in. "Choose a module", "Enter a title" and "Enter a date and time"
-   appear.
-3. Choose **CS4002 Databases**, enter the title `SQL lab test` and the
+   anything in. "Choose a programme", "Choose a module", "Enter a title" and
+   "Enter a date and time" appear. **Module** reads "Choose a programme
+   first" and can't be opened yet.
+3. Choose **BSc (Hons) Computer Science** under **Programme**. **Module**
+   now lists its modules year by year, each with its semester and whether
+   it is core or optional. Choose **CS4002 Databases** (Year 1), enter the
+   title `SQL lab test` and the
    deadline 28 March 2027 at 01:30. "The clocks go forward at that time, so it
    never happens. Choose another time." appears under **Deadline**: that night
    UK clocks jump from 01:00 to 02:00. A date in the past is refused too: "The
@@ -634,6 +640,31 @@ KM 0003`. **History** gains "Recorded a payment of £100.00 (CARD KM 0003)", by 
 3. Search for `enrol` and press Enter: **Enrol a student** opens.
 4. As a student, search for `enrol`: "Nothing matches". Search for
    `results` and press Enter: **My results** opens.
+
+### 14a. Searching, filtering and paging the lists
+
+Every list follows typing in its **Search** box, with no button to press,
+and its selects apply at once. As staff:
+
+1. **Assessments**: type `report`, then choose **Closed** under **State**:
+   Machine learning report and Software design report, "Showing 1–2 of 2
+   assessments". Sort by **Assessment**: the search and filter stay.
+2. **Results**: under **Students with marks**, choose **Results withheld**
+   under **Show**: only students whose results are withheld are left (Kwame
+   Mensah, after scenario 12). Type `learning` in **Search assessments**
+   above: the assessments with marks to publish narrow to Machine learning
+   report, and the students' filter stays as it was.
+3. **Activity**: choose **Fees and payments** under **Kind of change** and
+   type `kwame`: only Kwame Mensah's charges and payments, newest first.
+   Type `jane` instead: everything Jane Okafor did.
+4. **Modules**: 35 modules, "Showing 1–20 of 35 modules"; select **Next**
+   for the other 15. Choose **Semester 2** under **Taught in** and type
+   `data`: four modules. Choose **In no programme** under **Programme**:
+   none, as every demo module is in a programme.
+5. **Programmes**: type `sci`: the two science programmes.
+6. As **Priya Natarajan**, **My assessments**: type `lab`, and only Systems
+   lab report is left. **My results**: choose a classification under
+   **Result** to list only those marks.
 
 ### 15. Setting up the curriculum
 

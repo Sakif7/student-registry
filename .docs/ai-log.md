@@ -1771,3 +1771,49 @@ unknown assessment and is for staff only, and that the Results page's list
 counts and orders the assessments; end-to-end tests of both buttons,
 through to the student seeing the mark; and the accessibility and
 phone-width checks of both pages.
+
+## Lists searched as you type, and a programme for each module
+
+**What the AI did:** the owner reported an error when choosing a saved
+value from the browser's autofill dropdown, and asked for live searches,
+pagination with search and filters on every table, and a way to tell which
+modules belong to which programme when setting an assessment.
+
+- **The autofill error:** the Ctrl/⌘+K handler read `event.key` as text,
+  but Chrome's autofill fires "keydown" events with no key at all. The check
+  now makes sure the key is text first. A unit test covers it, and an
+  end-to-end test fires the same key-less event and checks the page throws
+  nothing.
+- **Live search:** one shared search box updates the address a moment
+  after typing stops, so the server still does the searching and a search
+  can be bookmarked. It replaces the address rather than adding to the
+  history, and keeps its text while the list catches up. The list's filter
+  bar used to remount whenever the address changed, which would have
+  thrown away what was being typed. It now remounts only when the filters
+  change, and the box follows the address when it changes from elsewhere
+  (Back, "Clear filters"), but not while the user is typing in it.
+- **Every list:** the assessments list, both lists on the Results page,
+  the activity log, programmes, modules, and a student's own assessments
+  and results got a search, filters that suit each, and pages of 20,
+  through a shared pagination and one search rule (case, accents and
+  apostrophes ignored). A test checks that every kind of audit event
+  belongs to exactly one of the activity log's kinds of change.
+- **Setting an assessment:** a Programme select now comes first, and the
+  Module select lists that programme's modules year by year, with their
+  semester and whether they're core or optional.
+
+**Checked by:** unit tests of the search rule, the page cutter and each
+list's filter; integration tests of the activity log's search and kinds and
+of the programme's modules; end-to-end tests of the live search, the
+assessments and activity filters, the Results page, a student's search and
+the programme-first form; and, in a browser against the running app,
+typing, deleting, "Clear filters" and paging on each list.
+
+**Caught along the way:** the activity log's end-to-end test chose a kind
+of change and typed straight after, and the typing was lost. The filter
+bar remounted when the filter's navigation landed, and the new search box
+started empty from the address. Now only a select remounts, to show a
+filter applied from elsewhere, and the search builds its address from the
+form's fields as they are, so a filter whose navigation is still on its
+way isn't dropped either. The same race was then reproduced and checked
+in a browser.
