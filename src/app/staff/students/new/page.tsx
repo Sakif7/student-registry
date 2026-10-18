@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { StudentForm } from "@/components/students/student-form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
+import { academicYearOn, enrolmentYears } from "@/domain/academic-year";
 import { DEMO_INBOX_URL, DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { collegeToday } from "@/server/college";
 import { env } from "@/server/env";
@@ -44,7 +44,7 @@ async function NewStudentForm() {
     <StudentForm
       mode="create"
       programmes={programmes}
-      academicYears={academicYearsAround(currentYear, 1, 1)}
+      academicYears={enrolmentYears(today)}
       defaultAcademicYear={currentYear}
       today={today}
       // In the demo, a new student can sign in at once with the demo

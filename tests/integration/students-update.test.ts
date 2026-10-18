@@ -1,6 +1,6 @@
 // Editing a student's details (PATCH /api/students/{id}) and changing their
 // enrolment status (POST /api/students/{id}/status).
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PATCH as updateStudent } from "@/app/api/students/[studentNumber]/route";
 import { POST as changeStatus } from "@/app/api/students/[studentNumber]/status/route";
@@ -55,6 +55,10 @@ async function setStatus(body: unknown, session: Viewer | null = STAFF) {
 }
 
 beforeEach(async () => {
+  // The academic years a record can move to, and what counts as a birth date
+  // in the past, follow the date.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-15T09:00:00.000Z"));
   await createProgramme({ code: "MSC-DS" });
   await createStudent({
     studentNumber: NUMBER,
@@ -63,6 +67,10 @@ beforeEach(async () => {
     academicYear: "2026/27",
     statusChanges: { create: { toStatus: "ENROLLED" } },
   });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("PATCH /api/students/[studentNumber]", () => {
@@ -103,6 +111,33 @@ describe("PATCH /api/students/[studentNumber]", () => {
     ).toMatchObject({
       errors: { dateOfBirth: ["The date of birth must be in the past"] },
     });
+  });
+
+  it("moves a record up to three academic years back, or keeps an older one", async () => {
+    const tooOld = await patch({ academicYear: "2022/23" });
+    expect(tooOld.status).toBe(400);
+    expect(await bodyOf(tooOld)).toMatchObject({
+      errors: {
+        academicYear: ["Choose an academic year from 2023/24 to 2027/28"],
+      },
+    });
+    expect((await patch({ academicYear: "2028/29" })).status).toBe(400);
+    expect((await patch({ academicYear: "2023/24" })).status).toBe(200);
+
+    // The edit form sends every field, so an old record keeps its year.
+    await createStudent({
+      studentNumber: "SMS-2019-0001",
+      academicYear: "2019/20",
+    });
+    expect(
+      (
+        await patch(
+          { fullName: "Ada Long", academicYear: "2019/20" },
+          STAFF,
+          "SMS-2019-0001",
+        )
+      ).status,
+    ).toBe(200);
   });
 
   it("is for staff only, and 404s for an unknown student", async () => {

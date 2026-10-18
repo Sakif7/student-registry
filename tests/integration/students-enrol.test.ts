@@ -1,5 +1,5 @@
 // Enrolling students through POST /api/students, and reading records back.
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET as getProgrammes } from "@/app/api/programmes/route";
 import { GET as getStudent } from "@/app/api/students/[studentNumber]/route";
@@ -50,10 +50,17 @@ async function enrolledNumber(body: unknown): Promise<string> {
 }
 
 beforeEach(async () => {
+  // The academic years a student can be enrolled into follow the date.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-15T09:00:00.000Z"));
   await createProgramme({
     code: "BSC-CS",
     title: "BSc (Hons) Computer Science",
   });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("POST /api/students", () => {
@@ -153,6 +160,24 @@ describe("POST /api/students", () => {
         academicYear: ["Use the format 2026/27, with consecutive years"],
       },
     });
+  });
+
+  it("enrols into last academic year, this one or next, and no other", async () => {
+    expect(
+      await enrolledNumber(
+        details({ email: "next@student.example", academicYear: "2027/28" }),
+      ),
+    ).toBe("SMS-2027-0001");
+    for (const academicYear of ["2024/25", "2028/29"]) {
+      const response = await enrol(details({ academicYear }));
+
+      expect(response.status).toBe(400);
+      expect(await bodyOf(response)).toMatchObject({
+        errors: {
+          academicYear: ["Choose an academic year from 2025/26 to 2027/28"],
+        },
+      });
+    }
   });
 
   it("refuses an unknown programme", async () => {

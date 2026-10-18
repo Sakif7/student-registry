@@ -54,6 +54,15 @@ new academic year starts on 1 September in the college's time zone. A student's
 academic year is their current session: it changes on progression or deferral,
 and fee charges are raised per academic year.
 
+Staff choose a student's academic year from a window around today, and the
+API refuses others, as the forms offer no others:
+
+- a new student is enrolled into last year (a record entered late), this
+  year or next;
+- a record moves to, and a fee is charged for, a year from three back (to
+  correct a record) to next year. A record can always keep the year it
+  has, however old, and be charged for it.
+
 ### Enrolment statuses
 
 | From \ To |      Enrolled      | Deferred | Withdrawn | Completed |

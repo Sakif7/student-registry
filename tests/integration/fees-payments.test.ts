@@ -188,6 +188,39 @@ describe("POST /api/students/[studentNumber]/fees", () => {
     expect((await bodyOf<AccountBody>(withNote)).account.standing).toBe("NONE");
   });
 
+  it("charges for three academic years back to next year, or the student's own", async () => {
+    const tooOld = await post(assignFee, "fees", { academicYear: "2022/23" });
+    expect(tooOld.status).toBe(400);
+    expect(await bodyOf(tooOld)).toMatchObject({
+      errors: {
+        academicYear: ["Choose an academic year from 2023/24 to 2027/28"],
+      },
+    });
+    expect(
+      (await post(assignFee, "fees", { academicYear: "2028/29" })).status,
+    ).toBe(400);
+    expect(
+      (await post(assignFee, "fees", { academicYear: "2023/24" })).status,
+    ).toBe(201);
+
+    // A record still in an older year can be charged for it.
+    await createStudent({
+      studentNumber: "SMS-2020-0001",
+      academicYear: "2020/21",
+    });
+    expect(
+      (
+        await post(
+          assignFee,
+          "fees",
+          { academicYear: "2020/21" },
+          STAFF,
+          "SMS-2020-0001",
+        )
+      ).status,
+    ).toBe(201);
+  });
+
   it("refuses a second fee for the same academic year", async () => {
     await post(assignFee, "fees", { academicYear: "2026/27" });
     const response = await post(assignFee, "fees", { academicYear: "2026/27" });

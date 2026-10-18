@@ -4,6 +4,7 @@
 // and can never drift.
 import "server-only";
 
+import { chooseAcademicYearFrom, recordYears } from "@/domain/academic-year";
 import { type CalendarDate, fromDbDate, toDbDate } from "@/domain/college-time";
 import {
   type AccountStanding,
@@ -98,9 +99,10 @@ export async function getAccount(
 }
 
 /**
- * Charges a student the fee for an academic year (staff only). The amount
- * defaults to the programme's standard fee; a different amount needs a note
- * saying why (e.g. a scholarship).
+ * Charges a student the fee for an academic year (staff only): the student's
+ * own, or one of recordYears. The amount defaults to the programme's
+ * standard fee; a different amount needs a note saying why (e.g. a
+ * scholarship).
  *
  * @throws AppError: VALIDATION, NOT_FOUND, or CONFLICT if that academic year
  *   is already charged.
@@ -113,6 +115,15 @@ export async function assignFee(
   const staff = requireStaff(session);
   const fee = parseInput(assignFeeSchema, input);
   const student = await findStudent(studentNumber);
+  const years = recordYears(collegeToday());
+  if (
+    fee.academicYear !== student.academicYear &&
+    !years.includes(fee.academicYear)
+  ) {
+    throw new AppError("VALIDATION", "Some fields need correcting.", {
+      academicYear: [chooseAcademicYearFrom(years)],
+    });
+  }
   const standardFee = student.programme.annualFeePence;
   const amountPence = fee.amountPence ?? standardFee;
   if (amountPence !== standardFee && !fee.note) {
@@ -404,7 +415,7 @@ async function findStudent(studentNumber: string) {
   const number = studentNumber.toUpperCase();
   const student = await db().student.findUnique({
     where: { studentNumber: number },
-    select: { id: true, programme: true },
+    select: { id: true, academicYear: true, programme: true },
   });
   if (!student) throw studentNotFound(number);
   return student;

@@ -6,7 +6,11 @@ import "server-only";
 
 import { hashPassword } from "better-auth/crypto";
 
-import { startYearOf } from "@/domain/academic-year";
+import {
+  chooseAcademicYearFrom,
+  recordYears,
+  startYearOf,
+} from "@/domain/academic-year";
 import { type CalendarDate, fromDbDate, toDbDate } from "@/domain/college-time";
 import {
   allowedStatusChanges,
@@ -439,7 +443,8 @@ export async function updateStudent(
   input: unknown,
 ): Promise<StudentRecord> {
   const staff = requireStaff(session);
-  const changes = parseInput(updateStudentSchema(collegeToday()), input);
+  const today = collegeToday();
+  const changes = parseInput(updateStudentSchema(today), input);
   const { id } = await findStudentId(studentNumber);
   const newProgramme = changes.programmeCode
     ? await findProgramme(changes.programmeCode)
@@ -455,6 +460,7 @@ export async function updateStudent(
         changes.yearOfStudy ?? before.yearOfStudy,
         newProgramme ?? before.programme,
       );
+      checkRecordYear(changes.academicYear, before.academicYear, today);
       const updated = await tx.student.update({
         where: { id },
         data: {
@@ -533,6 +539,28 @@ function checkYearOfStudy(
       ],
     });
   }
+}
+
+/**
+ * Refuses an academic year staff can't move a record to (see recordYears).
+ * Keeping the year the record has is always allowed.
+ */
+function checkRecordYear(
+  academicYear: string | undefined,
+  current: string,
+  today: CalendarDate,
+): void {
+  const years = recordYears(today);
+  if (
+    academicYear === undefined ||
+    academicYear === current ||
+    years.includes(academicYear)
+  ) {
+    return;
+  }
+  throw new AppError("VALIDATION", "Some fields need correcting.", {
+    academicYear: [chooseAcademicYearFrom(years)],
+  });
 }
 
 /** Copies a student's name and email address to their sign-in account. */

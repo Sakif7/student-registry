@@ -99,6 +99,29 @@ export function academicYearsAround(
   );
 }
 
+/**
+ * The academic years a new student can be enrolled into: last year, for a
+ * record entered late, this year or next. The form offers these, and the API
+ * refuses others.
+ */
+export function enrolmentYears(today: CalendarDate): string[] {
+  return academicYearsAround(academicYearOn(today), 1, 1);
+}
+
+/**
+ * The academic years staff can move a student's record to, or charge a fee
+ * for: back three years, to correct a record, and on to next year. A record
+ * can always keep the year it already has, however old.
+ */
+export function recordYears(today: CalendarDate): string[] {
+  return academicYearsAround(academicYearOn(today), 3, 1);
+}
+
+/** What to tell staff who chose an academic year outside `years`. */
+export function chooseAcademicYearFrom(years: readonly string[]): string {
+  return `Choose an academic year from ${years[0]} to ${years.at(-1)}`;
+}
+
 /** Validates an academic year typed or chosen by a person. */
 export const academicYearSchema = z
   .string({ error: "Choose an academic year" })

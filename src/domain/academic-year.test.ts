@@ -9,8 +9,11 @@ import {
   academicYearSpan,
   academicYearStart,
   academicYearsAround,
+  chooseAcademicYearFrom,
+  enrolmentYears,
   formatAcademicYear,
   isAcademicYear,
+  recordYears,
 } from "./academic-year";
 
 describe("academic year format", () => {
@@ -85,6 +88,34 @@ describe("academicYearsAround", () => {
 
   it("rejects a malformed centre year", () => {
     expect(() => academicYearsAround("2026", 1, 1)).toThrow(RangeError);
+  });
+});
+
+describe("the academic years staff can choose", () => {
+  it("enrols into last year, this year or next", () => {
+    expect(enrolmentYears("2026-10-18")).toEqual([
+      "2025/26",
+      "2026/27",
+      "2027/28",
+    ]);
+  });
+
+  it("moves records and charges fees from three years back to next year", () => {
+    expect(recordYears("2026-08-31")).toEqual([
+      "2022/23",
+      "2023/24",
+      "2024/25",
+      "2025/26",
+      "2026/27",
+    ]);
+    // The window moves on with the new academic year.
+    expect(recordYears("2026-09-01")[0]).toBe("2023/24");
+  });
+
+  it("names the range in its message", () => {
+    expect(chooseAcademicYearFrom(enrolmentYears("2026-10-18"))).toBe(
+      "Choose an academic year from 2025/26 to 2027/28",
+    );
   });
 });
 

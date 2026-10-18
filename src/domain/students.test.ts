@@ -58,6 +58,21 @@ describe("createStudentSchema", () => {
     );
   });
 
+  it("enrols into last academic year, this one or next", () => {
+    expect(
+      errorFor({ ...valid, academicYear: "2025/26" }, "academicYear"),
+    ).toBe(undefined);
+    expect(
+      errorFor({ ...valid, academicYear: "2024/25" }, "academicYear"),
+    ).toBe("Choose an academic year from 2025/26 to 2027/28");
+    // A malformed year gets only the message about its format.
+    expect(
+      createStudentSchema(TODAY)
+        .safeParse({ ...valid, academicYear: "2026/28" })
+        .error?.issues.map(({ message }) => message),
+    ).toEqual(["Use the format 2026/27, with consecutive years"]);
+  });
+
   it("takes a year of study, as a number or as a form sends it", () => {
     expect(
       createStudentSchema(TODAY).parse({ ...valid, yearOfStudy: "2" }),

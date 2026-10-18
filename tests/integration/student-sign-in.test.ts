@@ -17,6 +17,8 @@ import {
   GET as listStudents,
   POST as enrolStudent,
 } from "@/app/api/students/route";
+import { academicYearOn } from "@/domain/academic-year";
+import { collegeToday } from "@/server/college";
 import { db } from "@/server/db";
 import { sendEmail } from "@/server/mail";
 
@@ -61,7 +63,8 @@ async function enrolGrace(
         email: GRACE,
         dateOfBirth: "2005-03-12",
         programmeCode: "BSC-CS",
-        academicYear: "2026/27",
+        // Enrolment takes this year, last or next, so the year follows the date.
+        academicYear: academicYearOn(collegeToday()),
         ...extra,
       },
     }),

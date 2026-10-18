@@ -3,7 +3,12 @@
 import { z } from "zod";
 
 import { passwordSchema } from "./accounts";
-import { academicYearSchema } from "./academic-year";
+import {
+  academicYearSchema,
+  chooseAcademicYearFrom,
+  enrolmentYears,
+  isAcademicYear,
+} from "./academic-year";
 import { type CalendarDate, isCalendarDate } from "./college-time";
 import { MAX_PROGRAMME_YEARS } from "./curriculum";
 import {
@@ -127,11 +132,18 @@ export function studentDetailsSchema(today: CalendarDate) {
 
 /**
  * Input for enrolling a new student; `today` is the college's date. A new
- * student starts in year 1 unless the year of study says otherwise.
+ * student starts in year 1 unless the year of study says otherwise, in last
+ * academic year, this one or next.
  */
 export function createStudentSchema(today: CalendarDate) {
+  const years = enrolmentYears(today);
   return z.object({
     ...detailsShape(today),
+    // A malformed year has its own message already.
+    academicYear: academicYearSchema.refine(
+      (year) => !isAcademicYear(year) || years.includes(year),
+      { error: chooseAcademicYearFrom(years) },
+    ),
     yearOfStudy: yearOfStudySchema.default(1),
     status: z
       .enum(INITIAL_STATUSES, {

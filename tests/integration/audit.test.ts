@@ -1,7 +1,7 @@
 // The audit trail: every change records who made it, in the same
 // transaction, and nothing else can rewrite it. Services are called directly,
 // as the signed-in staff member or student.
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET as getActivity } from "@/app/api/activity/route";
 import { GET as getHistory } from "@/app/api/students/[studentNumber]/history/route";
@@ -51,6 +51,17 @@ import {
 
 /** Past, so its assessments can be marked; in 2026/27, like the students. */
 const PAST_DEADLINE = new Date("2026-10-08T16:00:00.000Z");
+
+// The academic years students are enrolled into and charged for follow the
+// date. Events take their times from the database, so their order holds.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-15T09:00:00.000Z"));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /** The events recorded so far, oldest first, as tests compare them. */
 async function events() {

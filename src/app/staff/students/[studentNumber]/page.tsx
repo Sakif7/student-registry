@@ -30,7 +30,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { academicYearOn, academicYearsAround } from "@/domain/academic-year";
+import { recordYears } from "@/domain/academic-year";
 import { formatDateOf, formatDateTime } from "@/lib/format";
 import { collegeTimeZone, collegeToday } from "@/server/college";
 import { firstValues, orNotFound } from "@/server/pages";
@@ -90,14 +90,10 @@ async function StudentRecordView({ params, searchParams }: Props) {
   );
   const timeZone = collegeTimeZone();
   const today = collegeToday();
-  // The usual range of years, plus the student's own, which may be older.
-  const yearsAround = (before: number) =>
-    [
-      ...new Set([
-        ...academicYearsAround(academicYearOn(today), before, 1),
-        student.academicYear,
-      ]),
-    ].sort();
+  // The years staff can choose, plus the student's own, which may be older.
+  const academicYears = [
+    ...new Set([...recordYears(today), student.academicYear]),
+  ].sort();
 
   return (
     <>
@@ -119,7 +115,7 @@ async function StudentRecordView({ params, searchParams }: Props) {
                 yearOfStudy: student.yearOfStudy,
               }}
               programmes={programmes}
-              academicYears={yearsAround(3)}
+              academicYears={academicYears}
               today={today}
             />
             <ChangeStatusDialog
@@ -173,7 +169,7 @@ async function StudentRecordView({ params, searchParams }: Props) {
               <AccountSection
                 account={account}
                 timeZone={timeZone}
-                staff={{ today, academicYears: yearsAround(2) }}
+                staff={{ today, academicYears }}
               />
             ),
           },
