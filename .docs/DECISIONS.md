@@ -160,10 +160,16 @@ That isn't how a registry works, so the curriculum is now modelled.
 - Each academic year has two semesters, with dates staff set: one after the
   other, without overlapping, inside the year (1 September to 31 August).
   A CHECK constraint holds the database to the same rule.
+- **What has passed stays as it was.** Students and staff have lived by a
+  calendar's past dates, so a semester date that has passed can't change,
+  and no date can move into the past; a year that has ended can't change
+  at all. A year set up late may still start in the past. A change records
+  the dates it moved, before and after, in the audit trail.
 - An academic year without dates is allowed: pages then name semesters
   without dates.
 - Each academic year also has a switch that lets students choose their own
-  optional modules. It is off until staff turn it on.
+  optional modules. It is off until staff turn it on, and once the year has
+  ended it can only be turned off.
 
 ### Module registration
 

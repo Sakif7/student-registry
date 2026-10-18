@@ -596,6 +596,87 @@ describe("academic years", () => {
     ]);
   });
 
+  it("keep what has passed, and record the dates a change moved", async () => {
+    // On 15 October 2026, semester 1 has started.
+    await put("2026-27", SEMESTERS);
+
+    expect(
+      await put("2026-27", { ...SEMESTERS, semester1Start: "2026-09-28" }),
+    ).toMatchObject({
+      status: 400,
+      body: {
+        errors: {
+          semester1Start: ["This date has passed, so it can't change"],
+        },
+      },
+    });
+    expect(
+      await put("2026-27", { ...SEMESTERS, semester1End: "2026-10-14" }),
+    ).toMatchObject({
+      status: 400,
+      body: {
+        errors: {
+          semester1End: [
+            "Choose today or later: a date can't move into the past",
+          ],
+        },
+      },
+    });
+    expect(
+      (await put("2026-27", { ...SEMESTERS, semester2End: "2027-06-18" }))
+        .status,
+    ).toBe(200);
+    expect((await actions()).at(-1)).toEqual({
+      action: "academic_year.saved",
+      details: {
+        year: "2026/27",
+        created: false,
+        studentsChooseModules: false,
+        changes: { semester2End: { from: "2027-06-11", to: "2027-06-18" } },
+      },
+    });
+  });
+
+  it("can be set up after they end, but not let students choose then", async () => {
+    const LAST_YEAR = {
+      semester1Start: "2025-09-22",
+      semester1End: "2026-01-23",
+      semester2Start: "2026-02-02",
+      semester2End: "2026-06-12",
+    };
+    expect(
+      await put("2025-26", { ...LAST_YEAR, studentsChooseModules: true }),
+    ).toMatchObject({
+      status: 400,
+      body: {
+        errors: {
+          studentsChooseModules: [
+            "2025/26 has ended, so students can't choose modules for it",
+          ],
+        },
+      },
+    });
+    expect((await put("2025-26", LAST_YEAR)).status).toBe(200);
+
+    const patch = (json: unknown) =>
+      call(setStudentsChoose, "PATCH", "/api/academic-years/2025-26", {
+        json,
+        params: { year: "2025-26" },
+      });
+    expect(await patch({ studentsChooseModules: true })).toMatchObject({
+      status: 409,
+      body: {
+        detail: "2025/26 has ended, so students can't choose modules for it.",
+      },
+    });
+    // A switch left on can still be turned off.
+    await db().academicYear.update({
+      where: { year: "2025/26" },
+      data: { studentsChooseModules: true },
+    });
+    expect((await patch({ studentsChooseModules: false })).status).toBe(200);
+  });
+
   it("refuse semesters out of order or outside the year, and a year that isn't one", async () => {
     expect(
       await put("2026-27", { ...SEMESTERS, semester2Start: "2027-01-10" }),

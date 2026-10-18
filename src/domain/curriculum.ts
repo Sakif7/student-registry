@@ -296,6 +296,74 @@ export type AcademicYearSettingsInput = z.infer<
   ReturnType<typeof academicYearSettingsSchema>
 >;
 
+/** The semester dates, in the order a year's calendar runs. */
+export const SEMESTER_DATES = [
+  "semester1Start",
+  "semester1End",
+  "semester2Start",
+  "semester2End",
+] as const satisfies readonly (keyof SemesterDates)[];
+
+/** Each semester date as the audit trail names it. */
+export const SEMESTER_DATE_LABELS: Record<keyof SemesterDates, string> = {
+  semester1Start: "start of semester 1",
+  semester1End: "end of semester 1",
+  semester2Start: "start of semester 2",
+  semester2End: "end of semester 2",
+};
+
+/** Whether an academic year has ended: it has from the 1 September after. */
+export function academicYearEnded(year: string, today: CalendarDate): boolean {
+  return today > academicYearSpan(year).last;
+}
+
+/**
+ * What stops a change to a year's semester dates, date by date; empty if
+ * nothing does. A date that has passed is history, as students and staff
+ * have lived by it, so it can't change, and no date can move into the past.
+ * A year set up for the first time may start in the past, as one set up
+ * late does.
+ *
+ * @param saved - The year's dates now, or null if it isn't set up yet.
+ */
+export function semesterDateProblems(
+  saved: SemesterDates | null,
+  next: SemesterDates,
+  today: CalendarDate,
+): Partial<Record<keyof SemesterDates, string>> {
+  const problems: Partial<Record<keyof SemesterDates, string>> = {};
+  if (saved === null) return problems;
+  for (const field of SEMESTER_DATES) {
+    if (next[field] === saved[field]) continue;
+    if (saved[field] < today) {
+      problems[field] = "This date has passed, so it can't change";
+    } else if (next[field] < today) {
+      problems[field] =
+        "Choose today or later: a date can't move into the past";
+    }
+  }
+  return problems;
+}
+
+/** A semester date's old and new value, as the audit trail keeps it. */
+export type SemesterDateChanges = Partial<
+  Record<keyof SemesterDates, { from: CalendarDate; to: CalendarDate }>
+>;
+
+/** The semester dates a change moves, or undefined if it moves none. */
+export function semesterDateChanges(
+  before: SemesterDates,
+  after: SemesterDates,
+): SemesterDateChanges | undefined {
+  const changes: SemesterDateChanges = {};
+  for (const field of SEMESTER_DATES) {
+    if (before[field] !== after[field]) {
+      changes[field] = { from: before[field], to: after[field] };
+    }
+  }
+  return Object.keys(changes).length > 0 ? changes : undefined;
+}
+
 /**
  * Letting students choose their own options in a year, or stopping them, on
  * its own: the semester dates stay as they are, whoever changed them last.

@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { academicYearSlug } from "@/domain/academic-year";
+import type { CalendarDate } from "@/domain/college-time";
 import {
   type AcademicYearSettingsInput,
   academicYearSettingsSchema,
@@ -34,12 +35,15 @@ const DATE_FIELDS = [
 export function AcademicYearForm({
   year,
   calendar,
+  today,
   onDone,
 }: {
   /** E.g. "2027/28". */
   year: string;
   /** Its calendar now, if it has one. */
   calendar?: SemesterDates & { studentsChooseModules: boolean };
+  /** The college's date: a date before it has passed, so stays as it is. */
+  today: CalendarDate;
   onDone: () => void;
 }) {
   const form = useForm({
@@ -83,23 +87,34 @@ export function AcademicYearForm({
     >
       <FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2">
-          {DATE_FIELDS.map(([name, label]) => (
-            <FormField
-              key={name}
-              id={name}
-              label={label}
-              error={errors[name]?.message}
-            >
-              {(control) => (
-                <Input
-                  {...control}
-                  type="date"
-                  className="w-fit"
-                  {...form.register(name)}
-                />
-              )}
-            </FormField>
-          ))}
+          {DATE_FIELDS.map(([name, label]) => {
+            // A date that has passed can't change, and none can move into
+            // the past (semesterDateProblems). A year set up late may start
+            // in the past, so a new calendar has no such limits.
+            const passed = calendar !== undefined && calendar[name] < today;
+            return (
+              <FormField
+                key={name}
+                id={name}
+                label={label}
+                description={
+                  passed ? "Passed, so it stays as it is" : undefined
+                }
+                error={errors[name]?.message}
+              >
+                {(control) => (
+                  <Input
+                    {...control}
+                    type="date"
+                    className="w-fit"
+                    readOnly={passed}
+                    min={calendar && !passed ? today : undefined}
+                    {...form.register(name)}
+                  />
+                )}
+              </FormField>
+            );
+          })}
         </div>
         <ChooseModulesField
           checked={studentsChoose === true}

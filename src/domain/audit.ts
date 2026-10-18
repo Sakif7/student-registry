@@ -4,7 +4,7 @@
 import { z } from "zod";
 
 import type { CalendarDate } from "./college-time";
-import type { ModuleKind } from "./curriculum";
+import type { ModuleKind, SemesterDateChanges } from "./curriculum";
 import type { EnrolmentStatus } from "./enrolment";
 import { listSearchSchema } from "./lists";
 
@@ -99,10 +99,12 @@ export interface AuditDetails {
   /** Which details changed, by field name (see MODULE_FIELD_LABELS). */
   "module.edited": { code: string; fields: string[] };
   /** An academic year's calendar set up (created) or changed. */
+  /** A calendar set up or changed, with the dates a change moved. */
   "academic_year.saved": {
     year: string;
     created: boolean;
     studentsChooseModules: boolean;
+    changes?: SemesterDateChanges;
   };
   /** Students let choose their own options in a year, or stopped. */
   "academic_year.choosing_changed": {

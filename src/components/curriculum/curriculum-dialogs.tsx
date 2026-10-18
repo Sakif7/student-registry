@@ -4,6 +4,7 @@
 // programmes and modules, placing modules in a programme, and an academic
 // year's calendar.
 import { FormDialog } from "@/components/forms/form-dialog";
+import type { CalendarDate } from "@/domain/college-time";
 import type { Semester, SemesterDates } from "@/domain/curriculum";
 
 import { AcademicYearForm } from "./academic-year-form";
@@ -120,9 +121,11 @@ export function EditModuleDialog({
 export function AcademicYearDialog({
   year,
   calendar,
+  today,
 }: {
   year: string;
   calendar?: SemesterDates & { studentsChooseModules: boolean };
+  today: CalendarDate;
 }) {
   return (
     <FormDialog
@@ -136,13 +139,22 @@ export function AcademicYearDialog({
         )
       }
       title={calendar ? `Edit ${year}` : `Set up ${year}`}
-      description="Semester 1 and semester 2, one after the other, inside the academic year."
+      description={
+        calendar
+          ? "Semester 1 and semester 2, one after the other, inside the academic year. Dates that have passed stay as they are."
+          : "Semester 1 and semester 2, one after the other, inside the academic year."
+      }
       variant={calendar ? "outline" : "default"}
       // On a year's card, the size of the card's other button.
       size={calendar ? "sm" : "default"}
     >
       {(close) => (
-        <AcademicYearForm year={year} calendar={calendar} onDone={close} />
+        <AcademicYearForm
+          year={year}
+          calendar={calendar}
+          today={today}
+          onDone={close}
+        />
       )}
     </FormDialog>
   );

@@ -7,7 +7,11 @@ import {
   PROGRAMME_FIELD_LABELS,
   STUDENT_FIELD_LABELS,
 } from "@/domain/audit";
-import { MODULE_KIND_LABELS } from "@/domain/curriculum";
+import {
+  MODULE_KIND_LABELS,
+  SEMESTER_DATE_LABELS,
+  SEMESTER_DATES,
+} from "@/domain/curriculum";
 import { ENROLMENT_STATUS_LABELS } from "@/domain/enrolment";
 
 import { formatDate, formatMoney } from "./format";
@@ -82,8 +86,22 @@ const DESCRIBE: Describe = {
   "module.created": ({ code, title }) => `Set up the module ${code} ${title}`,
   "module.edited": ({ code, fields }) =>
     `Edited ${code}’s ${list(fields.map((field) => MODULE_FIELD_LABELS[field] ?? field))}`,
-  "academic_year.saved": ({ year, created, studentsChooseModules }) =>
-    `${created ? "Set up" : "Changed"} ${year}’s semesters; students ${studentsChooseModules ? "may" : "may not"} choose their optional modules`,
+  "academic_year.saved": ({
+    year,
+    created,
+    studentsChooseModules,
+    changes,
+  }) => {
+    const moved = SEMESTER_DATES.flatMap((field) => {
+      const change = changes?.[field];
+      return change
+        ? [
+            `the ${SEMESTER_DATE_LABELS[field]} from ${formatDate(change.from)} to ${formatDate(change.to)}`,
+          ]
+        : [];
+    });
+    return `${created ? "Set up" : "Changed"} ${year}’s semesters${moved.length > 0 ? `, moving ${list(moved)}` : ""}; students ${studentsChooseModules ? "may" : "may not"} choose their optional modules`;
+  },
   "academic_year.choosing_changed": ({ year, studentsChooseModules }) =>
     studentsChooseModules
       ? `Let students choose their optional modules for ${year}`

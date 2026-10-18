@@ -5,6 +5,7 @@
 import "server-only";
 
 import {
+  academicYearEnded,
   academicYearSettingsSchema,
   coreCredits,
   createModuleSchema,
@@ -12,7 +13,9 @@ import {
   type ModuleKind,
   programmeChangeProblem,
   type Semester,
+  semesterDateChanges,
   type SemesterDates,
+  semesterDateProblems,
   structureEntryProblem,
   structureEntrySchema,
   studentsChooseSchema,
@@ -510,10 +513,14 @@ export async function getAcademicYear(
 
 /**
  * Sets up or changes an academic year's calendar (staff only): its semester
- * dates, and whether students may choose their own optional modules.
+ * dates, and whether students may choose their own optional modules. What
+ * has passed stays as it was (see semesterDateProblems), and students can't
+ * be let choose for a year that has ended. The audit trail keeps the dates
+ * a change moved, before and after.
  *
  * @throws AppError: NOT_FOUND for a year that isn't one, such as 2026/28;
- *   VALIDATION for semester dates out of order or outside the year.
+ *   VALIDATION for semester dates out of order, outside the year, or
+ *   changing what has passed.
  */
 export async function saveAcademicYear(
   session: Session | null,
@@ -526,6 +533,7 @@ export async function saveAcademicYear(
     throw new AppError("NOT_FOUND", `There is no academic year ${year}.`);
   }
   const settings = parseInput(academicYearSettingsSchema(year), input);
+  const today = collegeToday();
   const data = {
     semester1Start: toDbDate(settings.semester1Start),
     semester1End: toDbDate(settings.semester1End),
@@ -537,22 +545,49 @@ export async function saveAcademicYear(
     const existing = await tx.academicYear.findUnique({ where: { year } });
     // Saving what is already there changes nothing, so records nothing.
     if (existing && sameCalendar(existing, data)) return existing;
+    const before = existing && toCalendar(existing);
+    const problems: Record<string, string[]> = Object.fromEntries(
+      Object.entries(semesterDateProblems(before, settings, today)).map(
+        ([field, message]) => [field, [message]],
+      ),
+    );
+    if (
+      settings.studentsChooseModules &&
+      !before?.studentsChooseModules &&
+      academicYearEnded(year, today)
+    ) {
+      problems.studentsChooseModules = [cantChooseInEndedYear(year)];
+    }
+    if (Object.keys(problems).length > 0) {
+      throw new AppError(
+        "VALIDATION",
+        "Some fields need correcting.",
+        problems,
+      );
+    }
     const row = await tx.academicYear.upsert({
       where: { year },
       create: { year, ...data },
       update: data,
     });
+    const changes = before && semesterDateChanges(before, settings);
     await recordEvent(tx, staff, {
       action: "academic_year.saved",
       details: {
         year,
         created: existing === null,
         studentsChooseModules: settings.studentsChooseModules,
+        ...(changes && { changes }),
       },
     });
     return row;
   });
   return toCalendar(saved);
+}
+
+/** Why students can't be let choose their modules for a year. */
+function cantChooseInEndedYear(year: string): string {
+  return `${year} has ended, so students can't choose modules for it`;
 }
 
 /**
@@ -561,7 +596,8 @@ export async function saveAcademicYear(
  * are, so a page opened before a colleague changed them can't undo it.
  *
  * @throws AppError: NOT_FOUND for a year that isn't one or isn't set up;
- *   VALIDATION.
+ *   VALIDATION; CONFLICT for letting students choose in a year that has
+ *   ended.
  */
 export async function setStudentsChoose(
   session: Session | null,
@@ -580,6 +616,10 @@ export async function setStudentsChoose(
     }
     if (existing.studentsChooseModules === studentsChooseModules) {
       return existing;
+    }
+    // Stopping them is still allowed, should the switch have been left on.
+    if (studentsChooseModules && academicYearEnded(year, collegeToday())) {
+      throw new AppError("CONFLICT", `${cantChooseInEndedYear(year)}.`);
     }
     const row = await tx.academicYear.update({
       where: { year },

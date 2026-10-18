@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  academicYearEnded,
   academicYearSettingsSchema,
   coreCredits,
   createModuleSchema,
@@ -12,6 +13,8 @@ import {
   optionsCanMakeUp,
   programmeChangeProblem,
   programmeListSchema,
+  semesterDateChanges,
+  semesterDateProblems,
   semesterOn,
   type StructureEntry,
   structureEntryProblem,
@@ -231,6 +234,66 @@ describe("academicYearSettingsSchema", () => {
     expect(problems({ semester1End: "2026-09-21" })).toEqual([
       "End semester 1 after it starts",
     ]);
+  });
+});
+
+describe("changing a calendar", () => {
+  const saved = {
+    semester1Start: "2026-09-21",
+    semester1End: "2027-01-22",
+    semester2Start: "2027-02-01",
+    semester2End: "2027-06-11",
+  };
+  // Semester 1 has started; the rest is still to come.
+  const today = "2026-10-15";
+
+  it("keeps a date that has passed as it was", () => {
+    expect(
+      semesterDateProblems(
+        saved,
+        { ...saved, semester1Start: "2026-09-28" },
+        today,
+      ),
+    ).toEqual({ semester1Start: "This date has passed, so it can't change" });
+  });
+
+  it("moves a date still to come, but not into the past", () => {
+    expect(
+      semesterDateProblems(
+        saved,
+        { ...saved, semester2End: "2027-06-18" },
+        today,
+      ),
+    ).toEqual({});
+    expect(
+      semesterDateProblems(
+        saved,
+        { ...saved, semester1End: "2026-10-14" },
+        today,
+      ),
+    ).toEqual({
+      semester1End: "Choose today or later: a date can't move into the past",
+    });
+    // Today itself is still to come.
+    expect(
+      semesterDateProblems(saved, { ...saved, semester1End: today }, today),
+    ).toEqual({});
+  });
+
+  it("lets a year set up late start in the past", () => {
+    expect(semesterDateProblems(null, saved, today)).toEqual({});
+  });
+
+  it("names the dates a change moved, before and after", () => {
+    expect(
+      semesterDateChanges(saved, { ...saved, semester2End: "2027-06-18" }),
+    ).toEqual({ semester2End: { from: "2027-06-11", to: "2027-06-18" } });
+    expect(semesterDateChanges(saved, saved)).toBeUndefined();
+  });
+
+  it("ends a year after its 31 August", () => {
+    expect(academicYearEnded("2025/26", "2026-08-31")).toBe(false);
+    expect(academicYearEnded("2025/26", "2026-09-01")).toBe(true);
   });
 });
 

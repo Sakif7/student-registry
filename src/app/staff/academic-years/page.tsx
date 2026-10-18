@@ -22,6 +22,8 @@ import {
   formatAcademicYear,
   startYearOf,
 } from "@/domain/academic-year";
+import type { CalendarDate } from "@/domain/college-time";
+import { academicYearEnded } from "@/domain/curriculum";
 import { collegeToday } from "@/server/college";
 import {
   type AcademicYearCalendar,
@@ -54,7 +56,9 @@ export default function AcademicYearsPage() {
 async function SetUpNextYear() {
   const session = await requirePageRole("staff");
   const years = await listAcademicYears(session);
-  return <AcademicYearDialog year={nextToSetUp(years)} />;
+  return (
+    <AcademicYearDialog year={nextToSetUp(years)} today={collegeToday()} />
+  );
 }
 
 /** This year if it isn't set up yet, or else the year after the latest. */
@@ -71,7 +75,8 @@ function nextToSetUp(years: readonly AcademicYearCalendar[]): string {
 async function AcademicYears() {
   const session = await requirePageRole("staff");
   const years = await listAcademicYears(session);
-  const current = academicYearOn(collegeToday());
+  const today = collegeToday();
+  const current = academicYearOn(today);
 
   return (
     <div className="grid grid-cols-1 gap-6">
@@ -80,6 +85,7 @@ async function AcademicYears() {
           key={calendar.year}
           calendar={calendar}
           current={calendar.year === current}
+          today={today}
         />
       ))}
     </div>
@@ -89,11 +95,15 @@ async function AcademicYears() {
 function YearCard({
   calendar,
   current,
+  today,
 }: {
   calendar: AcademicYearCalendar;
   current: boolean;
+  today: CalendarDate;
 }) {
   const { year, ...settings } = calendar;
+  // A year that has ended is history: its calendar stays as it was.
+  const ended = academicYearEnded(year, today);
   return (
     <Card>
       {/* Centred, so the year and its Edit button share a midline. */}
@@ -101,11 +111,14 @@ function YearCard({
         <CardTitle className="flex items-center gap-2">
           <h2>{year}</h2>
           {current && <Badge variant="secondary">Current</Badge>}
+          {ended && <Badge variant="outline">Ended</Badge>}
         </CardTitle>
-        {/* One row, not shadcn's two, which set the button below centre. */}
-        <CardAction className="row-span-1 self-center">
-          <AcademicYearDialog year={year} calendar={settings} />
-        </CardAction>
+        {!ended && (
+          // One row, not shadcn's two, which set the button below centre.
+          <CardAction className="row-span-1 self-center">
+            <AcademicYearDialog year={year} calendar={settings} today={today} />
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="grid gap-4">
         <SemesterCalendar academicYear={year} calendar={settings} />
@@ -113,12 +126,17 @@ function YearCard({
           <p>
             {calendar.studentsChooseModules
               ? "Students choose their own optional modules."
-              : "Only the Registry changes students' modules."}
+              : ended
+                ? "The year has ended, so its calendar and modules stay as they are."
+                : "Only the Registry changes students' modules."}
           </p>
-          <StudentsChooseButton
-            year={year}
-            choosing={calendar.studentsChooseModules}
-          />
+          {/* An ended year's switch can only be turned off. */}
+          {(!ended || calendar.studentsChooseModules) && (
+            <StudentsChooseButton
+              year={year}
+              choosing={calendar.studentsChooseModules}
+            />
+          )}
         </div>
       </CardContent>
     </Card>

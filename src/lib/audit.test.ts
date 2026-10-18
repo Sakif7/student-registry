@@ -199,6 +199,19 @@ describe("describeEvent", () => {
       "Changed 2026/27’s semesters; students may choose their optional modules",
     ],
     [
+      "academic_year.saved",
+      {
+        year: "2026/27",
+        created: false,
+        studentsChooseModules: false,
+        changes: {
+          semester2Start: { from: "2027-02-01", to: "2027-02-08" },
+          semester2End: { from: "2027-06-11", to: "2027-06-18" },
+        },
+      },
+      "Changed 2026/27’s semesters, moving the start of semester 2 from 1 Feb 2027 to 8 Feb 2027 and the end of semester 2 from 11 Jun 2027 to 18 Jun 2027; students may not choose their optional modules",
+    ],
+    [
       "academic_year.choosing_changed",
       { year: "2026/27", studentsChooseModules: true },
       "Let students choose their optional modules for 2026/27",
