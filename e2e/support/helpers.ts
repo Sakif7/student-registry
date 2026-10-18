@@ -6,10 +6,11 @@ import { expect, type Page } from "@playwright/test";
 
 import {
   academicYearOn,
+  academicYearSpan,
   formatAcademicYear,
   startYearOf,
 } from "@/domain/academic-year";
-import { addDays, todayIn } from "@/domain/college-time";
+import { addDays, todayIn, type WallTime } from "@/domain/college-time";
 
 import { SESSION_COOKIE } from "../../tests/helpers/session-cookie";
 import { assertTestDatabaseUrl } from "../../tests/helpers/test-database";
@@ -95,9 +96,17 @@ export function studentNumber(sequence: number, yearsAgo = 0): StudentNumber {
   return `SMS-${year}-${String(sequence).padStart(4, "0")}`;
 }
 
-/** A date this many days from today, as a datetime-local field takes it. */
-export function deadlineInDays(days: number, time = "17:00"): string {
-  return `${addDays(todayIn(TIME_ZONE), days)}T${time}`;
+/**
+ * A deadline as the deadline field takes it: 17:00 this many days from
+ * today, or on the last day of the academic year if that comes sooner, as
+ * the demo's students are registered for this year only. On that last day
+ * itself, at 23:59.
+ */
+export function deadlineThisYear(days: number): WallTime {
+  const today = todayIn(TIME_ZONE);
+  const { last } = academicYearSpan(academicYearOn(today));
+  const day = addDays(today, days) < last ? addDays(today, days) : last;
+  return `${day}T${day === today ? "23:59" : "17:00"}`;
 }
 
 // Each demo student's place in the seed's numbering: [sequence, intake years

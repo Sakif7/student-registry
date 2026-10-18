@@ -36,6 +36,7 @@ import { DEMO_PASSWORD, DEMO_STAFF, DEMO_STUDENTS } from "@/lib/demo-accounts";
 import { SESSION_OPTIONS } from "@/lib/postgres";
 
 import { sampleDocx, samplePdf } from "./sample-documents";
+import { type StoryClock, storyClock } from "./story-clock";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -499,17 +500,21 @@ async function main(): Promise<void> {
     const today = todayIn(timeZone, now);
     const currentYear = startYearOf(academicYearOn(today));
     const uploadDir = resolve(process.env.UPLOAD_DIR ?? "./storage/uploads");
+    const story = storyClock(now, {
+      start: yearStartsAt(formatAcademicYear(currentYear), timeZone),
+      end: yearStartsAt(formatAcademicYear(currentYear + 1), timeZone),
+    });
 
     await deleteStoredFiles(prisma, uploadDir);
     await deleteEverything(prisma);
     const curriculum = await seedCurriculum(prisma);
     await seedAcademicYears(prisma, currentYear);
-    const { students, registrations } = await seedStudents(
-      prisma,
-      curriculum,
+    const { students, registrations } = await seedStudents(prisma, curriculum, {
       currentYear,
       now,
-    );
+      timeZone,
+      story,
+    });
     const accounts = await seedAccounts(
       prisma,
       students,
@@ -523,13 +528,19 @@ async function main(): Promise<void> {
       timeZone,
       uploadDir,
       currentYear,
+      story,
     });
-    await seedHolds(prisma, students, now);
-    const logins = await seedLogins(prisma, students, now);
+    await seedHolds(prisma, students, story);
+    const logins = await seedLogins(prisma, students, now, story);
     const events = await seedAuditTrail(prisma, currentYear);
     console.log(
       `Seeded ${PROGRAMMES.length} programmes, ${MODULES.length} modules, ${Object.keys(students).length} students, ${registrations} module registrations, ${accounts.charges} fee charges, ${accounts.payments} payments, ${work.assessments} assessments, ${work.submissions} submissions, ${work.marks} marks and ${events} audit events.`,
     );
+    if (story.squeezed) {
+      console.log(
+        "The academic year began or ends within three weeks, so the demo's deadlines, submissions and marks are squeezed nearer today to stay inside it.",
+      );
+    }
     console.log(
       `Sign-in: ${logins.staff} staff and ${logins.active} students use the password "${DEMO_PASSWORD}". Accounts awaiting activation: ${logins.pending}; turned off: ${logins.disabled}.`,
     );
@@ -631,6 +642,29 @@ async function seedAcademicYears(
   }
 }
 
+/** The seed's sense of time. */
+interface SeedClock {
+  now: Date;
+  timeZone: string;
+  /** The start year of the current academic year, e.g. 2026 for 2026/27. */
+  currentYear: number;
+  /** When the moments of the demo's story happen. */
+  story: StoryClock;
+}
+
+/**
+ * The instant an academic year starts: midnight on 1 September, in the
+ * college's time zone.
+ */
+function yearStartsAt(academicYear: string, timeZone: string): Date {
+  const { first } = academicYearSpan(academicYear);
+  const instant = wallTimeToInstant(`${first}T00:00`, timeZone);
+  if (!instant) {
+    throw new Error(`Midnight never happens on ${first} in ${timeZone}.`);
+  }
+  return instant;
+}
+
 /**
  * Creates the cast with their status histories. Student numbers follow the
  * cast order within each intake year, and the counters are left where the
@@ -639,13 +673,14 @@ async function seedAcademicYears(
 async function seedStudents(
   prisma: PrismaClient,
   curriculum: SeededCurriculum,
-  currentYear: number,
-  now: Date,
+  { currentYear, now, timeZone, story }: SeedClock,
 ): Promise<{
   students: Record<CastKey, SeededStudent>;
   registrations: number;
 }> {
-  const daysAgo = (days: number) => new Date(now.getTime() - days * MS_PER_DAY);
+  // Status changes are part of the story: a withdrawal follows the work
+  // submitted before it.
+  const daysAgo = (days: number) => story.at(-days * MS_PER_DAY);
   const lastSequence = new Map<number, number>();
   const seeded = {} as Record<CastKey, SeededStudent>;
   let registrations = 0;
@@ -710,14 +745,19 @@ async function seedStudents(
       if (!structure) {
         throw new Error(`No year ${year.yearOfStudy} for ${member.fullName}.`);
       }
-      const yearStart = toDbDate(academicYearSpan(year.academicYear).first);
+      const yearStart = yearStartsAt(year.academicYear, timeZone);
       const registeredAt = new Date(
         Math.max(student.createdAt.getTime(), yearStart.getTime()),
       );
+      // Three days on, or an hour ago if that is sooner, but never before
+      // the core modules.
       const chosenAt = new Date(
-        Math.min(
-          registeredAt.getTime() + 3 * MS_PER_DAY,
-          now.getTime() - 60 * 60 * 1000,
+        Math.max(
+          registeredAt.getTime(),
+          Math.min(
+            registeredAt.getTime() + 3 * MS_PER_DAY,
+            now.getTime() - 60 * 60 * 1000,
+          ),
         ),
       );
       const modules = [
@@ -1083,19 +1123,16 @@ const HOLDS: Partial<Record<CastKey, { reason: string; daysAgo: number }>> = {
 async function seedAssessments(
   prisma: PrismaClient,
   students: Record<CastKey, SeededStudent>,
-  clock: {
-    today: CalendarDate;
-    now: Date;
-    timeZone: string;
-    uploadDir: string;
-    currentYear: number;
-  },
+  clock: SeedClock & { today: CalendarDate; uploadDir: string },
 ): Promise<{ assessments: number; submissions: number; marks: number }> {
-  const { today, now, timeZone, uploadDir, currentYear } = clock;
+  const { today, now, timeZone, uploadDir, currentYear, story } = clock;
   // 24 April of last academic year: always in the past, and in the year
   // Mohammed completed.
   const seeds = assessmentsToSeed(daysBetween(today, `${currentYear}-04-24`));
-  const daysAgo = (days: number) => new Date(now.getTime() - days * MS_PER_DAY);
+  // The times below are the story's, set as if the year had room for all of
+  // it; the story clock places them in the year.
+  const at = (time: number) => story.at(time - now.getTime());
+  const daysAgo = (days: number) => story.at(-days * MS_PER_DAY);
   const modules = new Map(
     (await prisma.module.findMany({ select: { id: true, code: true } })).map(
       (row) => [row.code, row.id],
@@ -1106,14 +1143,15 @@ async function seedAssessments(
   let marks = 0;
 
   for (const seed of seeds) {
-    const deadline = wallTimeToInstant(
+    const due = wallTimeToInstant(
       `${addDays(today, seed.deadlineInDays)}T17:00`,
       timeZone,
-    );
+    )?.getTime();
     const moduleId = modules.get(seed.module);
-    if (!deadline || !moduleId) {
+    if (due === undefined || !moduleId) {
       throw new Error(`Can't seed "${seed.title}".`);
     }
+    const deadline = at(due);
     const assessment = await prisma.assessment.create({
       data: {
         moduleId,
@@ -1149,9 +1187,7 @@ async function seedAssessments(
           mimeType: ACCEPTED_DOCUMENTS[submission.format].mimeType,
           sizeBytes: bytes.length,
           attempt: submission.attempt ?? 1,
-          submittedAt: new Date(
-            deadline.getTime() + submission.hoursAfterDeadline * 3_600_000,
-          ),
+          submittedAt: at(due + submission.hoursAfterDeadline * 3_600_000),
         },
       });
       submissions += 1;
@@ -1165,14 +1201,10 @@ async function seedAssessments(
       // Marks are entered the day before they are published, or two days
       // after the deadline if they aren't published yet (an hour ago, if
       // that is still to come).
-      const enteredAt = publishedAt
-        ? new Date(publishedAt.getTime() - MS_PER_DAY)
-        : new Date(
-            Math.min(
-              now.getTime() - 60 * 60 * 1000,
-              deadline.getTime() + 2 * MS_PER_DAY,
-            ),
-          );
+      const enteredAt =
+        result.publishedDaysAgo === undefined
+          ? at(Math.min(now.getTime() - 60 * 60 * 1000, due + 2 * MS_PER_DAY))
+          : daysAgo(result.publishedDaysAgo + 1);
       await prisma.assessmentResult.create({
         data: {
           studentId: students[result.student].id,
@@ -1192,7 +1224,7 @@ async function seedAssessments(
 async function seedHolds(
   prisma: PrismaClient,
   students: Record<CastKey, SeededStudent>,
-  now: Date,
+  story: StoryClock,
 ): Promise<void> {
   for (const [key, hold] of Object.entries(HOLDS) as [
     CastKey,
@@ -1201,7 +1233,7 @@ async function seedHolds(
     await prisma.student.update({
       where: { id: students[key].id },
       data: {
-        resultsWithheldAt: new Date(now.getTime() - hold.daysAgo * MS_PER_DAY),
+        resultsWithheldAt: story.at(-hold.daysAgo * MS_PER_DAY),
         resultsWithheldReason: hold.reason,
       },
     });
@@ -1217,6 +1249,7 @@ async function seedLogins(
   prisma: PrismaClient,
   students: Record<CastKey, SeededStudent>,
   now: Date,
+  story: StoryClock,
 ): Promise<{
   staff: number;
   active: number;
@@ -1232,7 +1265,9 @@ async function seedLogins(
     }
   }
 
-  const daysAgo = (days: number) => new Date(now.getTime() - days * MS_PER_DAY);
+  // Sign-in turned off when a student left, at the time of their status
+  // change (see seedStudents).
+  const daysAgo = (days: number) => story.at(-days * MS_PER_DAY);
   // Better Auth's own hashing (scrypt), so the password works for sign-in.
   const password = await hashPassword(DEMO_PASSWORD);
 

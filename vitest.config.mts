@@ -1,5 +1,6 @@
 // Test runner configuration. Two projects, both in Node:
-// - unit: pure logic, no I/O (src/**/*.test.ts and .tsx, next to the code);
+// - unit: pure logic, no I/O (src/**/*.test.ts and .tsx, next to the code,
+//   and the demo seed's helpers in prisma/);
 // - integration: route handlers and services against a real PostgreSQL test
 //   database (tests/integration).
 // UI behaviour is covered by the Playwright end-to-end tests instead.
@@ -33,7 +34,10 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: "unit", include: ["src/**/*.test.{ts,tsx}"] },
+        test: {
+          name: "unit",
+          include: ["src/**/*.test.{ts,tsx}", "prisma/**/*.test.ts"],
+        },
       },
       {
         extends: true,

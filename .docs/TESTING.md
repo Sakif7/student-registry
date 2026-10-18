@@ -6,11 +6,11 @@ examples of calling the API with curl.
 
 ## Automated tests
 
-| Suite       | What it covers                                                                     | Where                                  | Command                    |
-| ----------- | ---------------------------------------------------------------------------------- | -------------------------------------- | -------------------------- |
-| Unit        | Pure rules and server-rendered components, with no database or network             | `src/**/*.test.ts(x)`, beside the code | `npm run test:unit`        |
-| Integration | Route handlers and services against a real PostgreSQL test database                | `tests/integration/`                   | `npm run test:integration` |
-| End-to-end  | Journeys through the production build in Chromium, with accessibility checks (axe) | `e2e/`                                 | `npm run test:e2e`         |
+| Suite       | What it covers                                                                     | Where                                                                                     | Command                    |
+| ----------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------- |
+| Unit        | Pure rules and server-rendered components, with no database or network             | `src/**/*.test.ts(x)`, beside the code, and `prisma/*.test.ts` for the demo data's timing | `npm run test:unit`        |
+| Integration | Route handlers and services against a real PostgreSQL test database                | `tests/integration/`                                                                      | `npm run test:integration` |
+| End-to-end  | Journeys through the production build in Chromium, with accessibility checks (axe) | `e2e/`                                                                                    | `npm run test:e2e`         |
 
 `npm test` runs all three: the unit and integration suites with a coverage
 report, then the end-to-end suite.
@@ -109,7 +109,10 @@ hasn't been moved on to this year (see scenario 18).
 Assessments come in every state. Each is for the students registered on its
 module in the academic year of its deadline: first-years, second-years or
 MSc students. Deadlines are at 17:00 college time; "late" means submitted
-after the deadline.
+after the deadline. Seeded within three weeks of 1 September, the work is
+squeezed nearer today to stay inside the academic year, and the seed says so:
+the states below hold, but over fewer days, and deadlines fall at other
+times.
 
 | Assessment                     | Module | Deadline              | State                                    | Submissions and marks                                                                                |
 | ------------------------------ | ------ | --------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |

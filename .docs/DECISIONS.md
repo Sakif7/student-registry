@@ -1436,6 +1436,28 @@ date that differed from the browser's would break React hydration.
   when an AI agent runs it, so this keeps test runs identical whoever starts
   them. The setup refuses any database whose name doesn't end in `_test`.
 
+### Demo data in any week of the year
+
+The seed tells its story around the moment it runs: work due from three
+weeks ago to three weeks on, with submissions, marks, published results and
+a hold in between. All of it is the current academic year's, as the students
+registered that year are the ones the work concerns.
+
+- **Near the year's start or end**, three weeks either side would spill into
+  the year before or after, where these students aren't registered: the
+  demo would show work from students who weren't on the module.
+  `prisma/story-clock.ts` squeezes the story toward today to fit inside the
+  year instead, in the same order: late work is still late, and marks still
+  follow deadlines. The seed says when it has done so. Its unit tests check
+  every day of a year.
+- **Only the story moves.** Enrolments, fees and payments, and the years
+  before, keep their dates: none of them belongs to this year's work.
+- **In the first or last minute of an academic year** there is no room at
+  all, and the seed asks to be run again a minute later.
+- **The end-to-end tests** set their own deadline inside the year too, and
+  choose the academic year when they enrol a student, as in August the form
+  suggests the next one.
+
 ### Continuous integration
 
 GitHub Actions runs on every push and pull request. Each step is separate, so a

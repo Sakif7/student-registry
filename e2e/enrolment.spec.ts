@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  academicYearFromNow,
   demoStudent,
   loadDemoData,
   studentNumber,
@@ -32,6 +33,9 @@ test("enrols a student with the next ID in this year's sequence", async ({
   await page.getByLabel("Email").fill("Grace.Thompson@Student.Example");
   await page.getByLabel("Date of birth").fill("2005-03-12");
   await page.getByLabel("Programme").selectOption("BSC-CS");
+  // This year, which isn't the form's choice in August, when enrolments are
+  // for September.
+  await page.getByLabel("Academic year").selectOption(academicYearFromNow(0));
   await page.getByRole("button", { name: "Enrol student" }).click();
 
   // The demo data has used 0001 to 0007 for this year's intake.

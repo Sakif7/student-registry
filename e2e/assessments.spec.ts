@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 import { sampleDocx, samplePdf } from "../prisma/sample-documents";
 
 import {
-  deadlineInDays,
+  deadlineThisYear,
   demoStudent,
   loadDemoData,
   viewAs,
@@ -42,13 +42,16 @@ test("staff set an assessment, with the deadline in college time", async ({
     page.getByText("The clocks go forward at that time, so it never happens."),
   ).toBeVisible();
 
-  await page.getByLabel("Deadline").fill(deadlineInDays(28));
+  const deadline = deadlineThisYear(28);
+  await page.getByLabel("Deadline").fill(deadline);
   await page.getByRole("button", { name: "Set assessment" }).click();
 
   await expect(
     page.getByRole("heading", { level: 1, name: "SQL lab test" }),
   ).toBeVisible();
-  await expect(page.getByText(/17:00 (GMT|BST)/)).toBeVisible();
+  await expect(
+    page.getByText(new RegExp(`${deadline.slice(11)} (GMT|BST)`)),
+  ).toBeVisible();
   await expect(
     // Oliver and Priya: the first-years registered on CS4002.
     page.getByText("0 of 2 students"),
