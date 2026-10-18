@@ -429,7 +429,7 @@ brief and from decisions agreed before any code was written.
   students weren't registered in; it now stays inside the year, and the
   whole end-to-end suite passes on both dates. Updating the owner's
   interview guide afterwards, agents re-reading the changed code raised
-  nine more problems, among them a deadlock that a new race test then
+  ten more problems, among them a deadlock that a new race test then
   showed; all are fixed.
 - **Guardrails were set for the agent.**
   - Dependencies may only be installed through npm, never hand-edited.

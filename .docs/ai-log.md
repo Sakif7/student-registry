@@ -1847,7 +1847,7 @@ student's life from enrolment to completion, and dates in general. Between
 them they found nineteen problems, and the owner asked for all of them to be
 fixed, the minor ones included.
 
-**What changed,** in 34 commits:
+**What changed,** in 36 commits:
 
 - **The calendar:** dates that have passed stay as they were, a new date
   can't be in the past, and a year that has ended is read-only, where "Let
@@ -1941,7 +1941,7 @@ integration and 71 end-to-end tests passing, and 94% of statements covered.
 
 **A last look, from the walkthrough:** the owner's interview guide explains
 every file, so eight agents brought it up to date, each re-reading its share
-of the changed code. Their questions led to nine more fixes:
+of the changed code. Their questions led to ten more fixes:
 
 - a request naming a record's own ended year could still return a student
   to Enrolled in it: the form never sends one, but the API accepted it;
@@ -1959,7 +1959,9 @@ of the changed code. Their questions led to nine more fixes:
   which they no longer could;
 - starting the demo's registrations at college midnight had left the
   seeded move-up events, still timed from midnight UTC, an hour after them;
-- "You've changed 2 students's step";
+- "You've changed 2 students's step", and an edit dialog that gave work
+  already submitted as the reason a deadline couldn't change year, even
+  when the reason was that it had passed;
 - and one the agents only suspected: charging a fee by hand while the
   student was being moved on. The race test written for it failed every
   time, with a deadlock rather than the error expected, and passes since
