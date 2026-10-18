@@ -1,9 +1,9 @@
 "use client";
 
 // Search and filters for a list of assessments: the staff list, or a
-// student's own. Like the student list's, it is a GET form, so the filters live in the URL and work without
-// JavaScript; with it, the search follows typing and the selects apply as
-// soon as they change.
+// student's own. Like the student list's, it is a GET form, so the filters
+// live in the URL and work without JavaScript; with it, the search follows
+// typing and the selects apply as soon as they change.
 import Form from "next/form";
 import Link from "next/link";
 import { type ChangeEvent, useId } from "react";
