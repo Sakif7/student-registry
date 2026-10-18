@@ -155,11 +155,25 @@ function detailsShape(today: CalendarDate) {
 }
 
 /**
- * A student's editable details, as the edit form submits them in full. The
- * student is old enough for the academic year (see tooYoungFor).
+ * A student's details as the enrolment and edit forms submit them in full.
+ * The student is old enough for the academic year (see tooYoungFor), checked
+ * on an edit, as the API checks it, only when the date of birth or the year
+ * differs from the record's: an older record's other details can always be
+ * corrected.
+ *
+ * @param record - The record's date of birth and academic year, when editing.
  */
-export function studentDetailsSchema(today: CalendarDate) {
-  return z.object(detailsShape(today)).superRefine(checkAgeForYear);
+export function studentDetailsSchema(
+  today: CalendarDate,
+  record?: { dateOfBirth: string; academicYear: string },
+) {
+  return z.object(detailsShape(today)).superRefine((details, ctx) => {
+    const unchanged =
+      record !== undefined &&
+      details.dateOfBirth === record.dateOfBirth &&
+      details.academicYear === record.academicYear;
+    if (!unchanged) checkAgeForYear(details, ctx);
+  });
 }
 
 /**

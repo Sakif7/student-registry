@@ -82,7 +82,13 @@ export function StudentForm(props: StudentFormProps) {
   const [passwordError, setPasswordError] = useState<string>();
   const passwordRef = useRef<HTMLInputElement>(null);
   const form = useForm({
-    resolver: zodResolver(studentDetailsSchema(today)),
+    // An edit rechecks the age only if the date of birth or year changes.
+    resolver: zodResolver(
+      studentDetailsSchema(
+        today,
+        props.mode === "edit" ? props.defaultValues : undefined,
+      ),
+    ),
     defaultValues:
       props.mode === "edit"
         ? props.defaultValues

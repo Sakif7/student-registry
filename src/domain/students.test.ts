@@ -5,6 +5,7 @@ import {
   changeStatusSchema,
   createStudentSchema,
   latestBirthDateFor,
+  studentDetailsSchema,
   studentFiltersSchema,
   updateStudentSchema,
 } from "./students";
@@ -209,6 +210,40 @@ describe("updateStudentSchema", () => {
     expect(
       updateStudentSchema(TODAY).safeParse({}).error?.issues[0]?.message,
     ).toBe("Nothing to update");
+  });
+});
+
+describe("studentDetailsSchema", () => {
+  const details = { ...valid, yearOfStudy: 1 };
+  // 16 only on 1 September 2026, too late for 2026/27: a record entered
+  // before the rule could be like this.
+  const tooYoung = { ...details, dateOfBirth: "2010-09-01" };
+  const ageProblem = (
+    input: unknown,
+    record?: { dateOfBirth: string; academicYear: string },
+  ) =>
+    studentDetailsSchema(TODAY, record)
+      .safeParse(input)
+      .error?.issues.find((issue) => issue.path[0] === "dateOfBirth")?.message;
+
+  it("checks that a student is old enough for their year", () => {
+    expect(ageProblem(tooYoung)).toBe(
+      "Students must be 16 by 31 August 2026, before 2026/27 begins",
+    );
+  });
+
+  it("lets an older record's other details be corrected, as the API does", () => {
+    const record = { dateOfBirth: "2010-09-01", academicYear: "2026/27" };
+    expect(
+      ageProblem({ ...tooYoung, email: "new@example.ac.uk" }, record),
+    ).toBeUndefined();
+    // A new date of birth, or another year, is checked again.
+    expect(ageProblem({ ...tooYoung, dateOfBirth: "2010-09-02" }, record)).toBe(
+      "Students must be 16 by 31 August 2026, before 2026/27 begins",
+    );
+    expect(ageProblem({ ...tooYoung, academicYear: "2025/26" }, record)).toBe(
+      "Students must be 16 by 31 August 2025, before 2025/26 begins",
+    );
   });
 });
 
