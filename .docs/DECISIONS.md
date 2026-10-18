@@ -425,9 +425,11 @@ deadline until then.
   marks that reorder text, which could make "essay.pdf" display as a name
   ending ".docx".
 - **Times to the second:** submission times are shown with seconds, since
-  work that arrives at 17:00:03 is late for a 17:00 deadline. A deadline
-  less than a day away is given in hours or minutes ("in 7 hours"), since
-  one at midnight is "tomorrow" by the calendar but due tonight. The upload's
+  work that arrives at 17:00:03 is late for a 17:00 deadline. How far away
+  a deadline is, is always rounded down, so a student is never told they
+  have longer than they do: under two days, in hours or minutes ("in 7
+  hours"), since by the calendar one at midnight is a day further away than
+  it is ("in 2 days" for 25 hours); beyond that, in whole days. The upload's
   confirmation takes the late flag from the server's reply, not from the
   page, which may have been opened before the deadline passed.
 - **Downloads only:** files are always served as attachments, with

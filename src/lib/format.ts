@@ -91,9 +91,12 @@ export function formatDaysAway(days: number): string {
 }
 
 /**
- * How far away a deadline is. Less than a day ahead, in hours or minutes: a
- * deadline at midnight is "tomorrow" by the calendar, but only hours away.
- * Otherwise in days by the college's calendar, as formatDaysAway.
+ * How far away a deadline is, always rounded down, so a student is never
+ * told they have longer than they do. Less than two days ahead, in hours or
+ * minutes: by the calendar, a deadline at midnight is a day further away
+ * than it is ("in 2 days" for 25 hours). Further ahead, in whole days. A
+ * deadline that has passed is dated by the college's calendar, as
+ * formatDaysAway.
  */
 export function formatDeadlineAway(
   deadline: Date,
@@ -101,13 +104,14 @@ export function formatDeadlineAway(
   timeZone: string,
 ): string {
   const left = deadline.getTime() - now.getTime();
-  if (left > 0 && left < 24 * 60 * 60 * 1000) {
-    // Rounded down, so a student is never told they have longer than they do.
+  if (left > 0) {
     const minutes = Math.floor(left / 60_000);
     if (minutes < 1) return "in less than a minute";
-    return minutes < 60
-      ? `in ${formatCount(minutes, "minute")}`
-      : `in ${formatCount(Math.floor(minutes / 60), "hour")}`;
+    if (minutes < 60) return `in ${formatCount(minutes, "minute")}`;
+    const hours = Math.floor(minutes / 60);
+    return hours < 48
+      ? `in ${formatCount(hours, "hour")}`
+      : `in ${formatDays(Math.floor(hours / 24))}`;
   }
   const dateOf = (instant: Date) =>
     instantToWallTime(instant, timeZone).slice(0, 10);

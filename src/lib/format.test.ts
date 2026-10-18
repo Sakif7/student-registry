@@ -79,8 +79,14 @@ describe("formatDeadlineAway", () => {
     ["2026-10-17T16:48:00.000Z", "in 1 hour"],
     ["2026-10-17T15:48:30.000Z", "in less than a minute"],
     ["2026-10-18T15:47:59.000Z", "in 23 hours"],
-    ["2026-10-18T16:00:00.000Z", "tomorrow"],
+    ["2026-10-18T16:00:00.000Z", "in 24 hours"],
+    // Midnight on Monday is two days away by the calendar, but 31 hours.
+    ["2026-10-18T23:00:00.000Z", "in 31 hours"],
+    ["2026-10-19T15:47:59.000Z", "in 47 hours"],
+    ["2026-10-19T15:48:00.000Z", "in 2 days"],
+    // 3 days and 12 minutes; 2 days and 23 hours is still "2 days".
     ["2026-10-20T16:00:00.000Z", "in 3 days"],
+    ["2026-10-20T14:48:00.000Z", "in 2 days"],
     ["2026-10-17T09:00:00.000Z", "today"],
     ["2026-10-16T16:00:00.000Z", "yesterday"],
   ])("writes a deadline at %s as %j", (deadline, text) => {
