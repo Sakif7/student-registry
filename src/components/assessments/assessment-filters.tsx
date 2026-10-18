@@ -1,7 +1,7 @@
 "use client";
 
-// Search and filters for the staff list of assessments. Like the student
-// list's, it is a GET form, so the filters live in the URL and work without
+// Search and filters for a list of assessments: the staff list, or a
+// student's own. Like the student list's, it is a GET form, so the filters live in the URL and work without
 // JavaScript; with it, the search follows typing and the selects apply as
 // soon as they change.
 import Form from "next/form";
@@ -25,12 +25,15 @@ import {
 const STATES: readonly AssessmentState[] = ["OPEN", "ACCEPTING_LATE", "CLOSED"];
 
 export function AssessmentFilterBar({
+  action = "/staff/assessments",
   query,
   academicYears,
 }: {
-  query: AssessmentListQuery;
-  /** The academic years assessments are set for, latest first. */
-  academicYears: string[];
+  /** The list the form narrows. */
+  action?: "/staff/assessments" | "/student/assessments";
+  query: Pick<AssessmentListQuery, "q" | "state" | "year" | "sort" | "dir">;
+  /** The academic years assessments are set for, latest first; none, no year filter. */
+  academicYears?: string[];
 }) {
   const applyNow = (event: ChangeEvent<HTMLSelectElement>) =>
     event.currentTarget.form?.requestSubmit();
@@ -40,7 +43,7 @@ export function AssessmentFilterBar({
 
   return (
     <Form
-      action="/staff/assessments"
+      action={action}
       scroll={false}
       role="search"
       aria-label="Find assessments"
@@ -68,27 +71,29 @@ export function AssessmentFilterBar({
         </NativeSelect>
       </div>
 
-      <div className="grid w-full gap-1.5 sm:w-auto">
-        <Label htmlFor={`${id}year`}>Academic year</Label>
-        <NativeSelect
-          className="w-full sm:w-fit"
-          id={`${id}year`}
-          name="year"
-          defaultValue={query.year ?? ""}
-          onChange={applyNow}
-        >
-          <NativeSelectOption value="">All years</NativeSelectOption>
-          {academicYears.map((year) => (
-            <NativeSelectOption key={year} value={year}>
-              {year}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
+      {academicYears && (
+        <div className="grid w-full gap-1.5 sm:w-auto">
+          <Label htmlFor={`${id}year`}>Academic year</Label>
+          <NativeSelect
+            className="w-full sm:w-fit"
+            id={`${id}year`}
+            name="year"
+            defaultValue={query.year ?? ""}
+            onChange={applyNow}
+          >
+            <NativeSelectOption value="">All years</NativeSelectOption>
+            {academicYears.map((year) => (
+              <NativeSelectOption key={year} value={year}>
+                {year}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+      )}
 
       {filtered && (
         <Link
-          href="/staff/assessments"
+          href={action}
           scroll={false}
           className={buttonVariants({ variant: "outline" })}
         >

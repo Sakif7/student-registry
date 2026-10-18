@@ -206,5 +206,38 @@ export function filterResultsStudents<
   });
 }
 
+/** A student's own results as the URL asks for them. */
+export const studentResultsListSchema = z.object({
+  q: listSearchSchema,
+  result: z.enum(CLASSIFICATIONS).optional().catch(undefined),
+  page: listPageSchema,
+});
+export type StudentResultsListQuery = z.infer<typeof studentResultsListSchema>;
+
+/**
+ * Narrows a student's results to a search of the assessments and modules,
+ * and to one classification.
+ */
+export function filterStudentResults<
+  Result extends {
+    assessment: { title: string };
+    module: { code: string; title: string };
+    classification: Classification;
+  },
+>(
+  results: readonly Result[],
+  { q, result }: { q?: string; result?: Classification },
+): Result[] {
+  return results.filter(
+    (item) =>
+      matchesSearch(q, [
+        item.assessment.title,
+        item.module.code,
+        item.module.title,
+      ]) &&
+      (!result || item.classification === result),
+  );
+}
+
 export type MarkInput = z.infer<typeof markSchema>;
 export type WithholdResultsInput = z.infer<typeof withholdResultsSchema>;

@@ -5,11 +5,13 @@ import {
   classify,
   countByClassification,
   filterResultsStudents,
+  filterStudentResults,
   isVisibleToStudent,
   markFieldSchema,
   markSchema,
   marksheetSchema,
   resultsListSchema,
+  studentResultsListSchema,
   withholdResultsSchema,
 } from "./results";
 
@@ -208,6 +210,48 @@ describe("filterResultsStudents", () => {
     expect(resultsListSchema.parse({ show: "all", page: "-1" })).toMatchObject({
       show: undefined,
       page: undefined,
+    });
+  });
+});
+
+describe("filterStudentResults", () => {
+  const result = (
+    title: string,
+    moduleCode: string,
+    classification: "FAIL" | "PASS" | "MERIT" | "DISTINCTION",
+  ) => ({
+    assessment: { title },
+    module: { code: moduleCode, title: "Module" },
+    classification,
+  });
+  const results = [
+    result("SQL lab test", "CS4002", "DISTINCTION"),
+    result("Design report", "CS4002", "MERIT"),
+    result("Essay", "BM4001", "MERIT"),
+  ];
+  const titles = (list: readonly { assessment: { title: string } }[]) =>
+    list.map(({ assessment }) => assessment.title);
+
+  it("searches assessments and modules, and narrows to a classification", () => {
+    expect(titles(filterStudentResults(results, { q: "cs4002" }))).toEqual([
+      "SQL lab test",
+      "Design report",
+    ]);
+    expect(titles(filterStudentResults(results, { result: "MERIT" }))).toEqual([
+      "Design report",
+      "Essay",
+    ]);
+    expect(
+      titles(filterStudentResults(results, { q: "essay", result: "MERIT" })),
+    ).toEqual(["Essay"]);
+  });
+
+  it("reads its settings from the URL, ignoring what it can't use", () => {
+    expect(
+      studentResultsListSchema.parse({ q: "lab", result: "PASS", page: "2" }),
+    ).toEqual({ q: "lab", result: "PASS", page: 2 });
+    expect(studentResultsListSchema.parse({ result: "A*" })).toMatchObject({
+      result: undefined,
     });
   });
 });

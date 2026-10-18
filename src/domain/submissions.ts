@@ -225,6 +225,16 @@ export const assessmentListSchema = assessmentOrderSchema.extend({
 });
 export type AssessmentListQuery = z.infer<typeof assessmentListSchema>;
 
+/** A student's own list of assessments as the URL asks for it. */
+export const studentAssessmentListSchema = z.object({
+  q: listSearchSchema,
+  state: z.enum(ASSESSMENT_STATES).optional().catch(undefined),
+  page: listPageSchema,
+});
+export type StudentAssessmentListQuery = z.infer<
+  typeof studentAssessmentListSchema
+>;
+
 /**
  * Narrows the staff list of assessments to a search of their titles and
  * modules' codes and titles, a state and an academic year.
@@ -233,7 +243,7 @@ export function filterAssessments<
   Assessment extends {
     title: string;
     module: { code: string; title: string };
-    academicYear: string;
+    academicYear?: string;
     state: AssessmentState;
   },
 >(
