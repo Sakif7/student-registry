@@ -10,7 +10,11 @@ import {
   createAssessmentSchema,
   updateAssessmentSchema,
 } from "@/domain/assessments";
-import { academicYearAt, academicYearSpan } from "@/domain/academic-year";
+import {
+  academicYearAt,
+  academicYearSpan,
+  yearEndedSince,
+} from "@/domain/academic-year";
 import { instantToWallTime } from "@/domain/college-time";
 import type { ModuleKind, Semester } from "@/domain/curriculum";
 import type { EnrolmentStatus } from "@/domain/enrolment";
@@ -365,6 +369,13 @@ export async function updateAssessment(
     // Closing an assessment that is already closed keeps the original time.
     closedAt = assessment.closedAt ?? now;
   } else if (changes.closed === false) {
+    // An assessment closes on its own when its academic year ends.
+    if (yearEndedSince(assessment.deadline, now, timeZone)) {
+      throw new AppError(
+        "CONFLICT",
+        `${academicYear} has ended, so the assessment takes no more work.`,
+      );
+    }
     closedAt = null;
   }
   await db().$transaction(async (tx) => {
@@ -630,7 +641,11 @@ function toSummary(
     academicYear: academicYearAt(deadline, timeZone),
     deadline,
     closedAt: assessment.closedAt,
-    state: assessmentState(assessment, now),
+    state: assessmentState(
+      assessment,
+      now,
+      yearEndedSince(deadline, now, timeZone),
+    ),
     expectedCount: expected?.size ?? 0,
     submittedCount: fromExpected.length,
     lateCount: fromExpected.filter(({ submittedAt }) =>

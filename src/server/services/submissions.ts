@@ -5,7 +5,7 @@ import "server-only";
 
 import { fileTypeFromBuffer } from "file-type";
 
-import { academicYearAt } from "@/domain/academic-year";
+import { academicYearAt, yearEndedSince } from "@/domain/academic-year";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   ACCEPTED_DOCUMENTS,
@@ -190,6 +190,7 @@ export async function submitWork(
           deadline: assessment.deadline,
           closedAt: assessment.closed_at,
         },
+        yearEnded: yearEndedSince(assessment.deadline, now, collegeTimeZone()),
         alreadySubmitted: existing !== undefined,
         now,
       });
@@ -373,10 +374,12 @@ function toStudentAssessment(
   now: Date,
 ): StudentAssessment {
   const [submission] = assessment.submissions;
+  const yearEnded = yearEndedSince(assessment.deadline, now, collegeTimeZone());
   const verdict = checkSubmission({
     status: student.status,
     registered: registeredFor(assessment),
     assessment,
+    yearEnded,
     alreadySubmitted: submission !== undefined,
     now,
   });
@@ -386,7 +389,7 @@ function toStudentAssessment(
     module: { code: assessment.module.code, title: assessment.module.title },
     deadline: assessment.deadline,
     closedAt: assessment.closedAt,
-    state: assessmentState(assessment, now),
+    state: assessmentState(assessment, now, yearEnded),
     submission: submission
       ? {
           ...submission,
@@ -431,6 +434,7 @@ function submissionRefused(reason: SubmissionRefusal): AppError {
     case "NOT_ENROLLED":
       return new AppError("FORBIDDEN", SUBMISSION_REFUSAL_MESSAGES[reason]);
     case "CLOSED":
+    case "YEAR_ENDED":
     case "DEADLINE_PASSED":
       return new AppError("CONFLICT", SUBMISSION_REFUSAL_MESSAGES[reason]);
   }

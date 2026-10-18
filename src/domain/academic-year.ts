@@ -2,7 +2,12 @@
 // 31 August 2027.
 import { z } from "zod";
 
-import { addDays, type CalendarDate, instantToWallTime } from "./college-time";
+import {
+  addDays,
+  type CalendarDate,
+  instantToWallTime,
+  todayIn,
+} from "./college-time";
 
 const ACADEMIC_YEAR = /^(\d{4})\/(\d{2})$/;
 
@@ -69,6 +74,26 @@ export function academicYearSpan(academicYear: string): {
  */
 export function academicYearAt(instant: Date, timeZone: string): string {
   return academicYearOn(instantToWallTime(instant, timeZone).slice(0, 10));
+}
+
+/** Whether an academic year has ended: it has from the 1 September after. */
+export function academicYearEnded(year: string, today: CalendarDate): boolean {
+  return today > academicYearSpan(year).last;
+}
+
+/**
+ * Whether the academic year an instant falls in has ended by `now`: an
+ * assessment's year is that of its deadline.
+ */
+export function yearEndedSince(
+  instant: Date,
+  now: Date,
+  timeZone: string,
+): boolean {
+  return academicYearEnded(
+    academicYearAt(instant, timeZone),
+    todayIn(timeZone, now),
+  );
 }
 
 /** The academic year a calendar date falls in. */

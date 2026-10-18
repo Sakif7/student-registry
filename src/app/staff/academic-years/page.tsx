@@ -18,12 +18,12 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  academicYearEnded,
   academicYearOn,
   formatAcademicYear,
   startYearOf,
 } from "@/domain/academic-year";
 import type { CalendarDate } from "@/domain/college-time";
-import { academicYearEnded } from "@/domain/curriculum";
 import { collegeToday } from "@/server/college";
 import {
   type AcademicYearCalendar,

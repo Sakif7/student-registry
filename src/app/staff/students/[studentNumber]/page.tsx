@@ -31,11 +31,11 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  academicYearEnded,
   academicYearOn,
   recordYears,
   returnYears,
 } from "@/domain/academic-year";
-import { academicYearEnded } from "@/domain/curriculum";
 import { formatDateOf, formatDateTime } from "@/lib/format";
 import { collegeTimeZone, collegeToday } from "@/server/college";
 import { firstValues, orNotFound } from "@/server/pages";

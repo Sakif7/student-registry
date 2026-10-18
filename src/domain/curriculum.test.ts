@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  academicYearEnded,
   academicYearSettingsSchema,
   coreCredits,
   createModuleSchema,
@@ -289,11 +288,6 @@ describe("changing a calendar", () => {
       semesterDateChanges(saved, { ...saved, semester2End: "2027-06-18" }),
     ).toEqual({ semester2End: { from: "2027-06-11", to: "2027-06-18" } });
     expect(semesterDateChanges(saved, saved)).toBeUndefined();
-  });
-
-  it("ends a year after its 31 August", () => {
-    expect(academicYearEnded("2025/26", "2026-08-31")).toBe(false);
-    expect(academicYearEnded("2025/26", "2026-09-01")).toBe(true);
   });
 });
 

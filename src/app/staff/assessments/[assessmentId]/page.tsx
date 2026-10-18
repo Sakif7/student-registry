@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/page-header";
 import { type SummaryFact, SummaryStrip } from "@/components/summary-strip";
 import type { Tone } from "@/components/tone";
 import { Skeleton } from "@/components/ui/skeleton";
+import { academicYearEnded } from "@/domain/academic-year";
 import { instantToWallTime } from "@/domain/college-time";
 import { SEMESTER_LABELS } from "@/domain/curriculum";
 import {
@@ -29,7 +30,7 @@ import {
   formatDeadlineAway,
   formatFileSize,
 } from "@/lib/format";
-import { collegeTimeZone } from "@/server/college";
+import { collegeTimeZone, collegeToday } from "@/server/college";
 import { orNotFound } from "@/server/pages";
 import {
   type AssessmentDetail,
@@ -99,12 +100,15 @@ async function AssessmentView({ params }: { params: Params }) {
               timeZone={timeZone}
               now={instantToWallTime(new Date(), timeZone)}
             />
-            <ClosureControl
-              // Remount after a change, so the control shows the new state.
-              key={String(assessment.closedAt)}
-              assessmentId={assessment.id}
-              closed={assessment.state === "CLOSED"}
-            />
+            {/* An assessment closes on its own when its year ends. */}
+            {!academicYearEnded(assessment.academicYear, collegeToday()) && (
+              <ClosureControl
+                // Remount after a change, so the control shows the new state.
+                key={String(assessment.closedAt)}
+                assessmentId={assessment.id}
+                closed={assessment.state === "CLOSED"}
+              />
+            )}
           </>
         }
       />

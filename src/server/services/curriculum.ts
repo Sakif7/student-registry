@@ -5,7 +5,6 @@
 import "server-only";
 
 import {
-  academicYearEnded,
   academicYearSettingsSchema,
   coreCredits,
   createModuleSchema,
@@ -22,7 +21,11 @@ import {
   updateModuleSchema,
   updateProgrammeSchema,
 } from "@/domain/curriculum";
-import { academicYearOn, isAcademicYear } from "@/domain/academic-year";
+import {
+  academicYearEnded,
+  academicYearOn,
+  isAcademicYear,
+} from "@/domain/academic-year";
 import { fromDbDate, toDbDate } from "@/domain/college-time";
 import type { Prisma } from "@/generated/prisma/client";
 

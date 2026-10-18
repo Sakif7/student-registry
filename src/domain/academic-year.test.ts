@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   academicYearAt,
+  academicYearEnded,
   academicYearFromSlug,
   academicYearOn,
   academicYearSchema,
@@ -14,6 +15,7 @@ import {
   formatAcademicYear,
   isAcademicYear,
   recordYears,
+  yearEndedSince,
 } from "./academic-year";
 
 describe("academic year format", () => {
@@ -88,6 +90,32 @@ describe("academicYearsAround", () => {
 
   it("rejects a malformed centre year", () => {
     expect(() => academicYearsAround("2026", 1, 1)).toThrow(RangeError);
+  });
+});
+
+describe("an academic year ending", () => {
+  it("ends after its 31 August", () => {
+    expect(academicYearEnded("2025/26", "2026-08-31")).toBe(false);
+    expect(academicYearEnded("2025/26", "2026-09-01")).toBe(true);
+  });
+
+  it("takes an instant's year by the college's calendar", () => {
+    // 23:30 on 31 August in London is 22:30 UTC: still 2025/26 there.
+    const deadline = new Date("2026-08-31T22:30:00.000Z");
+    expect(
+      yearEndedSince(
+        deadline,
+        new Date("2026-08-31T22:45:00.000Z"),
+        "Europe/London",
+      ),
+    ).toBe(false);
+    expect(
+      yearEndedSince(
+        deadline,
+        new Date("2026-08-31T23:00:00.000Z"),
+        "Europe/London",
+      ),
+    ).toBe(true);
   });
 });
 

@@ -272,6 +272,38 @@ describe("staff registering a student on modules", () => {
     ).toBe(1);
   });
 
+  it("keep a module once one of its deadlines passed while the student was on it", async () => {
+    const student = await makeStudent({ programmeId });
+    const { studentNumber } = student;
+    // Registered as the year began, so before both deadlines.
+    await registerStudents(moduleIds.CS4004, [student.id]);
+    await createAssessment({
+      moduleId: moduleIds.CS4004,
+      deadline: new Date("2026-10-08T16:00:00.000Z"),
+    });
+    await registerStudents(moduleIds.AI4001, [student.id]);
+    await createAssessment({
+      moduleId: moduleIds.AI4001,
+      deadline: new Date("2026-11-20T17:00:00.000Z"),
+    });
+    // Registered today, after this module's deadline: never expected.
+    await createAssessment({
+      moduleId: moduleIds.CS4005,
+      deadline: new Date("2026-10-01T16:00:00.000Z"),
+    });
+    await register(studentNumber, "CS4005");
+
+    expect(await drop(studentNumber, "CS4004")).toMatchObject({
+      status: 409,
+      body: {
+        detail:
+          "One of this module's deadlines has passed, so it stays on the record.",
+      },
+    });
+    expect((await drop(studentNumber, "AI4001")).status).toBe(200);
+    expect((await drop(studentNumber, "CS4005")).status).toBe(200);
+  });
+
   it("change nothing for a student who isn't enrolled, who keeps their modules", async () => {
     const { studentNumber } = await enrol();
     await register(studentNumber, "AI4001");

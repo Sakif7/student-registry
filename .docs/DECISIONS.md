@@ -208,7 +208,10 @@ That isn't how a registry works, so the curriculum is now modelled.
   is on, under the same rules; staff can change an enrolled student's
   registrations at any time.
 - **Dropping** is for options and for modules from outside the year. Core
-  modules can't be dropped, and nor can a module the student has work for.
+  modules can't be dropped, and nor can a module the student has work for,
+  or one with a deadline that passed while they were registered on it: they
+  were expected to submit, and dropping it would erase the missed work from
+  the assessment's tracker.
 - Only an enrolled student's modules change. Deferred, withdrawn and
   completed students keep the registrations they had, and none can be
   added or dropped.
@@ -351,8 +354,11 @@ academic year (a database unique constraint).
 
 An assessment is open to Enrolled students registered on its module for the
 academic year of its deadline (see "Module registration"). It stays open
-after the deadline (late work is accepted and flagged) until staff close it.
-Staff can reopen an assessment or extend its deadline.
+after the deadline (late work is accepted and flagged) until staff close it,
+or its academic year ends: an assessment never closed takes no more work
+after the 31 August that ends its year, and can't be reopened, as that
+year's work is history. Staff can reopen an assessment or extend its
+deadline until then.
 
 - A deadline must be in the future when it is set or moved. A deadline
   already past would make every submission late, and is far more likely to be

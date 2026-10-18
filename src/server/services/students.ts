@@ -7,12 +7,12 @@ import "server-only";
 import { hashPassword } from "better-auth/crypto";
 
 import {
+  academicYearEnded,
   chooseAcademicYearFrom,
   recordYears,
   returnYears,
   startYearOf,
 } from "@/domain/academic-year";
-import { academicYearEnded } from "@/domain/curriculum";
 import type { AuditDetails } from "@/domain/audit";
 import { type CalendarDate, fromDbDate, toDbDate } from "@/domain/college-time";
 import {

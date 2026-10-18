@@ -5,12 +5,8 @@
 // a registration with work stays on the record.
 import "server-only";
 
-import { academicYearAt } from "@/domain/academic-year";
-import {
-  academicYearEnded,
-  type ModuleKind,
-  type Semester,
-} from "@/domain/curriculum";
+import { academicYearAt, academicYearEnded } from "@/domain/academic-year";
+import type { ModuleKind, Semester } from "@/domain/curriculum";
 import type { EnrolmentStatus } from "@/domain/enrolment";
 import {
   checkDrop,
@@ -151,6 +147,7 @@ export async function getStudentModules(
         status: student.status,
         kind,
         hasWork: work.all.has(module.id),
+        wasDue: work.due.has(module.id),
       });
       return {
         code: module.code,
@@ -353,6 +350,7 @@ export async function dropModule(
         structure.find((entry) => entry.moduleId === registration.moduleId)
           ?.kind ?? null,
       hasWork: work.all.has(registration.moduleId),
+      wasDue: work.due.has(registration.moduleId),
     });
     if (!verdict.allowed) {
       throw new AppError(
@@ -439,7 +437,7 @@ async function syncYear(
   const registered: Registered[] = current.map(({ module }) => ({
     moduleId: module.id,
     credits: module.credits,
-    hasWork: work.all.has(module.id),
+    hasWork: work.all.has(module.id) || work.due.has(module.id),
   }));
   const { add, drop } = registrationChanges(structure, registered);
   const modules = new Map(
@@ -499,10 +497,15 @@ async function dropLaterYears(
     include: { module: true },
   });
   for (const year of new Set(later.map(({ academicYear }) => academicYear))) {
-    const withWork = (await modulesWithWork(tx, student, year)).all;
+    const work = await modulesWithWork(tx, student, year);
     for (const registration of later) {
       if (registration.academicYear !== year) continue;
-      if (withWork.has(registration.moduleId)) continue;
+      if (
+        work.all.has(registration.moduleId) ||
+        work.due.has(registration.moduleId)
+      ) {
+        continue;
+      }
       await tx.moduleRegistration.delete({ where: { id: registration.id } });
       await recordRegistrationEvent(tx, actor, "registration.dropped", {
         studentId: student.id,
@@ -556,15 +559,18 @@ async function structureFor(
  * academic year: an assessment belongs to the year of its deadline. `all`
  * counts every mark, and decides what can be dropped; `known` counts only
  * the marks the student may see (published, and not withheld), and is all
- * the student is told, so a hidden mark can't be inferred from it.
+ * the student is told, so a hidden mark can't be inferred from it. `due`
+ * holds those with a deadline that year that passed while the student was
+ * registered on them: they were expected to submit, so those stay too.
  */
 async function modulesWithWork(
   client: Client,
   student: { id: string; resultsWithheldAt: Date | null },
   academicYear: string,
-): Promise<{ all: Set<string>; known: Set<string> }> {
+): Promise<{ all: Set<string>; known: Set<string>; due: Set<string> }> {
   const timeZone = collegeTimeZone();
-  const [submissions, results] = await Promise.all([
+  const now = new Date();
+  const [submissions, results, registrations] = await Promise.all([
     client.submission.findMany({
       where: { studentId: student.id },
       select: { assessment: { select: { moduleId: true, deadline: true } } },
@@ -576,6 +582,14 @@ async function modulesWithWork(
         assessment: { select: { moduleId: true, deadline: true } },
       },
     }),
+    client.moduleRegistration.findMany({
+      where: { studentId: student.id, academicYear },
+      select: {
+        moduleId: true,
+        registeredAt: true,
+        module: { select: { assessments: { select: { deadline: true } } } },
+      },
+    }),
   ]);
   const inYear = ({ assessment }: { assessment: { deadline: Date } }) =>
     academicYearAt(assessment.deadline, timeZone) === academicYear;
@@ -584,9 +598,20 @@ async function modulesWithWork(
   const visible = results.filter((result) =>
     isVisibleToStudent(result, student.resultsWithheldAt !== null),
   );
+  const due = registrations
+    .filter(({ registeredAt, module }) =>
+      module.assessments.some(
+        ({ deadline }) =>
+          deadline < now &&
+          deadline >= registeredAt &&
+          academicYearAt(deadline, timeZone) === academicYear,
+      ),
+    )
+    .map(({ moduleId }) => moduleId);
   return {
     all: modules([...submissions, ...results].filter(inYear)),
     known: modules([...submissions, ...visible].filter(inYear)),
+    due: new Set(due),
   };
 }
 

@@ -65,15 +65,19 @@ describe("safeFileName", () => {
 
 describe("assessmentState and isLate", () => {
   it("is open up to and including the deadline", () => {
-    expect(assessmentState(open, before)).toBe("OPEN");
-    expect(assessmentState(open, deadline)).toBe("OPEN");
-    expect(assessmentState(open, after)).toBe("ACCEPTING_LATE");
+    expect(assessmentState(open, before, false)).toBe("OPEN");
+    expect(assessmentState(open, deadline, false)).toBe("OPEN");
+    expect(assessmentState(open, after, false)).toBe("ACCEPTING_LATE");
   });
 
   it("is closed once staff close it, whatever the time", () => {
-    expect(assessmentState({ deadline, closedAt: before }, before)).toBe(
+    expect(assessmentState({ deadline, closedAt: before }, before, false)).toBe(
       "CLOSED",
     );
+  });
+
+  it("is closed once its academic year ends, even if staff never closed it", () => {
+    expect(assessmentState(open, after, true)).toBe("CLOSED");
   });
 
   it("counts work as late from the first moment after the deadline", () => {
@@ -156,6 +160,7 @@ describe("checkSubmission", () => {
     status: "ENROLLED" as const,
     registered: true,
     assessment: open,
+    yearEnded: false,
     alreadySubmitted: false,
     now: before,
   };
@@ -196,6 +201,22 @@ describe("checkSubmission", () => {
         ...base,
         assessment: { deadline, closedAt: after },
         now: after,
+      }),
+    ).toEqual({ allowed: false, reason: "CLOSED" });
+  });
+
+  it("refuses late work once the assessment's academic year has ended", () => {
+    expect(checkSubmission({ ...base, now: after, yearEnded: true })).toEqual({
+      allowed: false,
+      reason: "YEAR_ENDED",
+    });
+    // Staff closing it says so first.
+    expect(
+      checkSubmission({
+        ...base,
+        assessment: { deadline, closedAt: after },
+        now: after,
+        yearEnded: true,
       }),
     ).toEqual({ allowed: false, reason: "CLOSED" });
   });

@@ -124,7 +124,8 @@ export function checkUploadedFile(
 
 /**
  * Where an assessment stands for submissions: open before the deadline,
- * accepting late work after it, and closed once staff close it.
+ * accepting late work after it, and closed once staff close it or its
+ * academic year ends: an ended year's work is history.
  */
 export type AssessmentState = "OPEN" | "ACCEPTING_LATE" | "CLOSED";
 
@@ -137,8 +138,10 @@ export const ASSESSMENT_STATE_LABELS: Record<AssessmentState, string> = {
 export function assessmentState(
   assessment: { deadline: Date; closedAt: Date | null },
   now: Date,
+  /** Whether the academic year of its deadline has ended. */
+  yearEnded: boolean,
 ): AssessmentState {
-  if (assessment.closedAt) return "CLOSED";
+  if (assessment.closedAt || yearEnded) return "CLOSED";
   return now > assessment.deadline ? "ACCEPTING_LATE" : "OPEN";
 }
 
@@ -313,13 +316,19 @@ export function isLate(submittedAt: Date, deadline: Date): boolean {
 }
 
 export type SubmissionRefusal =
-  "NOT_REGISTERED" | "NOT_ENROLLED" | "CLOSED" | "DEADLINE_PASSED";
+  | "NOT_REGISTERED"
+  | "NOT_ENROLLED"
+  | "CLOSED"
+  | "YEAR_ENDED"
+  | "DEADLINE_PASSED";
 
 export const SUBMISSION_REFUSAL_MESSAGES: Record<SubmissionRefusal, string> = {
   NOT_REGISTERED:
     "You aren't registered on this assessment's module this year.",
   NOT_ENROLLED: "Only enrolled students can submit work.",
   CLOSED: "This assessment is closed to submissions.",
+  YEAR_ENDED:
+    "This assessment's academic year has ended, so it takes no more work.",
   DEADLINE_PASSED:
     "The deadline has passed, so your submission can no longer be replaced.",
 };
@@ -330,22 +339,26 @@ export type SubmissionCheck =
 
 /**
  * Decides whether a student may submit (or resubmit) work now. A first
- * submission after the deadline is accepted and flagged late; replacing a
- * submission is only possible before the deadline.
+ * submission after the deadline is accepted and flagged late, until staff
+ * close the assessment or its academic year ends; replacing a submission is
+ * only possible before the deadline.
  */
 export function checkSubmission(input: {
   status: EnrolmentStatus;
   /** Registered on the module for the academic year of the deadline. */
   registered: boolean;
   assessment: { deadline: Date; closedAt: Date | null };
+  /** Whether the academic year of the deadline has ended. */
+  yearEnded: boolean;
   alreadySubmitted: boolean;
   now: Date;
 }): SubmissionCheck {
   if (!input.registered) return { allowed: false, reason: "NOT_REGISTERED" };
   if (!canSubmitWork(input.status))
     return { allowed: false, reason: "NOT_ENROLLED" };
-  const state = assessmentState(input.assessment, input.now);
-  if (state === "CLOSED") return { allowed: false, reason: "CLOSED" };
+  if (input.assessment.closedAt) return { allowed: false, reason: "CLOSED" };
+  if (input.yearEnded) return { allowed: false, reason: "YEAR_ENDED" };
+  const state = assessmentState(input.assessment, input.now, false);
   if (state === "ACCEPTING_LATE" && input.alreadySubmitted) {
     return { allowed: false, reason: "DEADLINE_PASSED" };
   }

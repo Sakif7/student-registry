@@ -312,11 +312,6 @@ export const SEMESTER_DATE_LABELS: Record<keyof SemesterDates, string> = {
   semester2End: "end of semester 2",
 };
 
-/** Whether an academic year has ended: it has from the 1 September after. */
-export function academicYearEnded(year: string, today: CalendarDate): boolean {
-  return today > academicYearSpan(year).last;
-}
-
 /**
  * What stops a change to a year's semester dates, date by date; empty if
  * nothing does. A date that has passed is history, as students and staff

@@ -256,6 +256,28 @@ describe("PUT /api/assessments/[assessmentId]/submission", () => {
     expect(await storedKeys()).toEqual({ onDisk: [], inDatabase: [] });
   });
 
+  it("refuses late work once the assessment's academic year has ended", async () => {
+    // Last year's coursework, never closed, on a module Amelia took then.
+    const lastYear = await createAssessment({
+      title: "Last year's coursework",
+      moduleId,
+      deadline: new Date("2026-03-20T17:00:00.000Z"),
+    });
+    const amelia = await db().student.findUniqueOrThrow({
+      where: { studentNumber: "SMS-2025-0001" },
+    });
+    await registerStudents(moduleId, [amelia.id], "2025/26");
+
+    expect(await upload(pdf(), { id: lastYear.id })).toMatchObject({
+      status: 409,
+      body: {
+        detail:
+          "This assessment's academic year has ended, so it takes no more work.",
+      },
+    });
+    expect(await storedKeys()).toEqual({ onDisk: [], inDatabase: [] });
+  });
+
   it("refuses a student who isn't enrolled, and hides assessments on modules they don't take", async () => {
     expect(
       await upload(pdf(), { session: asStudent("SMS-2026-0003") }),

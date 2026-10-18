@@ -425,6 +425,25 @@ describe("PATCH /api/assessments/[assessmentId]", () => {
     });
   });
 
+  it("closes an assessment on its own when its academic year ends", async () => {
+    const { id } = await insertAssessment({
+      moduleId: computingModuleId,
+      deadline: new Date("2026-03-20T17:00:00.000Z"),
+    });
+
+    // Never closed by staff, but 2025/26 has ended.
+    expect((await detail(id)).body.assessment).toMatchObject({
+      state: "CLOSED",
+      closedAt: null,
+    });
+    expect(await update(id, { closed: false })).toMatchObject({
+      status: 409,
+      body: {
+        detail: "2025/26 has ended, so the assessment takes no more work.",
+      },
+    });
+  });
+
   it("moves the deadline, and late flags follow it", async () => {
     const { id } = await insertAssessment({
       moduleId: computingModuleId,

@@ -10,7 +10,10 @@ import type { ModuleKind } from "./curriculum";
 export interface Registered {
   moduleId: string;
   credits: number;
-  /** The student has submitted work, or has a mark, for it that year. */
+  /**
+   * The student has submitted work, or has a mark, for it that year, or one
+   * of its deadlines passed while they were on it: it stays, either way.
+   */
   hasWork: boolean;
 }
 
@@ -76,25 +79,30 @@ export function checkRegistration(input: {
 }
 
 /** Why a registration can't be dropped. */
-export type DropRefusal = "NOT_ENROLLED" | "CORE" | "HAS_WORK";
+export type DropRefusal = "NOT_ENROLLED" | "CORE" | "HAS_WORK" | "WAS_DUE";
 
 /**
  * Decides whether a registration can be dropped: the student must be
  * enrolled, as only an enrolled student's modules change, and it must not
  * be a core module of their year, which every student takes, nor one they
- * have submitted work or have a mark for, which stays on their record.
+ * have submitted work or have a mark for, which stays on their record. Nor
+ * can it go once one of its deadlines has passed while they were on it:
+ * they were expected to submit, and dropping it would erase the missed work.
  */
 export function checkDrop(input: {
   status: EnrolmentStatus;
   /** The module's place in the student's year, or null if it has none. */
   kind: ModuleKind | null;
   hasWork: boolean;
+  /** One of its deadlines that year passed while they were registered. */
+  wasDue: boolean;
 }): { allowed: true } | { allowed: false; reason: DropRefusal } {
   if (input.status !== "ENROLLED") {
     return { allowed: false, reason: "NOT_ENROLLED" };
   }
   if (input.kind === "CORE") return { allowed: false, reason: "CORE" };
   if (input.hasWork) return { allowed: false, reason: "HAS_WORK" };
+  if (input.wasDue) return { allowed: false, reason: "WAS_DUE" };
   return { allowed: true };
 }
 
@@ -147,6 +155,8 @@ export const DROP_REFUSAL_MESSAGES: Record<DropRefusal, string> = {
   CORE: "Core modules can't be dropped: every student in the year takes them.",
   HAS_WORK:
     "Work has been submitted or marked for this module, so it stays on the record.",
+  WAS_DUE:
+    "One of this module's deadlines has passed, so it stays on the record.",
 };
 
 /**
