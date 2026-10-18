@@ -134,6 +134,19 @@ export function enrolmentYears(today: CalendarDate): string[] {
 }
 
 /**
+ * The academic year a new enrolment starts in unless staff choose another:
+ * this one, but the next from 1 August, when enrolments are for September.
+ */
+export function defaultEnrolmentYear(today: CalendarDate): string {
+  const [current = "", next = ""] = academicYearsAround(
+    academicYearOn(today),
+    0,
+    1,
+  );
+  return today.slice(5, 7) === "08" ? next : current;
+}
+
+/**
  * The academic years staff can move a student's record to, or charge a fee
  * for: back three years, to correct a record, and on to next year. A record
  * can always keep the year it already has, however old.

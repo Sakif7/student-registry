@@ -35,6 +35,7 @@ import {
   studentFiltersSchema,
   type StudentSort,
   STUDENTS_PAGE_SIZE,
+  tooYoungFor,
   updateStudentSchema,
 } from "@/domain/students";
 import type { Prisma } from "@/generated/prisma/client";
@@ -466,6 +467,19 @@ export async function updateStudent(
       );
       checkRecordYear(changes.academicYear, before.academicYear, today);
       checkPlacementChange(before, changes, newProgramme?.id, today);
+      // Checked when either changes: an older record's other details can
+      // always be corrected.
+      const dateOfBirth = changes.dateOfBirth ?? fromDbDate(before.dateOfBirth);
+      const academicYear = changes.academicYear ?? before.academicYear;
+      const tooYoung =
+        (dateOfBirth !== fromDbDate(before.dateOfBirth) ||
+          academicYear !== before.academicYear) &&
+        tooYoungFor(dateOfBirth, academicYear);
+      if (tooYoung) {
+        throw new AppError("VALIDATION", "Some fields need correcting.", {
+          dateOfBirth: [tooYoung],
+        });
+      }
       const updated = await tx.student.update({
         where: { id },
         data: {

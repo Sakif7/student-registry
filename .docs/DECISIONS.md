@@ -113,10 +113,17 @@ and stays on the overdue list.
 - **Email:** trimmed, lower-cased and unique. The database refuses a
   mixed-case email, so the same address can't be registered twice in
   different case.
-- **Date of birth:** a real calendar date in the past, giving an age of 16 to
-  100 on the day the record is saved. The lower bound reflects the youngest
-  further-education students; the upper bound catches a mistyped year. A 29
-  February birthday counts from 1 March in other years.
+- **Date of birth:** a real calendar date in the past. A student is 16 by
+  the 31 August before their academic year begins, as school leavers are, so
+  one who turns 16 over the summer can be enrolled on GCSE results day; the
+  form's date picker stops at that day too. Over 100 on the day the record
+  is saved is refused as a mistyped year. A 29 February birthday counts from
+  1 March in other years. An older record's other details can always be
+  corrected: the age is checked only when the date of birth or the academic
+  year changes.
+- **The year a new enrolment starts in** defaults to the current academic
+  year, and to the next one from 1 August, when enrolments are for
+  September. Missing it would be lasting: the student ID carries the year.
 - **Programme:** identified by its code, e.g. `BSC-CS`, in forms, filters and
   the API.
 - **Search filters** in the URL are lenient: a malformed value, such as an
@@ -1484,8 +1491,6 @@ unused `mysql2` driver inside the Prisma CLI, so it isn't reachable either.
   refused, but editing a student's details or correcting a fee saves every
   field, so it can undo a colleague's change made in between. A version
   check on each record would refuse it instead.
-- **A new enrolment's year** defaults to the current academic year, so an
-  August enrolment for September needs the year changed by hand.
 - **Registrations dated by the curriculum migration:** on a database that
   already held students when the curriculum was modelled, the migration
   registered them on their modules dated the moment it ran. Expected

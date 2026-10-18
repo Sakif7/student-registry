@@ -146,6 +146,20 @@ describe("PATCH /api/students/[studentNumber]", () => {
     ).toBe(200);
   });
 
+  it("needs a student 16 by the 31 August before their academic year", async () => {
+    expect(
+      await bodyOf(await patch({ dateOfBirth: "2010-09-01" })),
+    ).toMatchObject({
+      status: 400,
+      errors: {
+        dateOfBirth: [
+          "Students must be 16 by 31 August 2026, before 2026/27 begins",
+        ],
+      },
+    });
+    expect((await patch({ dateOfBirth: "2010-08-31" })).status).toBe(200);
+  });
+
   it("moves a student in an ended year on before changing their programme or year", async () => {
     await createStudent({
       studentNumber: "SMS-2025-0001",

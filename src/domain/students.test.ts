@@ -4,6 +4,7 @@ import {
   ageOn,
   changeStatusSchema,
   createStudentSchema,
+  latestBirthDateFor,
   studentFiltersSchema,
   updateStudentSchema,
 } from "./students";
@@ -150,16 +151,30 @@ describe("createStudentSchema", () => {
     ["2004-02-30", "Enter a real date, e.g. 2004-05-17"],
     ["2026-10-15", "The date of birth must be in the past"],
     ["2030-01-01", "The date of birth must be in the past"],
-    ["2010-10-16", "Students must be at least 16"],
+    [
+      "2010-09-01",
+      "Students must be 16 by 31 August 2026, before 2026/27 begins",
+    ],
     ["1920-01-01", "Check the year: that makes the student over 100"],
   ])("rejects the date of birth %s", (dateOfBirth, message) => {
     expect(errorFor({ ...valid, dateOfBirth }, "dateOfBirth")).toBe(message);
   });
 
-  it("accepts a student who turns 16 today", () => {
+  it("accepts a student who is 16 by the 31 August before their year", () => {
     expect(
-      errorFor({ ...valid, dateOfBirth: "2010-10-15" }, "dateOfBirth"),
+      errorFor({ ...valid, dateOfBirth: "2010-08-31" }, "dateOfBirth"),
     ).toBeUndefined();
+  });
+
+  it("enrols a school leaver on results day who turns 16 over the summer", () => {
+    // 20 August 2026, for 2026/27: 15 today, 16 on 25 August.
+    expect(
+      createStudentSchema("2026-08-20").safeParse({
+        ...valid,
+        dateOfBirth: "2010-08-25",
+      }).success,
+    ).toBe(true);
+    expect(latestBirthDateFor("2026/27")).toBe("2010-08-31");
   });
 
   it("allows a deferred entry but not a withdrawn or completed new record", () => {

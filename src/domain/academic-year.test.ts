@@ -11,6 +11,7 @@ import {
   academicYearStart,
   academicYearsAround,
   chooseAcademicYearFrom,
+  defaultEnrolmentYear,
   enrolmentYears,
   formatAcademicYear,
   isAcademicYear,
@@ -120,6 +121,12 @@ describe("an academic year ending", () => {
 });
 
 describe("the academic years staff can choose", () => {
+  it("starts a new enrolment this year, or next from 1 August", () => {
+    expect(defaultEnrolmentYear("2026-07-31")).toBe("2025/26");
+    expect(defaultEnrolmentYear("2026-08-01")).toBe("2026/27");
+    expect(defaultEnrolmentYear("2026-09-01")).toBe("2026/27");
+  });
+
   it("enrols into last year, this year or next", () => {
     expect(enrolmentYears("2026-10-18")).toEqual([
       "2025/26",

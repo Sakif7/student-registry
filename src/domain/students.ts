@@ -8,6 +8,7 @@ import {
   chooseAcademicYearFrom,
   enrolmentYears,
   isAcademicYear,
+  startYearOf,
 } from "./academic-year";
 import { type CalendarDate, isCalendarDate } from "./college-time";
 import { MAX_PROGRAMME_YEARS } from "./curriculum";
@@ -68,6 +69,39 @@ const emailSchema = z
   .min(1, "Enter an email address")
   .pipe(z.email("Enter a valid email address").max(254));
 
+/**
+ * The latest date of birth for a student in an academic year: they must be
+ * MIN_AGE by the 31 August before it begins, as school leavers are, so one
+ * who turns 16 over the summer can be enrolled on results day.
+ */
+export function latestBirthDateFor(academicYear: string): CalendarDate {
+  return `${startYearOf(academicYear) - MIN_AGE}-08-31`;
+}
+
+/** Why a student is too young for an academic year, or undefined. */
+export function tooYoungFor(
+  dateOfBirth: CalendarDate,
+  academicYear: string,
+): string | undefined {
+  return dateOfBirth > latestBirthDateFor(academicYear)
+    ? `Students must be ${MIN_AGE} by 31 August ${startYearOf(academicYear)}, before ${academicYear} begins`
+    : undefined;
+}
+
+/** Adds tooYoungFor's problem to the date of birth, once both are valid. */
+function checkAgeForYear(
+  details: { dateOfBirth?: string; academicYear?: string },
+  ctx: z.RefinementCtx,
+): void {
+  const { dateOfBirth, academicYear } = details;
+  if (!dateOfBirth || !academicYear || !isAcademicYear(academicYear)) return;
+  if (!isCalendarDate(dateOfBirth)) return;
+  const problem = tooYoungFor(dateOfBirth, academicYear);
+  if (problem) {
+    ctx.addIssue({ code: "custom", path: ["dateOfBirth"], message: problem });
+  }
+}
+
 function dateOfBirthSchema(today: CalendarDate) {
   return z
     .string({ error: "Enter a date of birth" })
@@ -83,11 +117,6 @@ function dateOfBirthSchema(today: CalendarDate) {
         ctx.addIssue({
           code: "custom",
           message: "The date of birth must be in the past",
-        });
-      } else if (ageOn(value, today) < MIN_AGE) {
-        ctx.addIssue({
-          code: "custom",
-          message: `Students must be at least ${MIN_AGE}`,
         });
       } else if (ageOn(value, today) > MAX_AGE) {
         ctx.addIssue({
@@ -125,40 +154,49 @@ function detailsShape(today: CalendarDate) {
   };
 }
 
-/** A student's editable details, as the edit form submits them in full. */
+/**
+ * A student's editable details, as the edit form submits them in full. The
+ * student is old enough for the academic year (see tooYoungFor).
+ */
 export function studentDetailsSchema(today: CalendarDate) {
-  return z.object(detailsShape(today));
+  return z.object(detailsShape(today)).superRefine(checkAgeForYear);
 }
 
 /**
  * Input for enrolling a new student; `today` is the college's date. A new
  * student starts in year 1 unless the year of study says otherwise, in last
- * academic year, this one or next.
+ * academic year, this one or next, and old enough for it (tooYoungFor).
  */
 export function createStudentSchema(today: CalendarDate) {
   const years = enrolmentYears(today);
-  return z.object({
-    ...detailsShape(today),
-    // A malformed year has its own message already.
-    academicYear: academicYearSchema.refine(
-      (year) => !isAcademicYear(year) || years.includes(year),
-      { error: chooseAcademicYearFrom(years) },
-    ),
-    yearOfStudy: yearOfStudySchema.default(1),
-    status: z
-      .enum(INITIAL_STATUSES, {
-        error: "A new record starts as Enrolled or Deferred",
-      })
-      .default(EnrolmentStatus.ENROLLED),
-    /**
-     * The student's first password, set by staff. Without one, the student
-     * is emailed an activation link and chooses their own.
-     */
-    password: passwordSchema.optional(),
-  });
+  return z
+    .object({
+      ...detailsShape(today),
+      // A malformed year has its own message already.
+      academicYear: academicYearSchema.refine(
+        (year) => !isAcademicYear(year) || years.includes(year),
+        { error: chooseAcademicYearFrom(years) },
+      ),
+      yearOfStudy: yearOfStudySchema.default(1),
+      status: z
+        .enum(INITIAL_STATUSES, {
+          error: "A new record starts as Enrolled or Deferred",
+        })
+        .default(EnrolmentStatus.ENROLLED),
+      /**
+       * The student's first password, set by staff. Without one, the student
+       * is emailed an activation link and chooses their own.
+       */
+      password: passwordSchema.optional(),
+    })
+    .superRefine(checkAgeForYear);
 }
 
-/** Input for editing a student's details. Status changes are separate. */
+/**
+ * Input for editing a student's details. Status changes are separate. The
+ * age is checked against the record's academic year by the service, as an
+ * edit may change either alone.
+ */
 export function updateStudentSchema(today: CalendarDate) {
   return z
     .object(detailsShape(today))

@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { StudentForm } from "@/components/students/student-form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { academicYearOn, enrolmentYears } from "@/domain/academic-year";
+import { defaultEnrolmentYear, enrolmentYears } from "@/domain/academic-year";
 import { DEMO_INBOX_URL, DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { collegeToday } from "@/server/college";
 import { env } from "@/server/env";
@@ -39,13 +39,12 @@ async function NewStudentForm() {
   const session = await requirePageRole("staff");
   const programmes = await listProgrammes(session);
   const today = collegeToday();
-  const currentYear = academicYearOn(today);
   return (
     <StudentForm
       mode="create"
       programmes={programmes}
       academicYears={enrolmentYears(today)}
-      defaultAcademicYear={currentYear}
+      defaultAcademicYear={defaultEnrolmentYear(today)}
       today={today}
       // In the demo, a new student can sign in at once with the demo
       // password, and emails are read in Mailpit.

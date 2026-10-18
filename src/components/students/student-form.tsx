@@ -21,10 +21,11 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import { isAcademicYear } from "@/domain/academic-year";
 import { passwordSchema } from "@/domain/accounts";
 import type { CalendarDate } from "@/domain/college-time";
 import { ENROLMENT_STATUS_LABELS, INITIAL_STATUSES } from "@/domain/enrolment";
-import { studentDetailsSchema } from "@/domain/students";
+import { latestBirthDateFor, studentDetailsSchema } from "@/domain/students";
 import { formatMoney } from "@/lib/format";
 import { ApiError, apiRequest } from "@/lib/api-client";
 import { refreshAfterWrite } from "@/server/actions";
@@ -103,6 +104,14 @@ export function StudentForm(props: StudentFormProps) {
   const years =
     programmes.find((programme) => programme.code === programmeCode)?.years ??
     Math.max(1, ...programmes.map((programme) => programme.years));
+  // The latest birth date for the year chosen: 16 by the 31 August before.
+  const academicYear = useWatch({
+    control: form.control,
+    name: "academicYear",
+  });
+  const latestBirthDate = isAcademicYear(academicYear)
+    ? latestBirthDateFor(academicYear)
+    : today;
   const fixed =
     props.mode === "edit" && props.fixedPlacement
       ? props.defaultValues
@@ -224,7 +233,7 @@ export function StudentForm(props: StudentFormProps) {
             <Input
               {...control}
               type="date"
-              max={today}
+              max={latestBirthDate}
               className="w-fit"
               {...form.register("dateOfBirth")}
             />
